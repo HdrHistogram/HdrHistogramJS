@@ -1,0 +1,33 @@
+{
+  "name": "HdrHistogramJS",
+  "version": "1.0.0",
+  "description": "",
+  "main": "./dist/bundle.js",
+  "scripts": {
+    "postinstall": "npm install -g typescript && npm link typescript",
+    "test": "mocha --opts mocha.opts --watch",
+    "test:karma": "karma start"
+  },
+  "author": "",
+  "license": "BSD",
+  "dependencies": {
+    "core-js": "^2.4.1"
+  },
+  "devDependencies": {
+    "@types/chai": "^3.4.34",
+    "@types/core-js": "^0.9.34",
+    "@types/enzyme": "^2.4.36",
+    "@types/mocha": "^2.2.32",
+    "chai": "^3.5.0",
+    "karma": "^1.2.0",
+    "karma-chai": "^0.1.0",
+    "karma-mocha": "^1.1.1",
+    "karma-phantomjs-launcher": "^1.0.1",
+    "karma-typescript-preprocessor2": "^1.2.1",
+    "mocha": "^3.0.2",
+    "phantomjs-prebuilt": "^2.1.12",
+    "source-map-loader": "^0.1.5",
+    "ts-loader": "^0.8.2",
+    "ts-node": "^1.4.1"
+  }
+}

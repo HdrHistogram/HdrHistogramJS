@@ -1,14 +1,14 @@
 {
   "name": "HdrHistogramJS",
   "version": "1.0.0",
-  "description": "",
+  "description": "TypeScript port of HdrHistogram",
   "main": "./dist/bundle.js",
   "scripts": {
     "postinstall": "npm install -g typescript && npm link typescript",
     "test": "mocha --opts mocha.opts --watch",
     "test:karma": "karma start"
   },
-  "author": "",
+  "author": "Alexandre Victoor",
   "license": "BSD",
   "dependencies": {
     "core-js": "^2.4.1"

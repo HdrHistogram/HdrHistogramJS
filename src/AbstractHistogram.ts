@@ -226,7 +226,17 @@ export abstract class AbstractHistogram extends AbstractHistogramBase {
         return bucketsNeeded;
     }
 
-    recordSingleValue(value : number) {
+    /**
+     * Record a value in the histogram
+     *
+     * @param value The value to be recorded
+     * @throws may throw Error if value is exceeds highestTrackableValue
+     */
+    recordValue(value: number) {
+        this.recordSingleValue(value);
+    }
+
+    recordSingleValue(value: number) {
       const countsIndex = this.countsArrayIndex(value);
       try {
           this.incrementCountAtIndex(countsIndex);
@@ -271,7 +281,7 @@ export abstract class AbstractHistogram extends AbstractHistogramBase {
         // The mask maps small values to bucket 0.
         
         // return this.leadingZeroCountBase - Long.numberOfLeadingZeros(value | subBucketMask);
-        return Math.max(Math.log2(value) - (this.subBucketHalfCountMagnitude + 1), 0);
+        return Math.max(Math.floor(Math.log2(value)) - this.subBucketHalfCountMagnitude, 0);
     }
 
     
@@ -282,7 +292,7 @@ export abstract class AbstractHistogram extends AbstractHistogramBase {
         // buckets overlap, it would have also been in the top half of bucket k-1, and therefore would have
         // returned k-1 in getBucketIndex(). Since we would then shift it one fewer bits here, it would be twice as big,
         // and therefore in the top half of subBucketCount.
-        return  value / Math.pow(2, (bucketIndex + this.unitMagnitude));
+        return  Math.floor(value / Math.pow(2, (bucketIndex + this.unitMagnitude)));
     }
 
 

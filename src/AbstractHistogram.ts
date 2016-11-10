@@ -43,13 +43,13 @@ export abstract class AbstractHistogram extends AbstractHistogramBase {
   //
   //
   //
-
+/*
   abstract getCountAtIndex(index: number): number;
 
   abstract getCountAtNormalizedIndex(index: number): number;
-
+*/
   abstract incrementCountAtIndex(index: number): void;
-
+/*
   abstract addToCountAtIndex(index: number, value: number): void;
 
   abstract setCountAtIndex(index: number, value: number): void;
@@ -57,15 +57,15 @@ export abstract class AbstractHistogram extends AbstractHistogramBase {
   abstract setCountAtNormalizedIndex(index: number, value: number): void;
 
   abstract getNormalizingIndexOffset(): number;
-
+*/
   abstract setNormalizingIndexOffset(normalizingIndexOffset: number): void;
-
+/*
   abstract shiftNormalizingIndexByOffset(offsetToAdd: number, lowestHalfBucketPopulated: boolean): void;
 
   abstract setTotalCount(totalCount: number): void;
-
+*/
   abstract incrementTotalCount(): void;
-
+/*
   abstract addToTotalCount(value: number): void;
 
   abstract clearCounts(): void;
@@ -73,15 +73,16 @@ export abstract class AbstractHistogram extends AbstractHistogramBase {
   abstract _getEstimatedFootprintInBytes(): number;
 
   abstract resize(newHighestTrackableValue: number): void;
+*/
 
   /**
    * Get the total count of all recorded values in the histogram
    * @return the total count of all recorded values in the histogram
    */
-  abstract getTotalCount(): number;
+  //abstract getTotalCount(): number;
 
   private updatedMaxValue(value: number): void  {
-    const internalValue : number = value | this.unitMagnitudeMask;
+    const internalValue : number = value + this.unitMagnitudeMask;
     this.maxValue = internalValue;
   }
 
@@ -94,12 +95,12 @@ export abstract class AbstractHistogram extends AbstractHistogramBase {
     if(value <= this.unitMagnitudeMask) {
         return;
     }
-    const internalValue: number = value & ~this.unitMagnitudeMask;
+    const internalValue =  Math.floor(value / (this.unitMagnitudeMask + 1)) * (this.unitMagnitudeMask + 1);
     this.minNonZeroValue = internalValue;
   }
   // TODO clean up
   private resetMinNonZeroValue(minNonZeroValue : number) {
-      var internalValue: number = minNonZeroValue & ~this.unitMagnitudeMask;
+      const internalValue =  Math.floor(minNonZeroValue / (this.unitMagnitudeMask + 1)) * (this.unitMagnitudeMask + 1);
       this.minNonZeroValue = (minNonZeroValue === Number.MAX_SAFE_INTEGER) ? minNonZeroValue : internalValue;
   }
 
@@ -140,9 +141,10 @@ export abstract class AbstractHistogram extends AbstractHistogramBase {
         * starting at 2000. So internally, we need to maintain single unit resolution to 2x 10^decimalPoints.
         */
       const largestValueWithSingleUnitResolution = 2 * Math.round(Math.pow(10, numberOfSignificantValueDigits));
-      
+    
       this.unitMagnitude = Math.floor(Math.log2(lowestDiscernibleValue));
-      this.unitMagnitudeMask = (1 << this.unitMagnitude) - 1;
+      
+      this.unitMagnitudeMask = Math.pow(2, this.unitMagnitude) - 1;
 
       // We need to maintain power-of-two subBucketCount (for clean direct indexing) that is large enough to
       // provide unit resolution to at least largestValueWithSingleUnitResolution. So figure out
@@ -151,7 +153,7 @@ export abstract class AbstractHistogram extends AbstractHistogramBase {
       this.subBucketHalfCountMagnitude = ((subBucketCountMagnitude > 1) ? subBucketCountMagnitude : 1) - 1;
       this.subBucketCount = Math.pow(2, this.subBucketHalfCountMagnitude + 1);
       this.subBucketHalfCount = this.subBucketCount / 2;
-      this.subBucketMask = (Math.round(this.subBucketCount) - 1) << this.unitMagnitude;
+      this.subBucketMask = (Math.round(this.subBucketCount) - 1) * Math.pow(2, this.unitMagnitude);
 
       this.establishSize(highestTrackableValue);
 
@@ -209,8 +211,7 @@ export abstract class AbstractHistogram extends AbstractHistogramBase {
 
     getBucketsNeededToCoverValue(value: number): number {
         // the k'th bucket can express from 0 * 2^k to subBucketCount * 2^k in units of 2^k
-        let smallestUntrackableValue = this.subBucketCount << this.unitMagnitude;
-
+        let smallestUntrackableValue = this.subBucketCount * Math.pow(2, this.unitMagnitude);
         // always have at least 1 bucket
         let bucketsNeeded = 1;
         while (smallestUntrackableValue <= value) {
@@ -219,10 +220,69 @@ export abstract class AbstractHistogram extends AbstractHistogramBase {
                 // Number.MAX_SAFE_INTEGER, so it's the last bucket
                 return bucketsNeeded + 1;
             }
-            smallestUntrackableValue <<= 1;
+            smallestUntrackableValue = smallestUntrackableValue * 2;
             bucketsNeeded++;
         }
         return bucketsNeeded;
+    }
+
+    recordSingleValue(value : number) {
+      const countsIndex = this.countsArrayIndex(value);
+      try {
+          this.incrementCountAtIndex(countsIndex);
+      } catch(ex) {
+          //this.handleRecordException(1, value, ex);
+      } 
+      //this.updateMinAndMax(value);
+      this.incrementTotalCount();
+    }
+
+    countsArrayIndex(value : number) : number {
+      if(value < 0) {
+          throw new Error("Histogram recorded value cannot be negative.");
+      }
+      const bucketIndex = this.getBucketIndex(value);
+      const subBucketIndex = this.getSubBucketIndex(value, bucketIndex);
+      return this.computeCountsArrayIndex(bucketIndex, subBucketIndex);
+    }
+
+    private computeCountsArrayIndex(bucketIndex: number, subBucketIndex: number) {
+        // TODO
+        //assert(subBucketIndex < subBucketCount);
+        //assert(bucketIndex == 0 || (subBucketIndex >= subBucketHalfCount));
+        
+        // Calculate the index for the first entry that will be used in the bucket (halfway through subBucketCount).
+        // For bucketIndex 0, all subBucketCount entries may be used, but bucketBaseIndex is still set in the middle.
+        const bucketBaseIndex = (bucketIndex + 1) * Math.pow(2, this.subBucketHalfCountMagnitude);
+        // Calculate the offset in the bucket. This subtraction will result in a positive value in all buckets except
+        // the 0th bucket (since a value in that bucket may be less than half the bucket's 0 to subBucketCount range).
+        // However, this works out since we give bucket 0 twice as much space.
+        const offsetInBucket = subBucketIndex - this.subBucketHalfCount;
+        // The following is the equivalent of ((subBucketIndex  - subBucketHalfCount) + bucketBaseIndex;
+        return bucketBaseIndex + offsetInBucket;
+    }
+
+    /**
+     * @return the lowest (and therefore highest precision) bucket index that can represent the value
+     */
+    getBucketIndex(value: number) {
+        // Calculates the number of powers of two by which the value is greater than the biggest value that fits in
+        // bucket 0. This is the bucket index since each successive bucket can hold a value 2x greater.
+        // The mask maps small values to bucket 0.
+        
+        // return this.leadingZeroCountBase - Long.numberOfLeadingZeros(value | subBucketMask);
+        return Math.max(Math.log2(value) - (this.subBucketHalfCountMagnitude + 1), 0);
+    }
+
+    
+    getSubBucketIndex(value: number, bucketIndex: number) {
+        // For bucketIndex 0, this is just value, so it may be anywhere in 0 to subBucketCount.
+        // For other bucketIndex, this will always end up in the top half of subBucketCount: assume that for some bucket
+        // k > 0, this calculation will yield a value in the bottom half of 0 to subBucketCount. Then, because of how
+        // buckets overlap, it would have also been in the top half of bucket k-1, and therefore would have
+        // returned k-1 in getBucketIndex(). Since we would then shift it one fewer bits here, it would be twice as big,
+        // and therefore in the top half of subBucketCount.
+        return  value / Math.pow(2, (bucketIndex + this.unitMagnitude));
     }
 
 

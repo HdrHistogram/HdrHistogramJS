@@ -1,5 +1,8 @@
 import { AbstractHistogramBase } from "./AbstractHistogramBase"
 
+const { pow, floor, ceil, round, log2, max } = Math;
+
+
 export abstract class AbstractHistogram extends AbstractHistogramBase {
 
   // "Hot" accessed fields (used in the the value recording code path) are bunched here, such
@@ -16,6 +19,9 @@ export abstract class AbstractHistogram extends AbstractHistogramBase {
    */
   unitMagnitude: number;
   subBucketHalfCount: number;
+
+  lowestDiscernibleValueRounded: number;
+
   /**
    * Biggest value that can fit in bucket 0
    */
@@ -95,12 +101,12 @@ export abstract class AbstractHistogram extends AbstractHistogramBase {
     if(value <= this.unitMagnitudeMask) {
         return;
     }
-    const internalValue =  Math.floor(value / (this.unitMagnitudeMask + 1)) * (this.unitMagnitudeMask + 1);
+    const internalValue =  floor(value / this.lowestDiscernibleValueRounded) * this.lowestDiscernibleValueRounded;
     this.minNonZeroValue = internalValue;
   }
-  // TODO clean up
+
   private resetMinNonZeroValue(minNonZeroValue : number) {
-      const internalValue =  Math.floor(minNonZeroValue / (this.unitMagnitudeMask + 1)) * (this.unitMagnitudeMask + 1);
+      const internalValue =  floor(minNonZeroValue / this.lowestDiscernibleValueRounded) * this.lowestDiscernibleValueRounded;
       this.minNonZeroValue = (minNonZeroValue === Number.MAX_SAFE_INTEGER) ? minNonZeroValue : internalValue;
   }
 
@@ -140,24 +146,24 @@ export abstract class AbstractHistogram extends AbstractHistogramBase {
         * it's "ok to be +/- 2 units at 2000". The "tricky" thing is that it is NOT ok to be +/- 2 units at 1999. Only
         * starting at 2000. So internally, we need to maintain single unit resolution to 2x 10^decimalPoints.
         */
-      const largestValueWithSingleUnitResolution = 2 * Math.round(Math.pow(10, numberOfSignificantValueDigits));
+      const largestValueWithSingleUnitResolution = 2 * round(pow(10, numberOfSignificantValueDigits));
     
-      this.unitMagnitude = Math.floor(Math.log2(lowestDiscernibleValue));
+      this.unitMagnitude = floor(log2(lowestDiscernibleValue));
       
-      this.unitMagnitudeMask = Math.pow(2, this.unitMagnitude) - 1;
+      this.lowestDiscernibleValueRounded = pow(2, this.unitMagnitude); 
+      this.unitMagnitudeMask = this.lowestDiscernibleValueRounded - 1;
 
       // We need to maintain power-of-two subBucketCount (for clean direct indexing) that is large enough to
       // provide unit resolution to at least largestValueWithSingleUnitResolution. So figure out
       // largestValueWithSingleUnitResolution's nearest power-of-two (rounded up), and use that:
-      const subBucketCountMagnitude = Math.ceil(Math.log2(largestValueWithSingleUnitResolution));
+      const subBucketCountMagnitude = ceil(log2(largestValueWithSingleUnitResolution));
       this.subBucketHalfCountMagnitude = ((subBucketCountMagnitude > 1) ? subBucketCountMagnitude : 1) - 1;
-      this.subBucketCount = Math.pow(2, this.subBucketHalfCountMagnitude + 1);
+      this.subBucketCount = pow(2, this.subBucketHalfCountMagnitude + 1);
       this.subBucketHalfCount = this.subBucketCount / 2;
-      this.subBucketMask = (Math.round(this.subBucketCount) - 1) * Math.pow(2, this.unitMagnitude);
+      this.subBucketMask = (round(this.subBucketCount) - 1) * pow(2, this.unitMagnitude);
 
       this.establishSize(highestTrackableValue);
 
-      // TODO was 64 but in JS this should be 53, right?
       this.leadingZeroCountBase = 53 - this.unitMagnitude - this.subBucketHalfCountMagnitude - 1;
       //this.percentileIterator = new PercentileIterator(this, 1);
       //this.recordedValuesIterator = new RecordedValuesIterator(this);
@@ -211,7 +217,7 @@ export abstract class AbstractHistogram extends AbstractHistogramBase {
 
     getBucketsNeededToCoverValue(value: number): number {
         // the k'th bucket can express from 0 * 2^k to subBucketCount * 2^k in units of 2^k
-        let smallestUntrackableValue = this.subBucketCount * Math.pow(2, this.unitMagnitude);
+        let smallestUntrackableValue = this.subBucketCount * pow(2, this.unitMagnitude);
         // always have at least 1 bucket
         let bucketsNeeded = 1;
         while (smallestUntrackableValue <= value) {
@@ -263,7 +269,7 @@ export abstract class AbstractHistogram extends AbstractHistogramBase {
         
         // Calculate the index for the first entry that will be used in the bucket (halfway through subBucketCount).
         // For bucketIndex 0, all subBucketCount entries may be used, but bucketBaseIndex is still set in the middle.
-        const bucketBaseIndex = (bucketIndex + 1) * Math.pow(2, this.subBucketHalfCountMagnitude);
+        const bucketBaseIndex = (bucketIndex + 1) * pow(2, this.subBucketHalfCountMagnitude);
         // Calculate the offset in the bucket. This subtraction will result in a positive value in all buckets except
         // the 0th bucket (since a value in that bucket may be less than half the bucket's 0 to subBucketCount range).
         // However, this works out since we give bucket 0 twice as much space.
@@ -281,7 +287,7 @@ export abstract class AbstractHistogram extends AbstractHistogramBase {
         // The mask maps small values to bucket 0.
         
         // return this.leadingZeroCountBase - Long.numberOfLeadingZeros(value | subBucketMask);
-        return Math.max(Math.floor(Math.log2(value)) - this.subBucketHalfCountMagnitude, 0);
+        return max(floor(log2(value)) - this.subBucketHalfCountMagnitude, 0);
     }
 
     
@@ -292,7 +298,7 @@ export abstract class AbstractHistogram extends AbstractHistogramBase {
         // buckets overlap, it would have also been in the top half of bucket k-1, and therefore would have
         // returned k-1 in getBucketIndex(). Since we would then shift it one fewer bits here, it would be twice as big,
         // and therefore in the top half of subBucketCount.
-        return  Math.floor(value / Math.pow(2, (bucketIndex + this.unitMagnitude)));
+        return  floor(value / pow(2, (bucketIndex + this.unitMagnitude)));
     }
 
 

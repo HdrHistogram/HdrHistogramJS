@@ -1,3 +1,4 @@
+import "core-js"
 import { expect } from "chai";
 import { AbstractHistogram } from "./AbstractHistogram" 
 
@@ -38,6 +39,14 @@ describe('Histogram initialization', () => {
     expect(histogram.bucketCount).to.be.equal(43);
   })
 
+  it("should set min non zero value", () => {
+    expect(histogram.minNonZeroValue).to.be.equal(Number.MAX_SAFE_INTEGER);
+  })
+
+  it("should set max value", () => {
+    expect(histogram.maxValue).to.be.equal(0);
+  })
+
 });
 
 describe('Histogram recording values', () => {
@@ -66,6 +75,43 @@ describe('Histogram recording values', () => {
     const index = histogram.countsArrayIndex(123456); 
     // then
     expect(index).to.be.equal(8073);
+    
   })
 
+  it("should update min non zero value", () => {
+    // given
+    const histogram = new HistogramForTests(1, Number.MAX_SAFE_INTEGER, 3);
+    // when
+    histogram.recordValue(123); 
+    // then
+    expect(histogram.minNonZeroValue).to.be.equal(123);
+    
+  })
+
+  it("should update max value", () => {
+    // given
+    const histogram = new HistogramForTests(1, Number.MAX_SAFE_INTEGER, 3);
+    // when
+    histogram.recordValue(123); 
+    // then
+    expect(histogram.maxValue).to.be.equal(123);
+    
+  })
+
+/*
+  it("should bench", () => {
+    const histogram = new HistogramForTests(1, Number.MAX_SAFE_INTEGER, 3);
+    for (var i = 0; i < 1000; i++) {
+       histogram.recordValue(Math.floor(Math.random() * 100000));
+    }
+    const start = new Date().getTime();
+    const nbLoop = 100000;
+    for (var i = 0; i < nbLoop; i++) {
+       histogram.recordValue(Math.floor(Math.random() * 100000));
+    }
+    const end = new Date().getTime();
+    console.log("avg", (end - start)/nbLoop );
+
+  }) 
+*/
 });

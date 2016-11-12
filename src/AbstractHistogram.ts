@@ -92,11 +92,6 @@ export abstract class AbstractHistogram extends AbstractHistogramBase {
     this.maxValue = internalValue;
   }
 
-  // TODO clean up
-  private resetMaxValue(value: number): void  {
-    this.updatedMaxValue(value);
-  }
-
   private updateMinNonZeroValue(value: number): void {
     if(value <= this.unitMagnitudeMask) {
         return;
@@ -249,7 +244,7 @@ export abstract class AbstractHistogram extends AbstractHistogramBase {
       } catch(ex) {
           //this.handleRecordException(1, value, ex);
       } 
-      //this.updateMinAndMax(value);
+      this.updateMinAndMax(value);
       this.incrementTotalCount();
     }
 
@@ -299,6 +294,15 @@ export abstract class AbstractHistogram extends AbstractHistogramBase {
         // returned k-1 in getBucketIndex(). Since we would then shift it one fewer bits here, it would be twice as big,
         // and therefore in the top half of subBucketCount.
         return  floor(value / pow(2, (bucketIndex + this.unitMagnitude)));
+    }
+
+    updateMinAndMax(value: number) {
+        if (value > this.maxValue) {
+            this.updatedMaxValue(value);
+        }
+        if ((value < this.minNonZeroValue) && (value !== 0)) {
+            this.updateMinNonZeroValue(value);
+        }
     }
 
 

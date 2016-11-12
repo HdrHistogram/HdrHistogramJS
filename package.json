@@ -7,7 +7,8 @@
     "postinstall": "npm install -g typescript && npm link typescript",
     "pretest": "tsc",
     "test": "mocha dist/**/*.spec.js",
-    "test:watch": "mocha --opts mocha.opts --watch"
+    "test:watch": "mocha --opts mocha.opts --watch",
+    "test:coverage": "nyc mocha --opts mocha.opts"
   },
   "author": "Alexandre Victoor",
   "license": "BSD",
@@ -25,9 +26,32 @@
     "karma-phantomjs-launcher": "^1.0.1",
     "karma-typescript-preprocessor2": "^1.2.1",
     "mocha": "^3.0.2",
+    "nyc": "^8.4.0",
     "phantomjs-prebuilt": "^2.1.12",
     "source-map-loader": "^0.1.5",
     "ts-loader": "^0.8.2",
     "ts-node": "^1.4.1"
+  },
+  "nyc": {
+    "include": [
+      "src/**/*.ts"
+    ],
+    "exclude": [
+      "node_modules/",
+      "dist/",
+      "src/**/*.spec.ts"
+    ],
+    "extension": [
+      ".ts"
+    ],
+    "require": [
+      "ts-node/register"
+    ],
+    "reporter": [
+      "text-summary",
+      "json",
+      "html"
+    ],
+    "all": true
   }
 }

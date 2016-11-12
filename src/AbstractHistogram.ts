@@ -5,163 +5,163 @@ const { pow, floor, ceil, round, log2, max } = Math;
 
 export abstract class AbstractHistogram extends AbstractHistogramBase {
 
-  // "Hot" accessed fields (used in the the value recording code path) are bunched here, such
-  // that they will have a good chance of ending up in the same cache line as the totalCounts and
-  // counts array reference fields that subclass implementations will typically add.
+    // "Hot" accessed fields (used in the the value recording code path) are bunched here, such
+    // that they will have a good chance of ending up in the same cache line as the totalCounts and
+    // counts array reference fields that subclass implementations will typically add.
 
-  /**
-   * Number of leading zeros in the largest value that can fit in bucket 0.
-   */
-  leadingZeroCountBase: number;
-  subBucketHalfCountMagnitude: number;
-  /**
-   * Largest k such that 2^k &lt;= lowestDiscernibleValue
-   */
-  unitMagnitude: number;
-  subBucketHalfCount: number;
+    /**
+     * Number of leading zeros in the largest value that can fit in bucket 0.
+     */
+    leadingZeroCountBase: number;
+    subBucketHalfCountMagnitude: number;
+    /**
+     * Largest k such that 2^k &lt;= lowestDiscernibleValue
+     */
+    unitMagnitude: number;
+    subBucketHalfCount: number;
 
-  lowestDiscernibleValueRounded: number;
+    lowestDiscernibleValueRounded: number;
 
-  /**
-   * Biggest value that can fit in bucket 0
-   */
-  subBucketMask: number;
-  /**
-   * Lowest unitMagnitude bits are set
-   */
-  unitMagnitudeMask: number;
+    /**
+     * Biggest value that can fit in bucket 0
+     */
+    subBucketMask: number;
+    /**
+     * Lowest unitMagnitude bits are set
+     */
+    unitMagnitudeMask: number;
 
-  maxValue: number = 0;
-  minNonZeroValue : number = Number.MAX_SAFE_INTEGER;
+    maxValue: number = 0;
+    minNonZeroValue: number = Number.MAX_SAFE_INTEGER;
 
-  /*
-  private static maxValueUpdater : AtomicLongFieldUpdater<AbstractHistogram>; public static maxValueUpdater_$LI$() : AtomicLongFieldUpdater<AbstractHistogram> { if(AbstractHistogram.maxValueUpdater == null) AbstractHistogram.maxValueUpdater = AtomicLongFieldUpdater.newUpdater<any>(AbstractHistogram, "maxValue"); return AbstractHistogram.maxValueUpdater; };
-  private static minNonZeroValueUpdater : AtomicLongFieldUpdater<AbstractHistogram>; public static minNonZeroValueUpdater_$LI$() : AtomicLongFieldUpdater<AbstractHistogram> { if(AbstractHistogram.minNonZeroValueUpdater == null) AbstractHistogram.minNonZeroValueUpdater = AtomicLongFieldUpdater.newUpdater<any>(AbstractHistogram, "minNonZeroValue"); return AbstractHistogram.minNonZeroValueUpdater; };
-  */
+    /*
+    private static maxValueUpdater : AtomicLongFieldUpdater<AbstractHistogram>; public static maxValueUpdater_$LI$() : AtomicLongFieldUpdater<AbstractHistogram> { if(AbstractHistogram.maxValueUpdater == null) AbstractHistogram.maxValueUpdater = AtomicLongFieldUpdater.newUpdater<any>(AbstractHistogram, "maxValue"); return AbstractHistogram.maxValueUpdater; };
+    private static minNonZeroValueUpdater : AtomicLongFieldUpdater<AbstractHistogram>; public static minNonZeroValueUpdater_$LI$() : AtomicLongFieldUpdater<AbstractHistogram> { if(AbstractHistogram.minNonZeroValueUpdater == null) AbstractHistogram.minNonZeroValueUpdater = AtomicLongFieldUpdater.newUpdater<any>(AbstractHistogram, "minNonZeroValue"); return AbstractHistogram.minNonZeroValueUpdater; };
+    */
 
-  // Sub-classes will typically add a totalCount field and a counts array field, which will likely be laid out
-  // right around here due to the subclass layout rules in most practical JVM implementations.
+    // Sub-classes will typically add a totalCount field and a counts array field, which will likely be laid out
+    // right around here due to the subclass layout rules in most practical JVM implementations.
 
-  //
-  //
-  //
-  // Abstract, counts-type dependent methods to be provided by subclass implementations:
-  //
-  //
-  //
-/*
-  abstract getCountAtIndex(index: number): number;
+    //
+    //
+    //
+    // Abstract, counts-type dependent methods to be provided by subclass implementations:
+    //
+    //
+    //
+    /*
+      abstract getCountAtIndex(index: number): number;
+    
+      abstract getCountAtNormalizedIndex(index: number): number;
+    */
+    abstract incrementCountAtIndex(index: number): void;
+    /*
+      abstract addToCountAtIndex(index: number, value: number): void;
+    
+      abstract setCountAtIndex(index: number, value: number): void;
+    
+      abstract setCountAtNormalizedIndex(index: number, value: number): void;
+    
+      abstract getNormalizingIndexOffset(): number;
+    */
+    abstract setNormalizingIndexOffset(normalizingIndexOffset: number): void;
+    /*
+      abstract shiftNormalizingIndexByOffset(offsetToAdd: number, lowestHalfBucketPopulated: boolean): void;
+    
+      abstract setTotalCount(totalCount: number): void;
+    */
+    abstract incrementTotalCount(): void;
+    /*
+      abstract addToTotalCount(value: number): void;
+    
+      abstract clearCounts(): void;
+    
+      abstract _getEstimatedFootprintInBytes(): number;
+    
+      abstract resize(newHighestTrackableValue: number): void;
+    */
 
-  abstract getCountAtNormalizedIndex(index: number): number;
-*/
-  abstract incrementCountAtIndex(index: number): void;
-/*
-  abstract addToCountAtIndex(index: number, value: number): void;
+    /**
+     * Get the total count of all recorded values in the histogram
+     * @return the total count of all recorded values in the histogram
+     */
+    //abstract getTotalCount(): number;
 
-  abstract setCountAtIndex(index: number, value: number): void;
-
-  abstract setCountAtNormalizedIndex(index: number, value: number): void;
-
-  abstract getNormalizingIndexOffset(): number;
-*/
-  abstract setNormalizingIndexOffset(normalizingIndexOffset: number): void;
-/*
-  abstract shiftNormalizingIndexByOffset(offsetToAdd: number, lowestHalfBucketPopulated: boolean): void;
-
-  abstract setTotalCount(totalCount: number): void;
-*/
-  abstract incrementTotalCount(): void;
-/*
-  abstract addToTotalCount(value: number): void;
-
-  abstract clearCounts(): void;
-
-  abstract _getEstimatedFootprintInBytes(): number;
-
-  abstract resize(newHighestTrackableValue: number): void;
-*/
-
-  /**
-   * Get the total count of all recorded values in the histogram
-   * @return the total count of all recorded values in the histogram
-   */
-  //abstract getTotalCount(): number;
-
-  private updatedMaxValue(value: number): void  {
-    const internalValue : number = value + this.unitMagnitudeMask;
-    this.maxValue = internalValue;
-  }
-
-  private updateMinNonZeroValue(value: number): void {
-    if(value <= this.unitMagnitudeMask) {
-        return;
-    }
-    const internalValue =  floor(value / this.lowestDiscernibleValueRounded) * this.lowestDiscernibleValueRounded;
-    this.minNonZeroValue = internalValue;
-  }
-
-  private resetMinNonZeroValue(minNonZeroValue : number) {
-      const internalValue =  floor(minNonZeroValue / this.lowestDiscernibleValueRounded) * this.lowestDiscernibleValueRounded;
-      this.minNonZeroValue = (minNonZeroValue === Number.MAX_SAFE_INTEGER) ? minNonZeroValue : internalValue;
-  }
-
-  constructor(lowestDiscernibleValue: number, highestTrackableValue: number, numberOfSignificantValueDigits: number) {
-      super();
-      // Verify argument validity
-      if (lowestDiscernibleValue < 1) {
-          throw new Error("lowestDiscernibleValue must be >= 1");
-      }
-      if (highestTrackableValue < 2 * lowestDiscernibleValue) {
-          throw new Error("highestTrackableValue must be >= 2 * lowestDiscernibleValue");
-      }
-      if ((numberOfSignificantValueDigits < 0) || (numberOfSignificantValueDigits > 5)) {
-          throw new Error("numberOfSignificantValueDigits must be between 0 and 5");
-      }
-      this.identity = AbstractHistogramBase.identityBuilder++;
-
-      this.init(lowestDiscernibleValue, highestTrackableValue, numberOfSignificantValueDigits, 1.0, 0);
+    private updatedMaxValue(value: number): void {
+        const internalValue: number = value + this.unitMagnitudeMask;
+        this.maxValue = internalValue;
     }
 
-    init(lowestDiscernibleValue: number, 
-        highestTrackableValue: number, 
-        numberOfSignificantValueDigits: number, 
-        integerToDoubleValueConversionRatio: number, 
+    private updateMinNonZeroValue(value: number): void {
+        if (value <= this.unitMagnitudeMask) {
+            return;
+        }
+        const internalValue = floor(value / this.lowestDiscernibleValueRounded) * this.lowestDiscernibleValueRounded;
+        this.minNonZeroValue = internalValue;
+    }
+
+    private resetMinNonZeroValue(minNonZeroValue: number) {
+        const internalValue = floor(minNonZeroValue / this.lowestDiscernibleValueRounded) * this.lowestDiscernibleValueRounded;
+        this.minNonZeroValue = (minNonZeroValue === Number.MAX_SAFE_INTEGER) ? minNonZeroValue : internalValue;
+    }
+
+    constructor(lowestDiscernibleValue: number, highestTrackableValue: number, numberOfSignificantValueDigits: number) {
+        super();
+        // Verify argument validity
+        if (lowestDiscernibleValue < 1) {
+            throw new Error("lowestDiscernibleValue must be >= 1");
+        }
+        if (highestTrackableValue < 2 * lowestDiscernibleValue) {
+            throw new Error("highestTrackableValue must be >= 2 * lowestDiscernibleValue");
+        }
+        if ((numberOfSignificantValueDigits < 0) || (numberOfSignificantValueDigits > 5)) {
+            throw new Error("numberOfSignificantValueDigits must be between 0 and 5");
+        }
+        this.identity = AbstractHistogramBase.identityBuilder++;
+
+        this.init(lowestDiscernibleValue, highestTrackableValue, numberOfSignificantValueDigits, 1.0, 0);
+    }
+
+    init(lowestDiscernibleValue: number,
+        highestTrackableValue: number,
+        numberOfSignificantValueDigits: number,
+        integerToDoubleValueConversionRatio: number,
         normalizingIndexOffset: number) {
-      
-      this.lowestDiscernibleValue = lowestDiscernibleValue;
-      this.highestTrackableValue = highestTrackableValue;
-      this.numberOfSignificantValueDigits = numberOfSignificantValueDigits;
-      this.integerToDoubleValueConversionRatio = integerToDoubleValueConversionRatio;
-      if(normalizingIndexOffset !== 0) {
-          this.setNormalizingIndexOffset(normalizingIndexOffset);
-      }
-      
-       /*
+
+        this.lowestDiscernibleValue = lowestDiscernibleValue;
+        this.highestTrackableValue = highestTrackableValue;
+        this.numberOfSignificantValueDigits = numberOfSignificantValueDigits;
+        this.integerToDoubleValueConversionRatio = integerToDoubleValueConversionRatio;
+        if (normalizingIndexOffset !== 0) {
+            this.setNormalizingIndexOffset(normalizingIndexOffset);
+        }
+
+        /*
         * Given a 3 decimal point accuracy, the expectation is obviously for "+/- 1 unit at 1000". It also means that
         * it's "ok to be +/- 2 units at 2000". The "tricky" thing is that it is NOT ok to be +/- 2 units at 1999. Only
         * starting at 2000. So internally, we need to maintain single unit resolution to 2x 10^decimalPoints.
         */
-      const largestValueWithSingleUnitResolution = 2 * round(pow(10, numberOfSignificantValueDigits));
-    
-      this.unitMagnitude = floor(log2(lowestDiscernibleValue));
-      
-      this.lowestDiscernibleValueRounded = pow(2, this.unitMagnitude); 
-      this.unitMagnitudeMask = this.lowestDiscernibleValueRounded - 1;
+        const largestValueWithSingleUnitResolution = 2 * round(pow(10, numberOfSignificantValueDigits));
 
-      // We need to maintain power-of-two subBucketCount (for clean direct indexing) that is large enough to
-      // provide unit resolution to at least largestValueWithSingleUnitResolution. So figure out
-      // largestValueWithSingleUnitResolution's nearest power-of-two (rounded up), and use that:
-      const subBucketCountMagnitude = ceil(log2(largestValueWithSingleUnitResolution));
-      this.subBucketHalfCountMagnitude = ((subBucketCountMagnitude > 1) ? subBucketCountMagnitude : 1) - 1;
-      this.subBucketCount = pow(2, this.subBucketHalfCountMagnitude + 1);
-      this.subBucketHalfCount = this.subBucketCount / 2;
-      this.subBucketMask = (round(this.subBucketCount) - 1) * pow(2, this.unitMagnitude);
+        this.unitMagnitude = floor(log2(lowestDiscernibleValue));
 
-      this.establishSize(highestTrackableValue);
+        this.lowestDiscernibleValueRounded = pow(2, this.unitMagnitude);
+        this.unitMagnitudeMask = this.lowestDiscernibleValueRounded - 1;
 
-      this.leadingZeroCountBase = 53 - this.unitMagnitude - this.subBucketHalfCountMagnitude - 1;
-      //this.percentileIterator = new PercentileIterator(this, 1);
-      //this.recordedValuesIterator = new RecordedValuesIterator(this);
+        // We need to maintain power-of-two subBucketCount (for clean direct indexing) that is large enough to
+        // provide unit resolution to at least largestValueWithSingleUnitResolution. So figure out
+        // largestValueWithSingleUnitResolution's nearest power-of-two (rounded up), and use that:
+        const subBucketCountMagnitude = ceil(log2(largestValueWithSingleUnitResolution));
+        this.subBucketHalfCountMagnitude = ((subBucketCountMagnitude > 1) ? subBucketCountMagnitude : 1) - 1;
+        this.subBucketCount = pow(2, this.subBucketHalfCountMagnitude + 1);
+        this.subBucketHalfCount = this.subBucketCount / 2;
+        this.subBucketMask = (round(this.subBucketCount) - 1) * pow(2, this.unitMagnitude);
+
+        this.establishSize(highestTrackableValue);
+
+        this.leadingZeroCountBase = 53 - this.unitMagnitude - this.subBucketHalfCountMagnitude - 1;
+        //this.percentileIterator = new PercentileIterator(this, 1);
+        //this.recordedValuesIterator = new RecordedValuesIterator(this);
     }
 
     /**
@@ -192,7 +192,7 @@ export abstract class AbstractHistogram extends AbstractHistogramBase {
     determineArrayLengthNeeded(highestTrackableValue: number): number {
         if (highestTrackableValue < 2 * this.lowestDiscernibleValue) {
             throw new Error("highestTrackableValue (" + highestTrackableValue +
-                    ") cannot be < (2 * lowestDiscernibleValue)");
+                ") cannot be < (2 * lowestDiscernibleValue)");
         }
         //determine counts array length needed:
         const countsArrayLength = this.getLengthForNumberOfBuckets(this.getBucketsNeededToCoverValue(highestTrackableValue));
@@ -205,8 +205,8 @@ export abstract class AbstractHistogram extends AbstractHistogramBase {
      * being used for the lower half of the 0'th bucket. Or, equivalently, we need 1 more bucket to capture the max
      * value if we consider the sub-bucket length to be halved.
      */
-    getLengthForNumberOfBuckets(numberOfBuckets : number): number {
-        var lengthNeeded: number = (numberOfBuckets + 1) * (this.subBucketCount / 2);
+    getLengthForNumberOfBuckets(numberOfBuckets: number): number {
+        const lengthNeeded: number = (numberOfBuckets + 1) * (this.subBucketCount / 2);
         return lengthNeeded;
     }
 
@@ -238,30 +238,30 @@ export abstract class AbstractHistogram extends AbstractHistogramBase {
     }
 
     recordSingleValue(value: number) {
-      const countsIndex = this.countsArrayIndex(value);
-      try {
-          this.incrementCountAtIndex(countsIndex);
-      } catch(ex) {
-          //this.handleRecordException(1, value, ex);
-      } 
-      this.updateMinAndMax(value);
-      this.incrementTotalCount();
+        const countsIndex = this.countsArrayIndex(value);
+        try {
+            this.incrementCountAtIndex(countsIndex);
+        } catch (ex) {
+            //this.handleRecordException(1, value, ex);
+        }
+        this.updateMinAndMax(value);
+        this.incrementTotalCount();
     }
 
-    countsArrayIndex(value : number) : number {
-      if(value < 0) {
-          throw new Error("Histogram recorded value cannot be negative.");
-      }
-      const bucketIndex = this.getBucketIndex(value);
-      const subBucketIndex = this.getSubBucketIndex(value, bucketIndex);
-      return this.computeCountsArrayIndex(bucketIndex, subBucketIndex);
+    countsArrayIndex(value: number): number {
+        if (value < 0) {
+            throw new Error("Histogram recorded value cannot be negative.");
+        }
+        const bucketIndex = this.getBucketIndex(value);
+        const subBucketIndex = this.getSubBucketIndex(value, bucketIndex);
+        return this.computeCountsArrayIndex(bucketIndex, subBucketIndex);
     }
 
     private computeCountsArrayIndex(bucketIndex: number, subBucketIndex: number) {
         // TODO
         //assert(subBucketIndex < subBucketCount);
         //assert(bucketIndex == 0 || (subBucketIndex >= subBucketHalfCount));
-        
+
         // Calculate the index for the first entry that will be used in the bucket (halfway through subBucketCount).
         // For bucketIndex 0, all subBucketCount entries may be used, but bucketBaseIndex is still set in the middle.
         const bucketBaseIndex = (bucketIndex + 1) * pow(2, this.subBucketHalfCountMagnitude);
@@ -280,12 +280,12 @@ export abstract class AbstractHistogram extends AbstractHistogramBase {
         // Calculates the number of powers of two by which the value is greater than the biggest value that fits in
         // bucket 0. This is the bucket index since each successive bucket can hold a value 2x greater.
         // The mask maps small values to bucket 0.
-        
+
         // return this.leadingZeroCountBase - Long.numberOfLeadingZeros(value | subBucketMask);
         return max(floor(log2(value)) - this.subBucketHalfCountMagnitude, 0);
     }
 
-    
+
     getSubBucketIndex(value: number, bucketIndex: number) {
         // For bucketIndex 0, this is just value, so it may be anywhere in 0 to subBucketCount.
         // For other bucketIndex, this will always end up in the top half of subBucketCount: assume that for some bucket
@@ -293,7 +293,7 @@ export abstract class AbstractHistogram extends AbstractHistogramBase {
         // buckets overlap, it would have also been in the top half of bucket k-1, and therefore would have
         // returned k-1 in getBucketIndex(). Since we would then shift it one fewer bits here, it would be twice as big,
         // and therefore in the top half of subBucketCount.
-        return  floor(value / pow(2, (bucketIndex + this.unitMagnitude)));
+        return floor(value / pow(2, (bucketIndex + this.unitMagnitude)));
     }
 
     updateMinAndMax(value: number) {

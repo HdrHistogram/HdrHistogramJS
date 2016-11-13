@@ -4,7 +4,6 @@
   "description": "TypeScript port of HdrHistogram",
   "main": "./dist/bundle.js",
   "scripts": {
-    "postinstall": "npm install -g typescript && npm link typescript",
     "pretest": "tsc",
     "test": "mocha dist/**/*.spec.js",
     "test:watch": "mocha --opts mocha.opts --watch",
@@ -30,7 +29,8 @@
     "phantomjs-prebuilt": "^2.1.12",
     "source-map-loader": "^0.1.5",
     "ts-loader": "^0.8.2",
-    "ts-node": "^1.4.1"
+    "ts-node": "^1.4.1",
+    "typescript": "^2.0.9"
   },
   "nyc": {
     "include": [

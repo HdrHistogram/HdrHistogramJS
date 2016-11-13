@@ -17,6 +17,14 @@ class HistogramForTests extends AbstractHistogram {
   incrementTotalCount(): void {
   }
 
+  getTotalCount() {
+    return 0;
+  }
+
+  getCountAtIndex(index: number): number  {
+    return 0;
+  }
+
 }
 
 describe('Histogram initialization', () => {

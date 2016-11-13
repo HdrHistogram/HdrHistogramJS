@@ -15,7 +15,7 @@ class Int32Histogram extends AbstractHistogram {
       highestTrackableValue, 
       numberOfSignificantValueDigits
     );
-
+    this.totalCount = 0;
     this.counts = new Uint32Array(this.countsArrayLength);
   }
 
@@ -33,6 +33,14 @@ class Int32Histogram extends AbstractHistogram {
 
   incrementTotalCount() {
     this.totalCount++;
+  }
+
+  getTotalCount() {
+    return this.totalCount;
+  }
+
+  getCountAtIndex(index: number)  {
+    return this.counts[index];
   }
 
 }

@@ -1,6 +1,6 @@
 import { AbstractHistogramBase } from "./AbstractHistogramBase"
 
-const { pow, floor, ceil, round, log2, max } = Math;
+const { pow, floor, ceil, round, log2, max, min } = Math;
 
 
 export abstract class AbstractHistogram extends AbstractHistogramBase {
@@ -49,9 +49,9 @@ export abstract class AbstractHistogram extends AbstractHistogramBase {
     //
     //
     //
-    /*
-      abstract getCountAtIndex(index: number): number;
     
+      abstract getCountAtIndex(index: number): number;
+    /*
       abstract getCountAtNormalizedIndex(index: number): number;
     */
     abstract incrementCountAtIndex(index: number): void;
@@ -85,7 +85,7 @@ export abstract class AbstractHistogram extends AbstractHistogramBase {
      * Get the total count of all recorded values in the histogram
      * @return the total count of all recorded values in the histogram
      */
-    //abstract getTotalCount(): number;
+    abstract getTotalCount(): number;
 
     private updatedMaxValue(value: number): void {
         const internalValue: number = value + this.unitMagnitudeMask;
@@ -304,6 +304,106 @@ export abstract class AbstractHistogram extends AbstractHistogramBase {
             this.updateMinNonZeroValue(value);
         }
     }
+
+    /**
+     * Get the value at a given percentile.
+     * When the given percentile is &gt; 0.0, the value returned is the value that the given
+     * percentage of the overall recorded value entries in the histogram are either smaller than
+     * or equivalent to. When the given percentile is 0.0, the value returned is the value that all value
+     * entries in the histogram are either larger than or equivalent to.
+     * <p>
+     * Note that two values are "equivalent" in this statement if
+     * {@link org.HdrHistogram.AbstractHistogram#valuesAreEquivalent} would return true.
+     * 
+     * @param percentile  The percentile for which to return the associated value
+     * @return The value that the given percentage of the overall recorded value entries in the
+     * histogram are either smaller than or equivalent to. When the percentile is 0.0, returns the
+     * value that all value entries in the histogram are either larger than or equivalent to.
+     */
+    getValueAtPercentile(percentile: number) {
+        const requestedPercentile = min(percentile, 100);  // Truncate down to 100%
+        const countAtPercentile 
+            = max(round((requestedPercentile / 100.0) * this.getTotalCount() + 0.5), 1); // round to nearest and make sure we at least reach the first recorded entry
+        let totalToCurrentIndex = 0;
+        for (let i = 0; i < this.countsArrayLength; i++) {
+            totalToCurrentIndex += this.getCountAtIndex(i);
+            if (totalToCurrentIndex >= countAtPercentile) {
+                var valueAtIndex: number = this.valueFromIndex(i);
+                return (percentile === 0.0) ? this.lowestEquivalentValue(valueAtIndex) : this.highestEquivalentValue(valueAtIndex);
+            }
+        }
+        return 0;
+    }
+
+    valueFromIndexes(bucketIndex: number, subBucketIndex: number) {
+        return subBucketIndex * pow(2, bucketIndex + this.unitMagnitude);
+    }
+
+    valueFromIndex(index: number) {
+        let bucketIndex = floor(index / this.subBucketHalfCount) - 1;
+        let subBucketIndex = (index % this.subBucketHalfCount) + this.subBucketHalfCount;
+        if(bucketIndex < 0) {
+            subBucketIndex -= this.subBucketHalfCount;
+            bucketIndex = 0;
+        }
+        return this.valueFromIndexes(bucketIndex, subBucketIndex);
+    }
+
+    /**
+     * Get the lowest value that is equivalent to the given value within the histogram's resolution.
+     * Where "equivalent" means that value samples recorded for any two
+     * equivalent values are counted in a common total count.
+     * 
+     * @param value The given value
+     * @return The lowest value that is equivalent to the given value within the histogram's resolution.
+     */
+    lowestEquivalentValue(value: number) {
+        const bucketIndex = this.getBucketIndex(value);
+        const subBucketIndex = this.getSubBucketIndex(value, bucketIndex);
+        const thisValueBaseLevel = this.valueFromIndexes(bucketIndex, subBucketIndex);
+        return thisValueBaseLevel;
+    }
+
+    /**
+     * Get the highest value that is equivalent to the given value within the histogram's resolution.
+     * Where "equivalent" means that value samples recorded for any two
+     * equivalent values are counted in a common total count.
+     * 
+     * @param value The given value
+     * @return The highest value that is equivalent to the given value within the histogram's resolution.
+     */
+    highestEquivalentValue(value: number) {
+        return this.nextNonEquivalentValue(value) - 1;
+    }
+
+    /**
+     * Get the next value that is not equivalent to the given value within the histogram's resolution.
+     * Where "equivalent" means that value samples recorded for any two
+     * equivalent values are counted in a common total count.
+     * 
+     * @param value The given value
+     * @return The next value that is not equivalent to the given value within the histogram's resolution.
+     */
+    nextNonEquivalentValue(value: number) {
+        return this.lowestEquivalentValue(value) + this.sizeOfEquivalentValueRange(value);
+    }
+
+    /**
+     * Get the size (in value units) of the range of values that are equivalent to the given value within the
+     * histogram's resolution. Where "equivalent" means that value samples recorded for any two
+     * equivalent values are counted in a common total count.
+     * 
+     * @param value The given value
+     * @return The size of the range of values equivalent to the given value.
+     */
+    sizeOfEquivalentValueRange(value: number) {
+        const bucketIndex = this.getBucketIndex(value);
+        const subBucketIndex = this.getSubBucketIndex(value, bucketIndex);
+        const distanceToNextValue 
+            = pow(2, this.unitMagnitude + ((subBucketIndex >= this.subBucketCount) ? (bucketIndex + 1) : bucketIndex));
+        return distanceToNextValue;
+    }
+
 
 
 }

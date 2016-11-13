@@ -2,7 +2,8 @@
   "name": "hdr-histogram-js",
   "version": "1.0.0",
   "description": "TypeScript port of HdrHistogram",
-  "main": "./dist/bundle.js",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "scripts": {
     "pretest": "tsc",
     "test": "mocha dist/**/*.spec.js",

@@ -5,5 +5,5 @@ node_js:
 before_script:
   - npm install -g typescript
 script:
-  - npm test
+  - npm run test:coverage
 

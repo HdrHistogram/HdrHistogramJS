@@ -1,2 +1,4 @@
+[![Build Status](https://travis-ci.org/alexvictoor/HdrHistogramJS.svg?branch=master)](https://travis-ci.org/alexvictoor/HdrHistogramJS)
+
 # HdrHistogramJS
-JavaScript port of HdrHistogram
+TypeScript port of HdrHistogram

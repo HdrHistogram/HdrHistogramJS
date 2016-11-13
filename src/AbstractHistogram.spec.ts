@@ -17,6 +17,12 @@ class HistogramForTests extends AbstractHistogram {
   incrementTotalCount(): void {
   }
 
+  resize(newHighestTrackableValue: number): void {
+  }
+
+  addToCountAtIndex(index: number, value: number): void {
+  }
+
   getTotalCount() {
     return 0;
   }
@@ -104,6 +110,13 @@ describe('Histogram recording values', () => {
     // then
     expect(histogram.maxValue).to.be.equal(123);
     
+  })
+
+  it("should throw an error when value bigger than highest trackable value", () => {
+    // given
+    const histogram = new HistogramForTests(1, 4096, 3);
+    // when then
+    expect( () => histogram.recordValue(9000)).to.throw();   
   })
 
 /*

@@ -39,6 +39,19 @@ describe('Int32 histogram', () => {
     // TODO the value is 123519 > max, ask Gil if it is a bug
   })
 
+  it("should resize recording values above max", () => {
+    // given
+    const histogram = new Histogram(1, 2, 3);
+    histogram.autoResize = true;
+    // when
+    histogram.recordValue(123456);
+    histogram.recordValue(127);
+    histogram.recordValue(42);
+    // then
+    const medianValue = histogram.getValueAtPercentile(50);
+    expect(medianValue).equals(127);
+  })
+
 /*
   it.only("should bench", () => {
     const histogram = new Histogram(1, Number.MAX_SAFE_INTEGER, 3);

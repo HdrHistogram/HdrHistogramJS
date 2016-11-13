@@ -28,6 +28,21 @@ class Int32Histogram extends AbstractHistogram {
     this.counts[index] = newCount;
   }
 
+  addToCountAtIndex(index: number, value: number) {
+    const currentCount = this.counts[index];
+    const newCount = currentCount + value;
+    if ((newCount < Number.MIN_SAFE_INTEGER) || (newCount > Number.MAX_SAFE_INTEGER)) {
+      throw "would overflow integer count";
+    }
+    this.counts[index] = newCount;
+  }
+
+  resize(newHighestTrackableValue: number) {
+    const newCounts = new Uint32Array(this.countsArrayLength);
+    newCounts.set(this.counts);
+    this.counts = newCounts;
+  }
+
   setNormalizingIndexOffset(normalizingIndexOffset: number) {
   }
 

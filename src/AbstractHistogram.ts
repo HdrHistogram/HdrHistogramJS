@@ -55,9 +55,9 @@ export abstract class AbstractHistogram extends AbstractHistogramBase {
     abstract getCountAtNormalizedIndex(index: number): number;
   */
   abstract incrementCountAtIndex(index: number): void;
-  /*
-    abstract addToCountAtIndex(index: number, value: number): void;
   
+  abstract addToCountAtIndex(index: number, value: number): void;
+  /*
     abstract setCountAtIndex(index: number, value: number): void;
   
     abstract setCountAtNormalizedIndex(index: number, value: number): void;
@@ -77,9 +77,9 @@ export abstract class AbstractHistogram extends AbstractHistogramBase {
     abstract clearCounts(): void;
   
     abstract _getEstimatedFootprintInBytes(): number;
-  
-    abstract resize(newHighestTrackableValue: number): void;
   */
+    abstract resize(newHighestTrackableValue: number): void;
+
 
   /**
    * Get the total count of all recorded values in the histogram
@@ -239,13 +239,24 @@ export abstract class AbstractHistogram extends AbstractHistogramBase {
 
   recordSingleValue(value: number) {
     const countsIndex = this.countsArrayIndex(value);
-    try {
-      this.incrementCountAtIndex(countsIndex);
-    } catch (ex) {
-      //this.handleRecordException(1, value, ex);
+    if (countsIndex >= this.countsArrayLength) {
+      this.handleRecordException(1, value);
+      return;
     }
+    
+    this.incrementCountAtIndex(countsIndex);
     this.updateMinAndMax(value);
     this.incrementTotalCount();
+  }
+
+  handleRecordException(count: number, value: number) {
+    if(!this.autoResize) {
+        throw "Value outside of histogram covered range";
+    }
+    this.resize(value);
+    var countsIndex : number = this.countsArrayIndex(value);
+    this.addToCountAtIndex(countsIndex, count);
+    this.highestTrackableValue = this.highestEquivalentValue(this.valueFromIndex(this.countsArrayLength - 1));
   }
 
   countsArrayIndex(value: number): number {

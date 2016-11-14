@@ -18,6 +18,7 @@ class HistogramForTests extends AbstractHistogram {
   }
 
   resize(newHighestTrackableValue: number): void {
+    this.establishSize(newHighestTrackableValue);
   }
 
   addToCountAtIndex(index: number, value: number): void {
@@ -116,7 +117,25 @@ describe('Histogram recording values', () => {
     // given
     const histogram = new HistogramForTests(1, 4096, 3);
     // when then
-    expect( () => histogram.recordValue(9000)).to.throw();   
+    expect(() => histogram.recordValue(9000)).to.throw();   
+  })
+
+  it("should not throw an error when autoresize enable and value bigger than highest trackable value", () => {
+    // given
+    const histogram = new HistogramForTests(1, 4096, 3);
+    histogram.autoResize = true;
+    // when then
+    expect(() => histogram.recordValue(9000)).to.not.throw();   
+  })
+
+  it("should increase counts array size when recording value bigger than highest trackable value", () => {
+    // given
+    const histogram = new HistogramForTests(1, 4096, 3);
+    histogram.autoResize = true;
+    // when
+    histogram.recordValue(9000);
+    // then
+    expect(histogram.highestTrackableValue).to.be.greaterThan(9000);   
   })
 
 /*

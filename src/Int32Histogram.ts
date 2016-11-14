@@ -38,6 +38,7 @@ class Int32Histogram extends AbstractHistogram {
   }
 
   resize(newHighestTrackableValue: number) {
+    this.establishSize(newHighestTrackableValue);
     const newCounts = new Uint32Array(this.countsArrayLength);
     newCounts.set(this.counts);
     this.counts = newCounts;

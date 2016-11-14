@@ -45,11 +45,11 @@ describe('Int32 histogram', () => {
     histogram.autoResize = true;
     // when
     histogram.recordValue(123456);
-    histogram.recordValue(127);
-    histogram.recordValue(42);
+    histogram.recordValue(127000);
+    histogram.recordValue(420000);
     // then
     const medianValue = histogram.getValueAtPercentile(50);
-    expect(medianValue).equals(127);
+    expect(medianValue).satisfies((result: number) => Math.abs(result - 127000) < 1000);
   })
 
 /*

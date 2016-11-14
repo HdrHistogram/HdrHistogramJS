@@ -241,10 +241,9 @@ export abstract class AbstractHistogram extends AbstractHistogramBase {
     const countsIndex = this.countsArrayIndex(value);
     if (countsIndex >= this.countsArrayLength) {
       this.handleRecordException(1, value);
-      return;
+    } else {
+      this.incrementCountAtIndex(countsIndex);
     }
-    
-    this.incrementCountAtIndex(countsIndex);
     this.updateMinAndMax(value);
     this.incrementTotalCount();
   }

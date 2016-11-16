@@ -1,4 +1,5 @@
 import { AbstractHistogramBase } from "./AbstractHistogramBase"
+import RecordedValuesIterator from "./RecordedValuesIterator"
 
 const { pow, floor, ceil, round, log2, max, min } = Math;
 
@@ -34,11 +35,7 @@ export abstract class AbstractHistogram extends AbstractHistogramBase {
   maxValue: number = 0;
   minNonZeroValue: number = Number.MAX_SAFE_INTEGER;
 
-  /*
-  private static maxValueUpdater : AtomicLongFieldUpdater<AbstractHistogram>; public static maxValueUpdater_$LI$() : AtomicLongFieldUpdater<AbstractHistogram> { if(AbstractHistogram.maxValueUpdater == null) AbstractHistogram.maxValueUpdater = AtomicLongFieldUpdater.newUpdater<any>(AbstractHistogram, "maxValue"); return AbstractHistogram.maxValueUpdater; };
-  private static minNonZeroValueUpdater : AtomicLongFieldUpdater<AbstractHistogram>; public static minNonZeroValueUpdater_$LI$() : AtomicLongFieldUpdater<AbstractHistogram> { if(AbstractHistogram.minNonZeroValueUpdater == null) AbstractHistogram.minNonZeroValueUpdater = AtomicLongFieldUpdater.newUpdater<any>(AbstractHistogram, "minNonZeroValue"); return AbstractHistogram.minNonZeroValueUpdater; };
-  */
-
+ 
   // Sub-classes will typically add a totalCount field and a counts array field, which will likely be laid out
   // right around here due to the subclass layout rules in most practical JVM implementations.
 
@@ -161,7 +158,7 @@ export abstract class AbstractHistogram extends AbstractHistogramBase {
 
     this.leadingZeroCountBase = 53 - this.unitMagnitude - this.subBucketHalfCountMagnitude - 1;
     //this.percentileIterator = new PercentileIterator(this, 1);
-    //this.recordedValuesIterator = new RecordedValuesIterator(this);
+    this.recordedValuesIterator = new RecordedValuesIterator(this);
   }
 
   /**

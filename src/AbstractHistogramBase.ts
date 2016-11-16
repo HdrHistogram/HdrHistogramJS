@@ -1,5 +1,6 @@
 import "core-js"
-import { EncodableHistogram } from "./EncodableHistogram"
+import { EncodableHistogram } from "./EncodableHistogram";
+import RecordedValuesIterator from "./RecordedValuesIterator";
 
 export abstract class AbstractHistogramBase extends EncodableHistogram {
 
@@ -29,7 +30,7 @@ export abstract class AbstractHistogramBase extends EncodableHistogram {
 
   //percentileIterator : PercentileIterator;
 
-  //recordedValuesIterator : RecordedValuesIterator;
+  recordedValuesIterator : RecordedValuesIterator;
 
   //intermediateUncompressedByteBuffer : ByteBuffer = null;
 

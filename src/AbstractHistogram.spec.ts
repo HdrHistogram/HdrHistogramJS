@@ -1,6 +1,9 @@
 import "core-js"
 import { expect } from "chai";
 import { AbstractHistogram } from "./AbstractHistogram" 
+import Int32Histogram from "./Int32Histogram"
+import PercentileIterator from "./PercentileIterator"
+import HistogramIterationValue from "./HistogramIterationValue"
 
 
 
@@ -154,4 +157,61 @@ describe('Histogram recording values', () => {
 
   }) 
 */
+});
+
+describe('Histogram computing statistics', () => {
+
+  it("should compute mean value", () => {
+    // given
+    const histogram = new Int32Histogram(1, Number.MAX_SAFE_INTEGER, 3);
+    // when
+    histogram.recordValue(25);
+    histogram.recordValue(50);
+    histogram.recordValue(75);
+    // then
+    expect(histogram.getMean()).to.be.equal(50);
+  });
+
+  it("should compute standard deviation", () => {
+    // given
+    const histogram = new Int32Histogram(1, Number.MAX_SAFE_INTEGER, 3);
+    // when
+    histogram.recordValue(25);
+    histogram.recordValue(50);
+    histogram.recordValue(75);
+    // then
+    expect(histogram.getStdDeviation()).to.be.greaterThan(20.4124)
+    expect(histogram.getStdDeviation()).to.be.below(20.4125)
+  });
+
+  it("should compute percentile distribution", () => {
+    // given
+    const histogram = new Int32Histogram(1, Number.MAX_SAFE_INTEGER, 3);
+    // when
+    histogram.recordValue(25);
+    histogram.recordValue(50);
+    histogram.recordValue(75);
+    // then
+    const expectedResult = (
+`       Value     Percentile TotalCount 1/(1-Percentile)
+
+      25.000 0.000000000000          1           1.00
+      25.000 0.100000000000          1           1.11
+      25.000 0.200000000000          1           1.25
+      25.000 0.300000000000          1           1.43
+      50.000 0.400000000000          2           1.67
+      50.000 0.500000000000          2           2.00
+      50.000 0.550000000000          2           2.22
+      50.000 0.600000000000          2           2.50
+      50.000 0.650000000000          2           2.86
+      75.000 0.700000000000          3           3.33
+      75.000 1.000000000000          3
+#[Mean    =       50.000, StdDeviation   =       20.412]
+#[Max     =       75.000, Total count    =            3]
+#[Buckets =           43, SubBuckets     =         2048]
+`
+    );
+    expect(histogram.outputPercentileDistribution()).to.be.equal(expectedResult);
+  });
+
 });

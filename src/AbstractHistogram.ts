@@ -7,8 +7,12 @@
  */
 import { AbstractHistogramBase } from "./AbstractHistogramBase"
 import RecordedValuesIterator from "./RecordedValuesIterator"
+import PercentileIterator from "./PercentileIterator"
+import HistogramIterationValue from "./HistogramIterationValue"
+import { integerFormatter, floatFormatter } from "./formatters"
 
-const { pow, floor, ceil, round, log2, max, min } = Math;
+
+const { pow, floor, ceil, log2, max, min } = Math;
 
 
 export abstract class AbstractHistogram extends AbstractHistogramBase {
@@ -145,7 +149,7 @@ export abstract class AbstractHistogram extends AbstractHistogramBase {
     * it's "ok to be +/- 2 units at 2000". The "tricky" thing is that it is NOT ok to be +/- 2 units at 1999. Only
     * starting at 2000. So internally, we need to maintain single unit resolution to 2x 10^decimalPoints.
     */
-    const largestValueWithSingleUnitResolution = 2 * round(pow(10, numberOfSignificantValueDigits));
+    const largestValueWithSingleUnitResolution = 2 * floor(pow(10, numberOfSignificantValueDigits));
 
     this.unitMagnitude = floor(log2(lowestDiscernibleValue));
 
@@ -159,12 +163,12 @@ export abstract class AbstractHistogram extends AbstractHistogramBase {
     this.subBucketHalfCountMagnitude = ((subBucketCountMagnitude > 1) ? subBucketCountMagnitude : 1) - 1;
     this.subBucketCount = pow(2, this.subBucketHalfCountMagnitude + 1);
     this.subBucketHalfCount = this.subBucketCount / 2;
-    this.subBucketMask = (round(this.subBucketCount) - 1) * pow(2, this.unitMagnitude);
+    this.subBucketMask = (floor(this.subBucketCount) - 1) * pow(2, this.unitMagnitude);
 
     this.establishSize(highestTrackableValue);
 
     this.leadingZeroCountBase = 53 - this.unitMagnitude - this.subBucketHalfCountMagnitude - 1;
-    //this.percentileIterator = new PercentileIterator(this, 1);
+    this.percentileIterator = new PercentileIterator(this, 1);
     this.recordedValuesIterator = new RecordedValuesIterator(this);
   }
 
@@ -337,7 +341,7 @@ export abstract class AbstractHistogram extends AbstractHistogramBase {
   getValueAtPercentile(percentile: number) {
     const requestedPercentile = min(percentile, 100);  // Truncate down to 100%
     const countAtPercentile 
-      = max(round((requestedPercentile / 100.0) * this.getTotalCount() + 0.5), 1); // round to nearest and make sure we at least reach the first recorded entry
+      = max(floor((requestedPercentile / 100.0) * this.getTotalCount() + 0.5), 1); // round to nearest and make sure we at least reach the first recorded entry
     let totalToCurrentIndex = 0;
     for (let i = 0; i < this.countsArrayLength; i++) {
       totalToCurrentIndex += this.getCountAtIndex(i);
@@ -419,5 +423,170 @@ export abstract class AbstractHistogram extends AbstractHistogramBase {
   }
 
 
+  /**
+   * Get a value that lies in the middle (rounded up) of the range of values equivalent the given value.
+   * Where "equivalent" means that value samples recorded for any two
+   * equivalent values are counted in a common total count.
+   *
+   * @param value The given value
+   * @return The value lies in the middle (rounded up) of the range of values equivalent the given value.
+   */
+  medianEquivalentValue(value: number) {
+    return (this.lowestEquivalentValue(value) + floor(this.sizeOfEquivalentValueRange(value) / 2));
+  }
+
+  /**
+   * Get the computed mean value of all recorded values in the histogram
+   *
+   * @return the mean value (in value units) of the histogram data
+   */
+  getMean() {
+    if (this.getTotalCount() === 0) {
+      return 0;
+    }
+    this.recordedValuesIterator.reset();
+    let totalValue = 0;
+    while (this.recordedValuesIterator.hasNext()) {
+      const iterationValue = this.recordedValuesIterator.next();
+      totalValue += this.medianEquivalentValue(iterationValue.valueIteratedTo)
+              * iterationValue.countAtValueIteratedTo;
+    }
+    return (totalValue * 1.0) / this.getTotalCount();
+  }
+
+
+
+  /**
+   * Get the computed standard deviation of all recorded values in the histogram
+   *
+   * @return the standard deviation (in value units) of the histogram data
+   */
+  getStdDeviation() {
+    if (this.getTotalCount() === 0) {
+      return 0;
+    }
+    const mean = this.getMean();
+    let geometric_deviation_total = 0.0;
+    this.recordedValuesIterator.reset();
+    while (this.recordedValuesIterator.hasNext()) {
+      const iterationValue = this.recordedValuesIterator.next();
+      const deviation = this.medianEquivalentValue(iterationValue.valueIteratedTo) - mean;
+      geometric_deviation_total += (deviation * deviation) * iterationValue.countAddedInThisIterationStep;
+    }
+    const std_deviation = Math.sqrt(geometric_deviation_total / this.getTotalCount());
+    return std_deviation;
+  }
+
+
+
+  /**
+   * Produce textual representation of the value distribution of histogram data by percentile. The distribution is
+   * output with exponentially increasing resolution, with each exponentially decreasing half-distance containing
+   * <i>dumpTicksPerHalf</i> percentile reporting tick points.
+   *
+   * @param printStream    Stream into which the distribution will be output
+   * <p>
+   * @param percentileTicksPerHalfDistance  The number of reporting points per exponentially decreasing half-distance
+   * <p>
+   * @param outputValueUnitScalingRatio    The scaling factor by which to divide histogram recorded values units in
+   *                                     output
+   * @param useCsvFormat  Output in CSV format if true. Otherwise use plain text form.
+   */
+  outputPercentileDistribution(percentileTicksPerHalfDistance = 5,
+                               outputValueUnitScalingRatio = 1,
+                               useCsvFormat = false): string {
+
+    let result = "";
+    if (useCsvFormat) {
+          result += '"Value","Percentile","TotalCount","1/(1-Percentile)"\n';
+      } else {
+          result += "       Value     Percentile TotalCount 1/(1-Percentile)\n\n";
+      }
+
+      const iterator = this.percentileIterator;
+      iterator.reset(percentileTicksPerHalfDistance);
+
+      type formatter = (n: number) => string;
+
+      let valueFormatter: formatter;
+      let percentileFormatter: formatter;
+      let totalCountFormatter: formatter;
+      let lastFormatter: formatter;
+      let lineFormatter: (iterationValue: HistogramIterationValue) => string;
+      let lastLineFormatter: (iterationValue: HistogramIterationValue) => string;
+      
+      if (useCsvFormat) {
+        //percentileFormatString = "%." + this.numberOfSignificantValueDigits + "f,%.12f,%d,%.2f\n";
+        //lastLinePercentileFormatString = "%." + this.numberOfSignificantValueDigits + "f,%.12f,%d,Infinity\n";
+        lineFormatter = (iterationValue: HistogramIterationValue) => "";
+        lastLineFormatter = (iterationValue: HistogramIterationValue) => "";
+      } else {
+        valueFormatter = floatFormatter(12, this.numberOfSignificantValueDigits);
+        percentileFormatter = floatFormatter(2, 12);
+        totalCountFormatter = integerFormatter(10);
+        lastFormatter = floatFormatter(14, 2);
+        
+        lineFormatter = (iterationValue: HistogramIterationValue) => (
+          valueFormatter(iterationValue.valueIteratedTo / outputValueUnitScalingRatio)
+          + " "
+          + percentileFormatter(iterationValue.percentileLevelIteratedTo / 100)
+          + " "
+          + totalCountFormatter(iterationValue.totalCountToThisValue)
+          + " "
+          + lastFormatter(1/(1 - (iterationValue.percentileLevelIteratedTo/100)))
+          + "\n"
+        );
+
+        lastLineFormatter = (iterationValue: HistogramIterationValue) => (
+          valueFormatter(iterationValue.valueIteratedTo / outputValueUnitScalingRatio)
+          + " "
+          + percentileFormatter(iterationValue.percentileLevelIteratedTo / 100)
+          + " "
+          + totalCountFormatter(iterationValue.totalCountToThisValue)
+          + "\n"
+        );
+
+      }
+
+      while (iterator.hasNext()) {
+        const iterationValue = iterator.next();
+        if (iterationValue.percentileLevelIteratedTo < 100) {
+          result += lineFormatter(iterationValue);
+        } else {
+          result += lastLineFormatter(iterationValue);
+        }
+      }
+
+      if (!useCsvFormat) {
+        // Calculate and output mean and std. deviation.
+        // Note: mean/std. deviation numbers are very often completely irrelevant when
+        // data is extremely non-normal in distribution (e.g. in cases of strong multi-modal
+        // response time distribution associated with GC pauses). However, reporting these numbers
+        // can be very useful for contrasting with the detailed percentile distribution
+        // reported by outputPercentileDistribution(). It is not at all surprising to find
+        // percentile distributions where results fall many tens or even hundreds of standard
+        // deviations away from the mean - such results simply indicate that the data sampled
+        // exhibits a very non-normal distribution, highlighting situations for which the std.
+        // deviation metric is a useless indicator.
+        //
+        const formatter = floatFormatter(12, this.numberOfSignificantValueDigits);
+        const mean = formatter(this.getMean() / outputValueUnitScalingRatio);
+        const std_deviation = formatter(this.getStdDeviation() / outputValueUnitScalingRatio);
+        const max = formatter(this.maxValue / outputValueUnitScalingRatio);
+        const intFormatter = integerFormatter(12);
+        const totalCount = intFormatter(this.getTotalCount());
+        const bucketCount = intFormatter(this.bucketCount);
+        const subBucketCount = intFormatter(this.subBucketCount);
+
+        result += (
+`#[Mean    = ${mean}, StdDeviation   = ${std_deviation}]
+#[Max     = ${max}, Total count    = ${totalCount}]
+#[Buckets = ${bucketCount}, SubBuckets     = ${subBucketCount}]
+`
+        );
+      }
+
+      return result;
+    }
 
 }

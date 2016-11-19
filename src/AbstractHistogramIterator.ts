@@ -82,7 +82,7 @@ abstract class AbstractHistogramIterator /* implements Iterator<HistogramIterati
                 countAddedInThisIterationStep: (this.totalCountToCurrentIndex - this.totalCountToPrevIndex),
                 totalCountToThisValue: this.totalCountToCurrentIndex,
                 totalValueToThisValue: this.totalValueToCurrentIndex,
-                percentile: ((100.0 * this.totalCountToCurrentIndex) / this.arrayTotalCount),
+                percentile: ((100 * this.totalCountToCurrentIndex) / this.arrayTotalCount),
                 percentileLevelIteratedTo: this.getPercentileIteratedTo()
             });
 

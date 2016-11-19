@@ -83,11 +83,10 @@ export abstract class AbstractHistogram extends AbstractHistogramBase {
     abstract addToTotalCount(value: number): void;
   
     abstract clearCounts(): void;
-  
-    abstract _getEstimatedFootprintInBytes(): number;
   */
-    abstract resize(newHighestTrackableValue: number): void;
-
+  protected abstract _getEstimatedFootprintInBytes(): number;
+  
+  abstract resize(newHighestTrackableValue: number): void;
 
   /**
    * Get the total count of all recorded values in the histogram
@@ -588,5 +587,15 @@ export abstract class AbstractHistogram extends AbstractHistogramBase {
 
       return result;
     }
+
+
+  /**
+   * Provide a (conservatively high) estimate of the Histogram's total footprint in bytes
+   *
+   * @return a (conservatively high) estimate of the Histogram's total footprint in bytes
+   */
+  getEstimatedFootprintInBytes() {
+    return this._getEstimatedFootprintInBytes();
+  }
 
 }

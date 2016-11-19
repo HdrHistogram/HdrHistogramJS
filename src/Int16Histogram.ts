@@ -7,9 +7,9 @@
  */
 import { AbstractHistogram } from "./AbstractHistogram";
 
-class Int32Histogram extends AbstractHistogram {
+class Int16Histogram extends AbstractHistogram {
 
-  counts: Uint32Array
+  counts: Uint16Array
   totalCount: number;
 
   constructor(
@@ -46,7 +46,7 @@ class Int32Histogram extends AbstractHistogram {
 
   resize(newHighestTrackableValue: number) {
     this.establishSize(newHighestTrackableValue);
-    const newCounts = new Uint32Array(this.countsArrayLength);
+    const newCounts = new Uint16Array(this.countsArrayLength);
     newCounts.set(this.counts);
     this.counts = newCounts;
   }
@@ -67,9 +67,8 @@ class Int32Histogram extends AbstractHistogram {
   }
 
   protected _getEstimatedFootprintInBytes() {
-    return (512 + (4 * this.counts.length));
+    return (512 + (2 * this.counts.length));
   }
-
 }
 
-export default Int32Histogram; 
+export default Int16Histogram; 

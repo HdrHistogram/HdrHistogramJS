@@ -1,7 +1,9 @@
-import { AbstractHistogram } from "./AbstractHistogram"
+import Int8Histogram from "./Int8Histogram"
+import Int16Histogram from "./Int16Histogram"
 import Int32Histogram from "./Int32Histogram"
 
 export { 
-  AbstractHistogram,
-  Int32Histogram 
+  Int8Histogram,
+  Int16Histogram,
+  Int32Histogram
 }

@@ -35,6 +35,10 @@ class HistogramForTests extends AbstractHistogram {
     return 0;
   }
 
+  protected _getEstimatedFootprintInBytes() {
+    return 42;
+  }
+
 }
 
 describe('Histogram initialization', () => {

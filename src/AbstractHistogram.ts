@@ -505,25 +505,38 @@ export abstract class AbstractHistogram extends AbstractHistogramBase {
       const iterator = this.percentileIterator;
       iterator.reset(percentileTicksPerHalfDistance);
 
-      type formatter = (n: number) => string;
-
-      let valueFormatter: formatter;
-      let percentileFormatter: formatter;
-      let totalCountFormatter: formatter;
-      let lastFormatter: formatter;
       let lineFormatter: (iterationValue: HistogramIterationValue) => string;
       let lastLineFormatter: (iterationValue: HistogramIterationValue) => string;
       
       if (useCsvFormat) {
-        //percentileFormatString = "%." + this.numberOfSignificantValueDigits + "f,%.12f,%d,%.2f\n";
-        //lastLinePercentileFormatString = "%." + this.numberOfSignificantValueDigits + "f,%.12f,%d,Infinity\n";
-        lineFormatter = (iterationValue: HistogramIterationValue) => "";
-        lastLineFormatter = (iterationValue: HistogramIterationValue) => "";
+        const valueFormatter = floatFormatter(0, this.numberOfSignificantValueDigits);
+        const percentileFormatter = floatFormatter(0, 12);
+        const lastFormatter = floatFormatter(0, 2);
+        
+        lineFormatter = (iterationValue: HistogramIterationValue) => (
+          valueFormatter(iterationValue.valueIteratedTo / outputValueUnitScalingRatio)
+          + ","
+          + percentileFormatter(iterationValue.percentileLevelIteratedTo / 100)
+          + ","
+          + iterationValue.totalCountToThisValue
+          + ","
+          + lastFormatter(1/(1 - (iterationValue.percentileLevelIteratedTo/100)))
+          + "\n"
+        );
+        lastLineFormatter = (iterationValue: HistogramIterationValue) => (
+          valueFormatter(iterationValue.valueIteratedTo / outputValueUnitScalingRatio)
+          + ","
+          + percentileFormatter(iterationValue.percentileLevelIteratedTo / 100)
+          + ","
+          + iterationValue.totalCountToThisValue
+          + ",Infinity\n"
+        );
+
       } else {
-        valueFormatter = floatFormatter(12, this.numberOfSignificantValueDigits);
-        percentileFormatter = floatFormatter(2, 12);
-        totalCountFormatter = integerFormatter(10);
-        lastFormatter = floatFormatter(14, 2);
+        const valueFormatter = floatFormatter(12, this.numberOfSignificantValueDigits);
+        const percentileFormatter = floatFormatter(2, 12);
+        const totalCountFormatter = integerFormatter(10);
+        const lastFormatter = floatFormatter(14, 2);
         
         lineFormatter = (iterationValue: HistogramIterationValue) => (
           valueFormatter(iterationValue.valueIteratedTo / outputValueUnitScalingRatio)

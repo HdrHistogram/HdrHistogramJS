@@ -245,3 +245,18 @@ describe('Histogram computing statistics', () => {
   });
 
 });
+
+describe('Histogram correcting coordinated omissions', () => {
+
+  it("should generate additional values when recording", () => {
+    // given
+    const histogram = new Int32Histogram(1, Number.MAX_SAFE_INTEGER, 3);
+    // when
+    histogram.recordValueWithExpectedInterval(207, 100);
+    // then
+    expect(histogram.totalCount).to.be.equal(2);
+    expect(histogram.minNonZeroValue).to.be.equal(107);
+    expect(histogram.maxValue).to.be.equal(207);
+  });
+
+});

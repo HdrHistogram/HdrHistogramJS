@@ -611,4 +611,42 @@ export abstract class AbstractHistogram extends AbstractHistogramBase {
     return this._getEstimatedFootprintInBytes();
   }
 
+  recordSingleValueWithExpectedInterval(value : number, expectedIntervalBetweenValueSamples : number) {
+    this.recordSingleValue(value);
+    if (expectedIntervalBetweenValueSamples <= 0) {
+      return;
+    }
+    for (let missingValue = value - expectedIntervalBetweenValueSamples; 
+          missingValue >= expectedIntervalBetweenValueSamples; 
+          missingValue -= expectedIntervalBetweenValueSamples) {
+        
+        this.recordSingleValue(missingValue);
+    }
+  }
+
+  /**
+   * Record a value in the histogram.
+   * <p>
+   * To compensate for the loss of sampled values when a recorded value is larger than the expected
+   * interval between value samples, Histogram will auto-generate an additional series of decreasingly-smaller
+   * (down to the expectedIntervalBetweenValueSamples) value records.
+   * <p>
+   * Note: This is a at-recording correction method, as opposed to the post-recording correction method provided
+   * by {@link #copyCorrectedForCoordinatedOmission(long)}.
+   * The two methods are mutually exclusive, and only one of the two should be be used on a given data set to correct
+   * for the same coordinated omission issue.
+   * <p>
+   * See notes in the description of the Histogram calls for an illustration of why this corrective behavior is
+   * important.
+   *
+   * @param value The value to record
+   * @param expectedIntervalBetweenValueSamples If expectedIntervalBetweenValueSamples is larger than 0, add
+   *                                           auto-generated value records as appropriate if value is larger
+   *                                           than expectedIntervalBetweenValueSamples
+   * @throws ArrayIndexOutOfBoundsException (may throw) if value is exceeds highestTrackableValue
+   */
+  recordValueWithExpectedInterval(value: number, expectedIntervalBetweenValueSamples: number) {
+    this.recordSingleValueWithExpectedInterval(value, expectedIntervalBetweenValueSamples);
+  }
+
 }

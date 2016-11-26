@@ -2,36 +2,28 @@
   "name": "hdr-histogram-js",
   "version": "1.0.0",
   "description": "TypeScript port of HdrHistogram",
-  "main": "./dist/index.js",
+  "main": "./dist/hdrhistogram.js",
   "types": "./dist/index.d.ts",
   "scripts": {
-    "pretest": "tsc",
-    "test": "mocha dist/**/*.spec.js",
-    "test:watch": "mocha --opts mocha.opts --watch",
-    "test:coverage": "nyc mocha --opts mocha.opts"
+    "test": "mocha --opts mocha.opts --watch",
+    "test:coverage": "nyc mocha --opts mocha.opts",
+    "prepublish": "webpack --debug && webpack -p"
   },
   "author": "Alexandre Victoor",
   "license": "BSD",
-  "dependencies": {
-    "core-js": "^2.4.1"
-  },
   "devDependencies": {
     "@types/chai": "^3.4.34",
     "@types/core-js": "^0.9.34",
     "@types/mocha": "^2.2.32",
     "chai": "^3.5.0",
-    "karma": "^1.2.0",
-    "karma-chai": "^0.1.0",
-    "karma-mocha": "^1.1.1",
-    "karma-phantomjs-launcher": "^1.0.1",
-    "karma-typescript-preprocessor2": "^1.2.1",
+    "core-js": "^2.4.1",
     "mocha": "^3.0.2",
     "nyc": "^8.4.0",
-    "phantomjs-prebuilt": "^2.1.12",
-    "source-map-loader": "^0.1.5",
-    "ts-loader": "^0.8.2",
+    "ts-loader": "^1.2.2",
     "ts-node": "^1.4.1",
-    "typescript": "^2.0.9"
+    "typescript": "^2.0.10",
+    "webpack": "^1.13.3",
+    "yargs": "^6.4.0"
   },
   "nyc": {
     "include": [

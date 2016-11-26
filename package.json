@@ -9,7 +9,6 @@
     "test": "mocha dist/**/*.spec.js",
     "test:watch": "mocha --opts mocha.opts --watch",
     "test:coverage": "nyc mocha --opts mocha.opts"
-    //"prepublish": "webpack --debug; webpack -p"
   },
   "author": "Alexandre Victoor",
   "license": "BSD",

@@ -58,6 +58,10 @@ class Int32Histogram extends AbstractHistogram {
     this.totalCount++;
   }
 
+  addToTotalCount(value: number) {
+    this.totalCount += value;
+  }
+
   getTotalCount() {
     return this.totalCount;
   }
@@ -68,6 +72,17 @@ class Int32Histogram extends AbstractHistogram {
 
   protected _getEstimatedFootprintInBytes() {
     return (512 + (4 * this.counts.length));
+  }
+
+  copyCorrectedForCoordinatedOmission(expectedIntervalBetweenValueSamples: number) {
+    const copy 
+      = new Int32Histogram(
+        this.lowestDiscernibleValue, 
+        this.highestTrackableValue, 
+        this.numberOfSignificantValueDigits
+      );
+    copy.addWhileCorrectingForCoordinatedOmission(this, expectedIntervalBetweenValueSamples);
+    return copy;
   }
 
 }

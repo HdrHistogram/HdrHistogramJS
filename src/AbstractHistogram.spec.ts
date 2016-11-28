@@ -20,6 +20,9 @@ class HistogramForTests extends AbstractHistogram {
   incrementTotalCount(): void {
   }
 
+  addToTotalCount(value: number) {
+  }
+
   resize(newHighestTrackableValue: number): void {
     this.establishSize(newHighestTrackableValue);
   }
@@ -37,6 +40,10 @@ class HistogramForTests extends AbstractHistogram {
 
   protected _getEstimatedFootprintInBytes() {
     return 42;
+  }
+
+  copyCorrectedForCoordinatedOmission(expectedIntervalBetweenValueSamples: number) {
+    return this;
   }
 
 }
@@ -257,6 +264,19 @@ describe('Histogram correcting coordinated omissions', () => {
     expect(histogram.totalCount).to.be.equal(2);
     expect(histogram.minNonZeroValue).to.be.equal(107);
     expect(histogram.maxValue).to.be.equal(207);
+  });
+
+  it("should generate additional values when correcting after recording", () => {
+    // given
+    const histogram = new Int32Histogram(1, Number.MAX_SAFE_INTEGER, 3);
+    histogram.recordValue(207);
+    histogram.recordValue(207);
+    // when
+    const correctedHistogram = histogram.copyCorrectedForCoordinatedOmission(100);
+    // then
+    expect(correctedHistogram.totalCount).to.be.equal(4);
+    expect(correctedHistogram.minNonZeroValue).to.be.equal(107);
+    expect(correctedHistogram.maxValue).to.be.equal(207);
   });
 
 });

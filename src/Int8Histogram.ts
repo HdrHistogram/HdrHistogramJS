@@ -23,7 +23,7 @@ class Int8Histogram extends AbstractHistogram {
       numberOfSignificantValueDigits
     );
     this.totalCount = 0;
-    this.counts = new Uint32Array(this.countsArrayLength);
+    this.counts = new Uint8Array(this.countsArrayLength);
   }
 
   incrementCountAtIndex(index: number) {
@@ -58,6 +58,10 @@ class Int8Histogram extends AbstractHistogram {
     this.totalCount++;
   }
 
+  addToTotalCount(value: number) {
+    this.totalCount += value;
+  }
+
   getTotalCount() {
     return this.totalCount;
   }
@@ -68,6 +72,17 @@ class Int8Histogram extends AbstractHistogram {
 
   protected _getEstimatedFootprintInBytes() {
     return (512 + this.counts.length);
+  }
+
+  copyCorrectedForCoordinatedOmission(expectedIntervalBetweenValueSamples: number) {
+    const copy 
+      = new Int8Histogram(
+        this.lowestDiscernibleValue, 
+        this.highestTrackableValue, 
+        this.numberOfSignificantValueDigits
+      );
+    copy.addWhileCorrectingForCoordinatedOmission(this, expectedIntervalBetweenValueSamples);
+    return copy;
   }
 
 }

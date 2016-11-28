@@ -79,9 +79,9 @@ export abstract class AbstractHistogram extends AbstractHistogramBase {
     abstract setTotalCount(totalCount: number): void;
   */
   abstract incrementTotalCount(): void;
-  /*
-    abstract addToTotalCount(value: number): void;
   
+  abstract addToTotalCount(value: number): void;
+  /*
     abstract clearCounts(): void;
   */
   protected abstract _getEstimatedFootprintInBytes(): number;
@@ -624,6 +624,17 @@ export abstract class AbstractHistogram extends AbstractHistogramBase {
     }
   }
 
+  private recordCountAtValue(count: number, value: number) {
+    const countsIndex = this.countsArrayIndex(value);
+    if (countsIndex >= this.countsArrayLength) {
+      this.handleRecordException(count, value);
+    } else {
+      this.addToCountAtIndex(countsIndex, count);
+    }
+    this.updateMinAndMax(value);
+    this.addToTotalCount(count);
+  }
+
   /**
    * Record a value in the histogram.
    * <p>
@@ -648,5 +659,84 @@ export abstract class AbstractHistogram extends AbstractHistogramBase {
   recordValueWithExpectedInterval(value: number, expectedIntervalBetweenValueSamples: number) {
     this.recordSingleValueWithExpectedInterval(value, expectedIntervalBetweenValueSamples);
   }
+
+  private recordValueWithCountAndExpectedInterval(
+    value: number, 
+    count: number,
+    expectedIntervalBetweenValueSamples: number) {
+
+      this.recordCountAtValue(count, value);
+      if (expectedIntervalBetweenValueSamples <= 0) {
+        return;
+      }
+      for (let missingValue = value - expectedIntervalBetweenValueSamples;
+        missingValue >= expectedIntervalBetweenValueSamples;
+        missingValue -= expectedIntervalBetweenValueSamples) {
+        
+        this.recordCountAtValue(count, missingValue);
+      }
+    }
+
+  /**
+   * Add the contents of another histogram to this one, while correcting the incoming data for coordinated omission.
+   * <p>
+   * To compensate for the loss of sampled values when a recorded value is larger than the expected
+   * interval between value samples, the values added will include an auto-generated additional series of
+   * decreasingly-smaller (down to the expectedIntervalBetweenValueSamples) value records for each count found
+   * in the current histogram that is larger than the expectedIntervalBetweenValueSamples.
+   *
+   * Note: This is a post-recording correction method, as opposed to the at-recording correction method provided
+   * by {@link #recordValueWithExpectedInterval(long, long) recordValueWithExpectedInterval}. The two
+   * methods are mutually exclusive, and only one of the two should be be used on a given data set to correct
+   * for the same coordinated omission issue.
+   * by
+   * <p>
+   * See notes in the description of the Histogram calls for an illustration of why this corrective behavior is
+   * important.
+   *
+   * @param otherHistogram The other histogram. highestTrackableValue and largestValueWithSingleUnitResolution must match.
+   * @param expectedIntervalBetweenValueSamples If expectedIntervalBetweenValueSamples is larger than 0, add
+   *                                           auto-generated value records as appropriate if value is larger
+   *                                           than expectedIntervalBetweenValueSamples
+   * @throws ArrayIndexOutOfBoundsException (may throw) if values exceed highestTrackableValue
+   */
+  addWhileCorrectingForCoordinatedOmission(
+    otherHistogram: AbstractHistogram, 
+    expectedIntervalBetweenValueSamples: number) {
+    
+    const toHistogram = this;
+
+    const otherValues = new RecordedValuesIterator(otherHistogram);
+
+    while (otherValues.hasNext()) {
+      const v = otherValues.next();
+      toHistogram.recordValueWithCountAndExpectedInterval(v.valueIteratedTo, v.countAtValueIteratedTo, expectedIntervalBetweenValueSamples);
+    }
+  }
+
+  /**
+   * Get a copy of this histogram, corrected for coordinated omission.
+   * <p>
+   * To compensate for the loss of sampled values when a recorded value is larger than the expected
+   * interval between value samples, the new histogram will include an auto-generated additional series of
+   * decreasingly-smaller (down to the expectedIntervalBetweenValueSamples) value records for each count found
+   * in the current histogram that is larger than the expectedIntervalBetweenValueSamples.
+   *
+   * Note: This is a post-correction method, as opposed to the at-recording correction method provided
+   * by {@link #recordValueWithExpectedInterval(long, long) recordValueWithExpectedInterval}. The two
+   * methods are mutually exclusive, and only one of the two should be be used on a given data set to correct
+   * for the same coordinated omission issue.
+   * by
+   * <p>
+   * See notes in the description of the Histogram calls for an illustration of why this corrective behavior is
+   * important.
+   *
+   * @param expectedIntervalBetweenValueSamples If expectedIntervalBetweenValueSamples is larger than 0, add
+   *                                           auto-generated value records as appropriate if value is larger
+   *                                           than expectedIntervalBetweenValueSamples
+   * @return a copy of this histogram, corrected for coordinated omission.
+   */
+  abstract copyCorrectedForCoordinatedOmission(expectedIntervalBetweenValueSamples: number): AbstractHistogram
+
 
 }

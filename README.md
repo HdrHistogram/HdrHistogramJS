@@ -1,4 +1,14 @@
 [![Build Status](https://travis-ci.org/alexvictoor/HdrHistogramJS.svg?branch=master)](https://travis-ci.org/alexvictoor/HdrHistogramJS)
 
 # HdrHistogramJS
-TypeScript port of HdrHistogram
+Browser port of HdrHistogram entirely written in TypeScript
+
+# Getting started
+TODO directly in a browser
+TODO npm typescript / es6
+
+# API
+
+# Limitations
+
+# Backlog

@@ -47,5 +47,8 @@
       "html"
     ],
     "all": true
+  },
+  "dependencies": {
+    "pako": "^1.0.3"
   }
 }

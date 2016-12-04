@@ -5,6 +5,7 @@
   "main": "./dist/hdrhistogram.js",
   "types": "./dist/index.d.ts",
   "scripts": {
+    "tsc": "tsc",
     "test": "mocha --opts mocha.opts --watch",
     "test:coverage": "nyc mocha --opts mocha.opts",
     "prepublish": "webpack --debug && webpack -p"

@@ -1,6 +1,7 @@
 import "core-js"
 import { expect } from "chai";
 import { AbstractHistogram } from "./AbstractHistogram" 
+import ByteBuffer from "./ByteBuffer"
 import Int32Histogram from "./Int32Histogram"
 import PercentileIterator from "./PercentileIterator"
 import HistogramIterationValue from "./HistogramIterationValue"
@@ -277,6 +278,22 @@ describe('Histogram correcting coordinated omissions', () => {
     expect(correctedHistogram.totalCount).to.be.equal(4);
     expect(correctedHistogram.minNonZeroValue).to.be.equal(107);
     expect(correctedHistogram.maxValue).to.be.equal(207);
+  });
+
+});
+
+
+describe('Histogram encoding', () => {
+
+  it("should encode filling a byte buffer", () => {
+    // given
+    const histogram = new Int32Histogram(1, Number.MAX_SAFE_INTEGER, 2);
+    histogram.recordValue(42);
+    const buffer = new ByteBuffer();
+    // when
+    const encodedSize = histogram.encodeIntoByteBuffer(buffer);
+    // then
+    expect(encodedSize).to.be.equal(42);
   });
 
 });

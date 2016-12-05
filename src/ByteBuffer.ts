@@ -12,7 +12,7 @@ class ByteBuffer {
   int8ArrayForConvert: Uint8Array;
 
 
-  constructor(size: number) {
+  constructor(size = 16) {
     this.index = 0;
     this.data = new Uint8Array(size);
     this.int32ArrayForConvert = new Uint32Array(1);

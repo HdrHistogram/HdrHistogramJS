@@ -6,13 +6,21 @@
  * http://creativecommons.org/publicdomain/zero/1.0/
  */
 import { AbstractHistogramBase } from "./AbstractHistogramBase"
+import ByteBuffer from "./ByteBuffer"
 import RecordedValuesIterator from "./RecordedValuesIterator"
 import PercentileIterator from "./PercentileIterator"
 import HistogramIterationValue from "./HistogramIterationValue"
 import { integerFormatter, floatFormatter } from "./formatters"
+import ZigZagEncoding from "./ZigZagEncoding"
 
 
 const { pow, floor, ceil, log2, max, min } = Math;
+
+const V2EncodingCookieBase = 0x1c849303;
+const V2CompressedEncodingCookieBase = 0x1c849304;
+const V2maxWordSizeInBytes = 9; // LEB128-64b9B + ZigZag require up to 9 bytes per word
+const encodingCookie =  V2EncodingCookieBase | 0x10; // LSBit of wordsize byte indicates TLZE Encoding
+const compressedEncodingCookie = V2CompressedEncodingCookieBase | 0x10; // LSBit of wordsize byte indicates TLZE Encoding
 
 
 export abstract class AbstractHistogram extends AbstractHistogramBase {
@@ -738,5 +746,62 @@ export abstract class AbstractHistogram extends AbstractHistogramBase {
    */
   abstract copyCorrectedForCoordinatedOmission(expectedIntervalBetweenValueSamples: number): AbstractHistogram
 
+
+
+  fillBufferFromCountsArray(buffer: ByteBuffer) {
+    const countsLimit = this.countsArrayIndex(this.maxValue) + 1;
+    let srcIndex = 0;
+
+    while (srcIndex < countsLimit) {
+      // V2 encoding format uses a ZigZag LEB128-64b9B encoded long. Positive values are counts,
+      // while negative values indicate a repeat zero counts.
+      const count = this.getCountAtIndex(srcIndex++);
+      if (count < 0) {
+        throw "Cannot encode histogram containing negative counts (" +
+              count + ") at index " + srcIndex + ", corresponding the value range [" +
+              this.lowestEquivalentValue(this.valueFromIndex(srcIndex)) + "," +
+              this.nextNonEquivalentValue(this.valueFromIndex(srcIndex)) + ")";
+      }
+      // Count trailing 0s (which follow this count):
+      let zerosCount = 0;
+      if (count == 0) {
+        zerosCount = 1;
+        while ((srcIndex < countsLimit) && (this.getCountAtIndex(srcIndex) == 0)) {
+          zerosCount++;
+          srcIndex++;
+        }
+      }
+      if (zerosCount > 1) {
+        ZigZagEncoding.encode(buffer, -zerosCount);
+      } else {
+        ZigZagEncoding.encode(buffer, count);
+      }
+    }
+  }
+
+  /**
+   * Encode this histogram into a ByteBuffer
+   * @param buffer The buffer to encode into
+   * @return The number of bytes written to the buffer
+   */
+  encodeIntoByteBuffer(buffer: ByteBuffer) {
+    const initialPosition = buffer.index;
+    buffer.putInt32(encodingCookie);
+    buffer.putInt32(0); // Placeholder for payload length in bytes.
+    buffer.putInt32(1);
+    buffer.putInt32(this.numberOfSignificantValueDigits);
+    buffer.putInt64(this.lowestDiscernibleValue);
+    buffer.putInt64(this.highestTrackableValue);
+    buffer.putInt64(1);
+
+    const payloadStartPosition = buffer.index;
+    this.fillBufferFromCountsArray(buffer);
+
+    const backupIndex =  buffer.index;
+    buffer.index = initialPosition + 4;
+    buffer.putInt32(backupIndex - payloadStartPosition); // Record the payload length
+
+    return backupIndex - initialPosition;
+  }
 
 }

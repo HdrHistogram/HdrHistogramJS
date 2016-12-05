@@ -7,31 +7,41 @@ describe('Zig Zag Encoding', () => {
   
   it("should encode int using one byte when value is less than 64", () => {
     // given
-    const buffer = new ByteBuffer(1);
+    const buffer = new ByteBuffer(4);
     // when
-    ZigZagEncoding.encodeInt32(buffer, 56);
+    ZigZagEncoding.encode(buffer, 56);
     // then
-    expect(buffer.data).to.have.length(1);
+    expect(buffer.data).to.have.length(4);
     expect(buffer.data[0]).to.equals(112);
   });
 
   it("should encode int using several bytes when value is more than 64", () => {
     // given
-    const buffer = new ByteBuffer(1);
+    const buffer = new ByteBuffer(4);
     // when
-    ZigZagEncoding.encodeInt32(buffer, 456);
+    ZigZagEncoding.encode(buffer, 456);
     // then
-    expect(buffer.data).to.have.length(2);
-    expect(Array.from(buffer.data)).to.deep.equals([ 144, 7 ]);
+    expect(buffer.data).to.have.length(4);
+    expect(Array.from(buffer.data)).to.deep.equals([ 144, 7, 0 , 0 ]);
+  });
+
+  it("should encode large safe int greater than 2^32", () => {
+    // given
+    const buffer = new ByteBuffer(4);
+    // when
+    ZigZagEncoding.encode(buffer, Math.pow(2, 50));
+    // then
+    expect(buffer.data).to.have.length(8);
+    expect(Array.from(buffer.data)).to.deep.equals([ 128, 128, 128, 128, 128, 128, 128, 4 ]);
   });
 
   it("should decode int using one byte", () => {
     // given
     const buffer = new ByteBuffer(8);
-    ZigZagEncoding.encodeInt32(buffer, 56);
+    ZigZagEncoding.encode(buffer, 56);
     buffer.resetIndex();
     // when
-    const value = ZigZagEncoding.decodeInt32(buffer);
+    const value = ZigZagEncoding.decode(buffer);
     // then
     expect(value).to.equals(56);
   });
@@ -39,13 +49,25 @@ describe('Zig Zag Encoding', () => {
   it("should decode int using multiple bytes", () => {
     // given
     const buffer = new ByteBuffer(8);
-    ZigZagEncoding.encodeInt32(buffer, 1515);
-    ZigZagEncoding.encodeInt32(buffer, 56);
+    ZigZagEncoding.encode(buffer, 1515);
+    ZigZagEncoding.encode(buffer, 56);
     buffer.resetIndex();
     // when
-    const value = ZigZagEncoding.decodeInt32(buffer);
+    const value = ZigZagEncoding.decode(buffer);
     // then
     expect(value).to.equals(1515);
+  });
+
+  it("should decode large safe int greater than 2^32", () => {
+    // given
+    const buffer = new ByteBuffer(4);
+    ZigZagEncoding.encode(buffer, Math.pow(2, 50) + 1234);
+    ZigZagEncoding.encode(buffer, 56);
+    buffer.resetIndex();
+    // when
+    const value = ZigZagEncoding.decode(buffer);
+    // then
+    expect(value).to.equals(Math.pow(2, 50) + 1234);
   });
 
 });

@@ -44,7 +44,12 @@ class ZigZagEncoding {
    * @param value  the value to write to the buffer
    */
   static encode(buffer: ByteBuffer, value: number) {
-    value = value * 2;
+    if (value >= 0) {
+      value = value * 2;
+    } else {
+      value = -value * 2 - 1;
+    }
+    
     if (value < TWO_POW_7) {
       buffer.put(value);
     } else {
@@ -130,7 +135,12 @@ class ZigZagEncoding {
         }
       }
     }
-    value = value / 2;
+    if (value % 2 === 0) {
+      value = value / 2;
+    } else {
+      value = -(value + 1) / 2;
+    }
+    
     return value;
   }
 

@@ -25,6 +25,16 @@ describe('Zig Zag Encoding', () => {
     expect(Array.from(buffer.data)).to.deep.equals([ 144, 7, 0 , 0 ]);
   });
 
+  it("should encode negative int using several bytes when value is more than 64", () => {
+    // given
+    const buffer = new ByteBuffer(4);
+    // when
+    ZigZagEncoding.encode(buffer, -456);
+    // then
+    expect(buffer.data).to.have.length(4);
+    expect(Array.from(buffer.data)).to.deep.equals([ 143, 7, 0 , 0 ]);
+  });
+
   it("should encode large safe int greater than 2^32", () => {
     // given
     const buffer = new ByteBuffer(4);
@@ -56,6 +66,18 @@ describe('Zig Zag Encoding', () => {
     const value = ZigZagEncoding.decode(buffer);
     // then
     expect(value).to.equals(1515);
+  });
+
+  it("should decode negative int using multiple bytes", () => {
+    // given
+    const buffer = new ByteBuffer(8);
+    ZigZagEncoding.encode(buffer, -1515);
+    ZigZagEncoding.encode(buffer, 56);
+    buffer.resetIndex();
+    // when
+    const value = ZigZagEncoding.decode(buffer);
+    // then
+    expect(value).to.equals(-1515);
   });
 
   it("should decode large safe int greater than 2^32", () => {

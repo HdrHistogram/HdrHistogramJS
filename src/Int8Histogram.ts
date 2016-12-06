@@ -30,7 +30,7 @@ class Int8Histogram extends AbstractHistogram {
     const currentCount = this.counts[index];
     const newCount = currentCount + 1;
     if (newCount < 0) {
-      throw new Error("would overflow short integer count");
+      throw newCount + " would overflow short integer count";
     }
     this.counts[index] = newCount;
   }
@@ -39,9 +39,16 @@ class Int8Histogram extends AbstractHistogram {
     const currentCount = this.counts[index];
     const newCount = currentCount + value;
     if ((newCount < Number.MIN_SAFE_INTEGER) || (newCount > Number.MAX_SAFE_INTEGER)) {
-      throw "would overflow integer count";
+      throw newCount + " would overflow integer count";
     }
     this.counts[index] = newCount;
+  }
+
+  setCountAtIndex(index: number, value: number) {
+    if ((value < Number.MIN_SAFE_INTEGER) || (value > Number.MAX_SAFE_INTEGER)) {
+      throw value + " would overflow integer count";
+    }
+    this.counts[index] = value;
   }
 
   resize(newHighestTrackableValue: number) {
@@ -62,6 +69,10 @@ class Int8Histogram extends AbstractHistogram {
     this.totalCount += value;
   }
 
+  setTotalCount(value: number) {
+    this.totalCount = value;
+  }
+  
   getTotalCount() {
     return this.totalCount;
   }

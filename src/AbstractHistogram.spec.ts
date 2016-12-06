@@ -24,11 +24,17 @@ class HistogramForTests extends AbstractHistogram {
   addToTotalCount(value: number) {
   }
 
+  setTotalCount(totalCount: number) {
+  }
+
   resize(newHighestTrackableValue: number): void {
     this.establishSize(newHighestTrackableValue);
   }
 
   addToCountAtIndex(index: number, value: number): void {
+  }
+
+  setCountAtIndex(index: number, value: number): void {
   }
 
   getTotalCount() {
@@ -294,6 +300,22 @@ describe('Histogram encoding', () => {
     const encodedSize = histogram.encodeIntoByteBuffer(buffer);
     // then
     expect(encodedSize).to.be.equal(42);
+  });
+
+
+  it("should encode filling a byte buffer", () => {
+    // given
+    const histogram = new Int32Histogram(1, Number.MAX_SAFE_INTEGER, 2);
+    histogram.recordValue(42);
+    histogram.recordValue(7);
+    histogram.recordValue(77);
+    const buffer = new ByteBuffer();
+    const encodedSize = histogram.encodeIntoByteBuffer(buffer);
+    buffer.index = 0;
+    // when
+    const result = AbstractHistogram.decodeFromByteBuffer(buffer, Int32Histogram, 0, null);
+    // then
+    expect(result.outputPercentileDistribution()).to.be.equal(histogram.outputPercentileDistribution());
   });
 
 });

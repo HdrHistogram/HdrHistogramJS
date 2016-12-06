@@ -22,6 +22,14 @@ const V2maxWordSizeInBytes = 9; // LEB128-64b9B + ZigZag require up to 9 bytes p
 const encodingCookie =  V2EncodingCookieBase | 0x10; // LSBit of wordsize byte indicates TLZE Encoding
 const compressedEncodingCookie = V2CompressedEncodingCookieBase | 0x10; // LSBit of wordsize byte indicates TLZE Encoding
 
+export interface HistogramConstructor {
+  (
+    lowestDiscernibleValue: number, 
+    highestTrackableValue: number, 
+    numberOfSignificantValueDigits: number
+  ): AbstractHistogram
+} 
+
 
 export abstract class AbstractHistogram extends AbstractHistogramBase {
 
@@ -73,9 +81,9 @@ export abstract class AbstractHistogram extends AbstractHistogramBase {
   abstract incrementCountAtIndex(index: number): void;
   
   abstract addToCountAtIndex(index: number, value: number): void;
+
+  abstract setCountAtIndex(index: number, value: number): void;
   /*
-    abstract setCountAtIndex(index: number, value: number): void;
-  
     abstract setCountAtNormalizedIndex(index: number, value: number): void;
   
     abstract getNormalizingIndexOffset(): number;
@@ -83,9 +91,9 @@ export abstract class AbstractHistogram extends AbstractHistogramBase {
   abstract setNormalizingIndexOffset(normalizingIndexOffset: number): void;
   /*
     abstract shiftNormalizingIndexByOffset(offsetToAdd: number, lowestHalfBucketPopulated: boolean): void;
-  
-    abstract setTotalCount(totalCount: number): void;
   */
+  abstract setTotalCount(totalCount: number): void;
+  
   abstract incrementTotalCount(): void;
   
   abstract addToTotalCount(value: number): void;
@@ -801,7 +809,105 @@ export abstract class AbstractHistogram extends AbstractHistogramBase {
     buffer.index = initialPosition + 4;
     buffer.putInt32(backupIndex - payloadStartPosition); // Record the payload length
 
+    buffer.index = backupIndex;
+
     return backupIndex - initialPosition;
+  }
+
+  private fillCountsArrayFromSourceBuffer(sourceBuffer: ByteBuffer, lengthInBytes: number, wordSizeInBytes: number) {
+    if ((wordSizeInBytes != 2) && (wordSizeInBytes != 4) &&
+            (wordSizeInBytes != 8) && (wordSizeInBytes != V2maxWordSizeInBytes)) {
+        throw "word size must be 2, 4, 8, or V2maxWordSizeInBytes ("+
+                V2maxWordSizeInBytes + ") bytes";
+    }
+    let dstIndex = 0;
+    const endPosition = sourceBuffer.index + lengthInBytes;
+    while (sourceBuffer.index < endPosition) {
+      let zerosCount = 0;
+      let count= ZigZagEncoding.decode(sourceBuffer);
+      if (count < 0) {
+        zerosCount = -count;
+        dstIndex += zerosCount; // No need to set zeros in array. Just skip them.
+      } else {
+        this.setCountAtIndex(dstIndex++, count);
+      }  
+    }
+    return dstIndex; // this is the destination length
+  }
+
+  private establishInternalTackingValues(lengthToCover = this.countsArrayLength) {
+    this.maxValue = 0;
+    this.minNonZeroValue = Number.MAX_VALUE;
+    let maxIndex = -1;
+    let minNonZeroIndex = -1;
+    let observedTotalCount = 0;
+    for (let index = 0; index < lengthToCover; index++) {
+      const countAtIndex = this.getCountAtIndex(index);
+      if (countAtIndex > 0) {
+        observedTotalCount += countAtIndex;
+        maxIndex = index;
+        if ((minNonZeroIndex == -1) && (index != 0)) {
+          minNonZeroIndex = index;
+        }
+      }
+    }
+    if (maxIndex >= 0) {
+      this.updatedMaxValue(this.highestEquivalentValue(this.valueFromIndex(maxIndex)));
+    }
+    if (minNonZeroIndex >= 0) {
+      this.updateMinNonZeroValue(this.valueFromIndex(minNonZeroIndex));
+    }
+    this.setTotalCount(observedTotalCount);
+  }
+
+  
+  static decodeFromByteBuffer(
+    buffer: ByteBuffer,
+    histogramConstr: typeof AbstractHistogram,
+    minBarForHighestTrackableValue: number,
+    decompressor: any): AbstractHistogram {
+
+    const cookie = buffer.getInt32();
+    const payloadLengthInBytes = buffer.getInt32();
+    const normalizingIndexOffset = buffer.getInt32();
+    const numberOfSignificantValueDigits = buffer.getInt32();
+    const lowestTrackableUnitValue = buffer.getInt64();
+    let highestTrackableValue = buffer.getInt64();
+    buffer.getInt64();
+    highestTrackableValue = max(highestTrackableValue, minBarForHighestTrackableValue);
+
+    const constructor = histogramConstr as any;
+    const histogram: AbstractHistogram 
+      = new constructor(
+          lowestTrackableUnitValue, 
+          highestTrackableValue,
+          numberOfSignificantValueDigits
+        );
+
+  
+    let payloadSourceBuffer: ByteBuffer = buffer;
+
+    if (decompressor == null) {
+        // No compressed source buffer. Payload is in buffer, after header.
+        payloadSourceBuffer = buffer;
+    } else {
+        // Compressed source buffer. Payload needs to be decoded from there.
+        /*payLoadSourceBuffer = ByteBuffer.allocate(expectedCapacity).order(BIG_ENDIAN);
+        int decompressedByteCount = decompressor.inflate(payLoadSourceBuffer.array());
+        if ((payloadLengthInBytes != Integer.MAX_VALUE) && (decompressedByteCount < payloadLengthInBytes)) {
+            throw new IllegalArgumentException("The buffer does not contain the indicated payload amount");
+        }*/
+    }
+
+    const filledLength = histogram.fillCountsArrayFromSourceBuffer(
+      payloadSourceBuffer,
+      payloadLengthInBytes,
+      V2maxWordSizeInBytes
+    );
+
+    histogram.establishInternalTackingValues(filledLength);
+
+    return histogram;
   }
 
 }

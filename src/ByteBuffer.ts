@@ -2,6 +2,9 @@
 const { pow, floor } = Math;
 const TWO_POW_32 = pow(2, 32);
 
+/**
+ * Mimic Java's ByteBufffer with big endian order
+ */
 class ByteBuffer {
 
   index: number;
@@ -11,10 +14,13 @@ class ByteBuffer {
   int32ArrayForConvert: Uint32Array;
   int8ArrayForConvert: Uint8Array;
 
+  static allocate(size = 16): ByteBuffer {
+    return new ByteBuffer(new Uint8Array(size));
+  }
 
-  constructor(size = 16) {
+  constructor(data: Uint8Array) {
     this.index = 0;
-    this.data = new Uint8Array(size);
+    this.data = data;
     this.int32ArrayForConvert = new Uint32Array(1);
     this.int8ArrayForConvert = new Uint8Array(this.int32ArrayForConvert.buffer);
   }
@@ -36,13 +42,13 @@ class ByteBuffer {
       this.data.set(oldArray);
     }
     this.int32ArrayForConvert[0] = value;
-    this.data.set(this.int8ArrayForConvert, this.index);
+    this.data.set(this.int8ArrayForConvert.reverse(), this.index);
     this.index = this.index + 4;
   }
 
   putInt64(value: number) {
-    this.putInt32(value);
     this.putInt32(floor(value / TWO_POW_32))
+    this.putInt32(value);
   }
 
   get(): number {
@@ -52,15 +58,15 @@ class ByteBuffer {
   }
 
   getInt32(): number {
-    this.int8ArrayForConvert.set(this.data.slice(this.index, this.index + 4))
+    this.int8ArrayForConvert.set(this.data.slice(this.index, this.index + 4).reverse())
     const value = this.int32ArrayForConvert[0];
     this.index = this.index + 4;
     return value;
   }
 
   getInt64(): number {
-    const low = this.getInt32();
     const high = this.getInt32();
+    const low = this.getInt32();
     return high * TWO_POW_32 + low;
   }
 

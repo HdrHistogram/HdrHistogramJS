@@ -6,7 +6,7 @@ describe('ByteBuffer', () => {
   
   it("should put value moving the index", () => {
       // given
-      const buffer = new ByteBuffer(3);
+      const buffer = ByteBuffer.allocate(3);
       // when
       buffer.put(123);
       // then
@@ -16,7 +16,7 @@ describe('ByteBuffer', () => {
 
   it("should resize when values overflow ", () => {
       // given
-      const buffer = new ByteBuffer(1);
+      const buffer = ByteBuffer.allocate(1);
       buffer.put(123);
       // when
       buffer.put(42);
@@ -27,7 +27,7 @@ describe('ByteBuffer', () => {
 
   it("should get value moving the index", () => {
       // given
-      const buffer = new ByteBuffer(1);
+      const buffer = ByteBuffer.allocate(1);
       buffer.put(123);
       buffer.resetIndex();
       // when
@@ -39,27 +39,27 @@ describe('ByteBuffer', () => {
 
   it("should put int32 value moving the index", () => {
       // given
-      const buffer = new ByteBuffer(8);
+      const buffer = ByteBuffer.allocate(8);
       // when
       buffer.putInt32(123);
       // then
-      expect(buffer.data[0]).to.be.equal(123);
+      expect(buffer.data[3]).to.be.equal(123);
       expect(buffer.index).to.be.equal(4);
   });
 
   it("should resize when int32 values overflow ", () => {
       // given
-      const buffer = new ByteBuffer(1);
+      const buffer = ByteBuffer.allocate(1);
       // when
       buffer.putInt32(42);
       // then
-      expect(buffer.data[0]).to.be.equal(42);
+      expect(buffer.data[3]).to.be.equal(42);
       expect(buffer.index).to.be.equal(4);
   });
 
   it("should get int32 value moving the index", () => {
       // given
-      const buffer = new ByteBuffer(1);
+      const buffer = ByteBuffer.allocate(1);
       buffer.putInt32(123);
       buffer.resetIndex();
       // when
@@ -71,27 +71,27 @@ describe('ByteBuffer', () => {
 
   it("should put int64 value moving the index", () => {
       // given
-      const buffer = new ByteBuffer(8);
+      const buffer = ByteBuffer.allocate(8);
       // when
       buffer.putInt64(123);
       // then
-      expect(buffer.data[0]).to.be.equal(123);
+      expect(buffer.data[7]).to.be.equal(123);
       expect(buffer.index).to.be.equal(8);
   });
 
   it("should resize when int64 values overflow ", () => {
       // given
-      const buffer = new ByteBuffer(1);
+      const buffer = ByteBuffer.allocate(1);
       // when
       buffer.putInt64(42);
       // then
-      expect(buffer.data[0]).to.be.equal(42);
+      expect(buffer.data[7]).to.be.equal(42);
       expect(buffer.index).to.be.equal(8);
   });
 
   it("should get int64 value moving the index", () => {
       // given
-      const buffer = new ByteBuffer(1);
+      const buffer = ByteBuffer.allocate(1);
       buffer.putInt64(Number.MAX_SAFE_INTEGER);
       buffer.resetIndex();
       // when

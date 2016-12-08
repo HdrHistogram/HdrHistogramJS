@@ -7,7 +7,7 @@ describe('Zig Zag Encoding', () => {
   
   it("should encode int using one byte when value is less than 64", () => {
     // given
-    const buffer = new ByteBuffer(4);
+    const buffer = ByteBuffer.allocate(4);
     // when
     ZigZagEncoding.encode(buffer, 56);
     // then
@@ -17,7 +17,7 @@ describe('Zig Zag Encoding', () => {
 
   it("should encode int using several bytes when value is more than 64", () => {
     // given
-    const buffer = new ByteBuffer(4);
+    const buffer = ByteBuffer.allocate(4);
     // when
     ZigZagEncoding.encode(buffer, 456);
     // then
@@ -27,7 +27,7 @@ describe('Zig Zag Encoding', () => {
 
   it("should encode negative int using several bytes when value is more than 64", () => {
     // given
-    const buffer = new ByteBuffer(4);
+    const buffer = ByteBuffer.allocate(4);
     // when
     ZigZagEncoding.encode(buffer, -456);
     // then
@@ -37,7 +37,7 @@ describe('Zig Zag Encoding', () => {
 
   it("should encode large safe int greater than 2^32", () => {
     // given
-    const buffer = new ByteBuffer(4);
+    const buffer = ByteBuffer.allocate(4);
     // when
     ZigZagEncoding.encode(buffer, Math.pow(2, 50));
     // then
@@ -47,7 +47,7 @@ describe('Zig Zag Encoding', () => {
 
   it("should decode int using one byte", () => {
     // given
-    const buffer = new ByteBuffer(8);
+    const buffer = ByteBuffer.allocate(8);
     ZigZagEncoding.encode(buffer, 56);
     buffer.resetIndex();
     // when
@@ -58,7 +58,7 @@ describe('Zig Zag Encoding', () => {
 
   it("should decode int using multiple bytes", () => {
     // given
-    const buffer = new ByteBuffer(8);
+    const buffer = ByteBuffer.allocate(8);
     ZigZagEncoding.encode(buffer, 1515);
     ZigZagEncoding.encode(buffer, 56);
     buffer.resetIndex();
@@ -70,7 +70,7 @@ describe('Zig Zag Encoding', () => {
 
   it("should decode negative int using multiple bytes", () => {
     // given
-    const buffer = new ByteBuffer(8);
+    const buffer = ByteBuffer.allocate(8);
     ZigZagEncoding.encode(buffer, -1515);
     ZigZagEncoding.encode(buffer, 56);
     buffer.resetIndex();
@@ -82,7 +82,7 @@ describe('Zig Zag Encoding', () => {
 
   it("should decode large safe int greater than 2^32", () => {
     // given
-    const buffer = new ByteBuffer(4);
+    const buffer = ByteBuffer.allocate(4);
     ZigZagEncoding.encode(buffer, Math.pow(2, 50) + 1234);
     ZigZagEncoding.encode(buffer, 56);
     buffer.resetIndex();

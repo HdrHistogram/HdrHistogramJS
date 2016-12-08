@@ -101,5 +101,36 @@ describe('ByteBuffer', () => {
       expect(buffer.index).to.be.equal(8);
   });
 
+  it("should copy all data when putting array", () => {
+      // given
+      const buffer = ByteBuffer.allocate(1024);
+      const array = new Uint8Array([1, 2, 3, 4]);
+      // when
+      buffer.putArray(array)
+      // then
+      buffer.resetIndex();
+      expect(buffer.get()).to.be.equal(1);
+      expect(buffer.get()).to.be.equal(2);
+      expect(buffer.get()).to.be.equal(3);
+      expect(buffer.get()).to.be.equal(4);
+  });
+
+  it("should resize when putting array bigger than capacity", () => {
+      // given
+      const buffer = ByteBuffer.allocate(1024);
+      const array = new Uint8Array([1, 2, 3, 4]);
+      // when
+      buffer.index = 1022;
+      buffer.putArray(array)
+      // then
+      buffer.index = 1022;
+      expect(buffer.get()).to.be.equal(1);
+      expect(buffer.get()).to.be.equal(2);
+      expect(buffer.get()).to.be.equal(3);
+      expect(buffer.get()).to.be.equal(4);
+  });
+
+
+
 
 });

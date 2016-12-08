@@ -916,4 +916,30 @@ export abstract class AbstractHistogram extends AbstractHistogramBase {
       minBarForHighestTrackableValue
     );
   }
+
+  /**
+   * Encode this histogram in compressed form into a byte array
+   * @param targetBuffer The buffer to encode into
+   * @return The number of bytes written to the array
+   */
+  encodeIntoCompressedByteBuffer(targetBuffer: ByteBuffer, compressionLevel?: number) {
+
+    const intermediateUncompressedByteBuffer = ByteBuffer.allocate();
+    const initialTargetPosition = targetBuffer.index;
+
+    const uncompressedLength = this.encodeIntoByteBuffer(intermediateUncompressedByteBuffer);
+    targetBuffer.putInt32(compressedEncodingCookie);
+
+    const pako = require("pako/lib/deflate");
+    const compressionOptions = compressionLevel ? { level: compressionLevel } : {};
+    const compressedArray: Uint8Array = pako.deflate(
+      intermediateUncompressedByteBuffer.data, 
+      compressionOptions
+    );
+
+    targetBuffer.putInt32(compressedArray.byteLength);
+    targetBuffer.putArray(compressedArray);
+
+    return targetBuffer.index;
+  }
 }

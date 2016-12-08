@@ -329,4 +329,21 @@ describe('Histogram encoding', () => {
     
   });
 
+  it("should encode and compress an histogram", () => {
+    // given
+    const histogram = new Int32Histogram(1, Number.MAX_SAFE_INTEGER, 2);
+    histogram.recordValue(42);
+    histogram.recordValue(7);
+    histogram.recordValue(77);
+    // when
+    const buffer = ByteBuffer.allocate();
+    histogram.encodeIntoCompressedByteBuffer(buffer)
+    // then
+    buffer.resetIndex();
+    const decodedHistogram 
+      = AbstractHistogram.decodeFromCompressedByteBuffer(buffer, Int32Histogram, 0);    
+    expect(decodedHistogram.outputPercentileDistribution())
+      .to.be.equal(histogram.outputPercentileDistribution());
+  });
+
 });

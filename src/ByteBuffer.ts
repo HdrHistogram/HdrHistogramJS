@@ -43,12 +43,22 @@ class ByteBuffer {
     }
     this.int32ArrayForConvert[0] = value;
     this.data.set(this.int8ArrayForConvert.reverse(), this.index);
-    this.index = this.index + 4;
+    this.index += 4;
   }
 
   putInt64(value: number) {
     this.putInt32(floor(value / TWO_POW_32))
     this.putInt32(value);
+  }
+
+  putArray(array: Uint8Array) {
+    if ((this.data.length - this.index) < array.byteLength) {
+      const oldArray = this.data;
+      this.data = new Uint8Array(this.index + array.byteLength);
+      this.data.set(oldArray);
+    }
+    this.data.set(array, this.index);
+    this.index += array.byteLength;
   }
 
   get(): number {
@@ -60,7 +70,7 @@ class ByteBuffer {
   getInt32(): number {
     this.int8ArrayForConvert.set(this.data.slice(this.index, this.index + 4).reverse())
     const value = this.int32ArrayForConvert[0];
-    this.index = this.index + 4;
+    this.index += 4;
     return value;
   }
 

@@ -6,7 +6,7 @@ import Int32Histogram from "./Int32Histogram"
 import PercentileIterator from "./PercentileIterator"
 import HistogramIterationValue from "./HistogramIterationValue"
 
-
+declare function require(name: string): any
 
 class HistogramForTests extends AbstractHistogram {
 
@@ -295,27 +295,38 @@ describe('Histogram encoding', () => {
     // given
     const histogram = new Int32Histogram(1, Number.MAX_SAFE_INTEGER, 2);
     histogram.recordValue(42);
-    const buffer = new ByteBuffer();
+    const buffer = ByteBuffer.allocate();
     // when
     const encodedSize = histogram.encodeIntoByteBuffer(buffer);
     // then
     expect(encodedSize).to.be.equal(42);
   });
 
-
-  it("should encode filling a byte buffer", () => {
+  it("should decode reading a byte buffer", () => {
     // given
     const histogram = new Int32Histogram(1, Number.MAX_SAFE_INTEGER, 2);
     histogram.recordValue(42);
     histogram.recordValue(7);
     histogram.recordValue(77);
-    const buffer = new ByteBuffer();
+    const buffer = ByteBuffer.allocate();
     const encodedSize = histogram.encodeIntoByteBuffer(buffer);
     buffer.index = 0;
     // when
-    const result = AbstractHistogram.decodeFromByteBuffer(buffer, Int32Histogram, 0, null);
+    const result = AbstractHistogram.decodeFromByteBuffer(buffer, Int32Histogram, 0);
     // then
     expect(result.outputPercentileDistribution()).to.be.equal(histogram.outputPercentileDistribution());
+  });
+
+  it("should decode and decompress reading a byte buffer", () => {
+    // given
+    const base64 = require('base64-js');  
+    const buffer = new ByteBuffer(base64.toByteArray("HISTFAAAACB42pNpmSzMwMDAxAABMJqRQf4/GNh/gAgEMwEAkp4I6Q=="));
+    // when
+    const histogram = AbstractHistogram.decodeFromCompressedByteBuffer(buffer, Int32Histogram, 0);
+    // then
+    expect(histogram.getMean()).to.be.equal(42);
+    expect(histogram.getTotalCount()).to.be.equal(1);
+    
   });
 
 });

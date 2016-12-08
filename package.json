@@ -16,6 +16,7 @@
     "@types/chai": "^3.4.34",
     "@types/core-js": "^0.9.34",
     "@types/mocha": "^2.2.32",
+    "base64-js": "^1.2.0",
     "chai": "^3.5.0",
     "core-js": "^2.4.1",
     "mocha": "^3.0.2",

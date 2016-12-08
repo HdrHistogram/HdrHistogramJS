@@ -13,6 +13,7 @@ import HistogramIterationValue from "./HistogramIterationValue"
 import { integerFormatter, floatFormatter } from "./formatters"
 import ZigZagEncoding from "./ZigZagEncoding"
 
+declare function require(name: string): any
 
 const { pow, floor, ceil, log2, max, min } = Math;
 
@@ -22,13 +23,6 @@ const V2maxWordSizeInBytes = 9; // LEB128-64b9B + ZigZag require up to 9 bytes p
 const encodingCookie =  V2EncodingCookieBase | 0x10; // LSBit of wordsize byte indicates TLZE Encoding
 const compressedEncodingCookie = V2CompressedEncodingCookieBase | 0x10; // LSBit of wordsize byte indicates TLZE Encoding
 
-export interface HistogramConstructor {
-  (
-    lowestDiscernibleValue: number, 
-    highestTrackableValue: number, 
-    numberOfSignificantValueDigits: number
-  ): AbstractHistogram
-} 
 
 
 export abstract class AbstractHistogram extends AbstractHistogramBase {
@@ -864,8 +858,8 @@ export abstract class AbstractHistogram extends AbstractHistogramBase {
   static decodeFromByteBuffer(
     buffer: ByteBuffer,
     histogramConstr: typeof AbstractHistogram,
-    minBarForHighestTrackableValue: number,
-    decompressor: any): AbstractHistogram {
+    minBarForHighestTrackableValue: number
+  ): AbstractHistogram {
 
     const cookie = buffer.getInt32();
     const payloadLengthInBytes = buffer.getInt32();
@@ -884,23 +878,8 @@ export abstract class AbstractHistogram extends AbstractHistogramBase {
           numberOfSignificantValueDigits
         );
 
-  
-    let payloadSourceBuffer: ByteBuffer = buffer;
-
-    if (decompressor == null) {
-        // No compressed source buffer. Payload is in buffer, after header.
-        payloadSourceBuffer = buffer;
-    } else {
-        // Compressed source buffer. Payload needs to be decoded from there.
-        /*payLoadSourceBuffer = ByteBuffer.allocate(expectedCapacity).order(BIG_ENDIAN);
-        int decompressedByteCount = decompressor.inflate(payLoadSourceBuffer.array());
-        if ((payloadLengthInBytes != Integer.MAX_VALUE) && (decompressedByteCount < payloadLengthInBytes)) {
-            throw new IllegalArgumentException("The buffer does not contain the indicated payload amount");
-        }*/
-    }
-
     const filledLength = histogram.fillCountsArrayFromSourceBuffer(
-      payloadSourceBuffer,
+      buffer,
       payloadLengthInBytes,
       V2maxWordSizeInBytes
     );
@@ -910,4 +889,31 @@ export abstract class AbstractHistogram extends AbstractHistogramBase {
     return histogram;
   }
 
+
+  static decodeFromCompressedByteBuffer(
+    buffer: ByteBuffer,
+    histogramConstr: typeof AbstractHistogram,
+    minBarForHighestTrackableValue: number
+  ): AbstractHistogram {
+
+    const initialTargetPosition = buffer.index;
+    const cookie = buffer.getInt32();
+    const headerSize = 40;
+    const lengthOfCompressedContents = buffer.getInt32();
+
+    const pako = require("pako/lib/inflate");
+
+    const uncompressedBuffer: Uint8Array = pako.inflate(
+      buffer.data.slice(
+        initialTargetPosition + 8, 
+        initialTargetPosition + 8 + lengthOfCompressedContents
+      )    
+    );
+
+    return this.decodeFromByteBuffer(
+      new ByteBuffer(uncompressedBuffer), 
+      histogramConstr, 
+      minBarForHighestTrackableValue
+    );
+  }
 }

@@ -310,7 +310,7 @@ describe('Histogram encoding', () => {
     histogram.recordValue(77);
     const buffer = ByteBuffer.allocate();
     const encodedSize = histogram.encodeIntoByteBuffer(buffer);
-    buffer.index = 0;
+    buffer.position = 0;
     // when
     const result = AbstractHistogram.decodeFromByteBuffer(buffer, Int32Histogram, 0);
     // then
@@ -339,7 +339,7 @@ describe('Histogram encoding', () => {
     const buffer = ByteBuffer.allocate();
     histogram.encodeIntoCompressedByteBuffer(buffer)
     // then
-    buffer.resetIndex();
+    buffer.resetPosition();
     const decodedHistogram 
       = AbstractHistogram.decodeFromCompressedByteBuffer(buffer, Int32Histogram, 0);    
     expect(decodedHistogram.outputPercentileDistribution())

@@ -49,7 +49,7 @@ describe('Zig Zag Encoding', () => {
     // given
     const buffer = ByteBuffer.allocate(8);
     ZigZagEncoding.encode(buffer, 56);
-    buffer.resetIndex();
+    buffer.resetPosition();
     // when
     const value = ZigZagEncoding.decode(buffer);
     // then
@@ -61,7 +61,7 @@ describe('Zig Zag Encoding', () => {
     const buffer = ByteBuffer.allocate(8);
     ZigZagEncoding.encode(buffer, 1515);
     ZigZagEncoding.encode(buffer, 56);
-    buffer.resetIndex();
+    buffer.resetPosition();
     // when
     const value = ZigZagEncoding.decode(buffer);
     // then
@@ -73,7 +73,7 @@ describe('Zig Zag Encoding', () => {
     const buffer = ByteBuffer.allocate(8);
     ZigZagEncoding.encode(buffer, -1515);
     ZigZagEncoding.encode(buffer, 56);
-    buffer.resetIndex();
+    buffer.resetPosition();
     // when
     const value = ZigZagEncoding.decode(buffer);
     // then
@@ -85,7 +85,7 @@ describe('Zig Zag Encoding', () => {
     const buffer = ByteBuffer.allocate(4);
     ZigZagEncoding.encode(buffer, Math.pow(2, 50) + 1234);
     ZigZagEncoding.encode(buffer, 56);
-    buffer.resetIndex();
+    buffer.resetPosition();
     // when
     const value = ZigZagEncoding.decode(buffer);
     // then

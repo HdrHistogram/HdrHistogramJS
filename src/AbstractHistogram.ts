@@ -787,7 +787,7 @@ export abstract class AbstractHistogram extends AbstractHistogramBase {
    * @return The number of bytes written to the buffer
    */
   encodeIntoByteBuffer(buffer: ByteBuffer) {
-    const initialPosition = buffer.index;
+    const initialPosition = buffer.position;
     buffer.putInt32(encodingCookie);
     buffer.putInt32(0); // Placeholder for payload length in bytes.
     buffer.putInt32(1);
@@ -796,14 +796,14 @@ export abstract class AbstractHistogram extends AbstractHistogramBase {
     buffer.putInt64(this.highestTrackableValue);
     buffer.putInt64(1);
 
-    const payloadStartPosition = buffer.index;
+    const payloadStartPosition = buffer.position;
     this.fillBufferFromCountsArray(buffer);
 
-    const backupIndex =  buffer.index;
-    buffer.index = initialPosition + 4;
+    const backupIndex =  buffer.position;
+    buffer.position = initialPosition + 4;
     buffer.putInt32(backupIndex - payloadStartPosition); // Record the payload length
 
-    buffer.index = backupIndex;
+    buffer.position = backupIndex;
 
     return backupIndex - initialPosition;
   }
@@ -815,8 +815,8 @@ export abstract class AbstractHistogram extends AbstractHistogramBase {
                 V2maxWordSizeInBytes + ") bytes";
     }
     let dstIndex = 0;
-    const endPosition = sourceBuffer.index + lengthInBytes;
-    while (sourceBuffer.index < endPosition) {
+    const endPosition = sourceBuffer.position + lengthInBytes;
+    while (sourceBuffer.position < endPosition) {
       let zerosCount = 0;
       let count= ZigZagEncoding.decode(sourceBuffer);
       if (count < 0) {
@@ -896,7 +896,7 @@ export abstract class AbstractHistogram extends AbstractHistogramBase {
     minBarForHighestTrackableValue: number
   ): AbstractHistogram {
 
-    const initialTargetPosition = buffer.index;
+    const initialTargetPosition = buffer.position;
     const cookie = buffer.getInt32();
     const headerSize = 40;
     const lengthOfCompressedContents = buffer.getInt32();
@@ -925,7 +925,7 @@ export abstract class AbstractHistogram extends AbstractHistogramBase {
   encodeIntoCompressedByteBuffer(targetBuffer: ByteBuffer, compressionLevel?: number) {
 
     const intermediateUncompressedByteBuffer = ByteBuffer.allocate();
-    const initialTargetPosition = targetBuffer.index;
+    const initialTargetPosition = targetBuffer.position;
 
     const uncompressedLength = this.encodeIntoByteBuffer(intermediateUncompressedByteBuffer);
     targetBuffer.putInt32(compressedEncodingCookie);
@@ -940,6 +940,6 @@ export abstract class AbstractHistogram extends AbstractHistogramBase {
     targetBuffer.putInt32(compressedArray.byteLength);
     targetBuffer.putArray(compressedArray);
 
-    return targetBuffer.index;
+    return targetBuffer.position;
   }
 }

@@ -7,7 +7,7 @@ const TWO_POW_32 = pow(2, 32);
  */
 class ByteBuffer {
 
-  index: number;
+  position: number;
 
   data: Uint8Array;
 
@@ -19,31 +19,31 @@ class ByteBuffer {
   }
 
   constructor(data: Uint8Array) {
-    this.index = 0;
+    this.position = 0;
     this.data = data;
     this.int32ArrayForConvert = new Uint32Array(1);
     this.int8ArrayForConvert = new Uint8Array(this.int32ArrayForConvert.buffer);
   }
 
   put(value: number) {
-    if (this.index === this.data.length) {
+    if (this.position === this.data.length) {
       const oldArray = this.data;
       this.data = new Uint8Array(this.data.length * 2);
       this.data.set(oldArray);
     }
-    this.data[this.index] = value;
-    this.index++;
+    this.data[this.position] = value;
+    this.position++;
   }
 
   putInt32(value: number) {
-    if ((this.data.length - this.index) < 4) {
+    if ((this.data.length - this.position) < 4) {
       const oldArray = this.data;
       this.data = new Uint8Array(this.data.length * 2 + 4);
       this.data.set(oldArray);
     }
     this.int32ArrayForConvert[0] = value;
-    this.data.set(this.int8ArrayForConvert.reverse(), this.index);
-    this.index += 4;
+    this.data.set(this.int8ArrayForConvert.reverse(), this.position);
+    this.position += 4;
   }
 
   putInt64(value: number) {
@@ -52,25 +52,25 @@ class ByteBuffer {
   }
 
   putArray(array: Uint8Array) {
-    if ((this.data.length - this.index) < array.byteLength) {
+    if ((this.data.length - this.position) < array.byteLength) {
       const oldArray = this.data;
-      this.data = new Uint8Array(this.index + array.byteLength);
+      this.data = new Uint8Array(this.position + array.byteLength);
       this.data.set(oldArray);
     }
-    this.data.set(array, this.index);
-    this.index += array.byteLength;
+    this.data.set(array, this.position);
+    this.position += array.byteLength;
   }
 
   get(): number {
-    const value = this.data[this.index];
-    this.index++;
+    const value = this.data[this.position];
+    this.position++;
     return value;
   }
 
   getInt32(): number {
-    this.int8ArrayForConvert.set(this.data.slice(this.index, this.index + 4).reverse())
+    this.int8ArrayForConvert.set(this.data.slice(this.position, this.position + 4).reverse())
     const value = this.int32ArrayForConvert[0];
-    this.index += 4;
+    this.position += 4;
     return value;
   }
 
@@ -80,8 +80,8 @@ class ByteBuffer {
     return high * TWO_POW_32 + low;
   }
 
-  resetIndex() {
-    this.index = 0;
+  resetPosition() {
+    this.position = 0;
   }
 
 } 

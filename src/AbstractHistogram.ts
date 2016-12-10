@@ -812,8 +812,51 @@ export abstract class AbstractHistogram extends AbstractHistogramBase {
     this.endTimeStampMsec = max(this.endTimeStampMsec, otherHistogram.endTimeStampMsec);
   }
 
+  /**
+   * Get the count of recorded values at a specific value (to within the histogram resolution at the value level).
+   *
+   * @param value The value for which to provide the recorded count
+   * @return The total count of values recorded in the histogram within the value range that is
+   * {@literal >=} lowestEquivalentValue(<i>value</i>) and {@literal <=} highestEquivalentValue(<i>value</i>)
+   */
+  private getCountAtValue(value: number) {
+      const index = min(max(0, this.countsArrayIndex(value)), (this.countsArrayLength - 1));
+      return this.getCountAtIndex(index);
+  }
 
-
+  /**
+   * Subtract the contents of another histogram from this one.
+   * <p>
+   * The start/end timestamps of this histogram will remain unchanged.
+   *
+   * @param otherHistogram The other histogram.
+   * @throws ArrayIndexOutOfBoundsException (may throw) if values in otherHistogram's are higher than highestTrackableValue.
+   *
+   */
+  subtract(otherHistogram: AbstractHistogram) {
+    const highestRecordableValue = this.valueFromIndex(this.countsArrayLength - 1);
+    if (highestRecordableValue < otherHistogram.maxValue) {
+      if (!this.autoResize) {
+        throw "The other histogram includes values that do not fit in this histogram's range.";
+      }
+      this.resize(otherHistogram.maxValue);
+    }
+    for (let i = 0; i < otherHistogram.countsArrayLength; i++) {
+      const otherCount = otherHistogram.getCountAtIndex(i);
+      if (otherCount > 0) {
+        const otherValue = otherHistogram.valueFromIndex(i);
+        if (this.getCountAtValue(otherValue) < otherCount) {
+          throw "otherHistogram count (" + otherCount + ") at value " +
+            otherValue + " is larger than this one's (" + this.getCountAtValue(otherValue) + ")";
+        }
+        this.recordCountAtValue(-otherCount, otherValue);
+      }
+    }
+    // With subtraction, the max and minNonZero values could have changed:
+    if ((this.getCountAtValue(this.maxValue) <= 0) || this.getCountAtValue(this.minNonZeroValue) <= 0) {
+      this.establishInternalTackingValues();
+    }
+  }
 
   fillBufferFromCountsArray(buffer: ByteBuffer) {
     const countsLimit = this.countsArrayIndex(this.maxValue) + 1;

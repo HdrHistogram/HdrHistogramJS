@@ -349,7 +349,7 @@ describe('Histogram encoding', () => {
 });
 
 
-describe('Histogram add', () => {
+describe('Histogram add & substract', () => {
 
   it("should add histograms of same size", () => {
     // given
@@ -391,5 +391,21 @@ describe('Histogram add', () => {
     expect(histogram.getTotalCount()).to.be.equal(2);
     expect(Math.floor(histogram.getMean() / 100)).to.be.equal(215);
   });
+
+  it("should be equal when anothe histogram is added then subtracted", () => {
+    // given
+    const histogram = new Int32Histogram(1, 1024, 5);
+    const histogram2 = new Int32Histogram(1, Number.MAX_SAFE_INTEGER, 5);
+    histogram.autoResize = true;
+    histogram.recordValue(1000);
+    histogram2.recordValue(42000);
+    const outputBefore = histogram.outputPercentileDistribution();
+    // when
+    histogram.add(histogram2);
+    histogram.subtract(histogram2);
+    // then
+    expect(histogram.outputPercentileDistribution()).to.be.equal(outputBefore);
+  });
+
 
 });

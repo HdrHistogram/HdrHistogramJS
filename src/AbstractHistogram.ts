@@ -797,7 +797,7 @@ export abstract class AbstractHistogram extends AbstractHistogramBase {
       // Do max value first, to avoid max value updates on each iteration:
       const otherMaxIndex = otherHistogram.countsArrayIndex(otherHistogram.maxValue);
       let otherCount = otherHistogram.getCountAtIndex(otherMaxIndex);
-      this.recordCountAtValue(otherCount, otherHistogram.valueFromIndex(otherMaxIndex));
+      this.recordCountAtValue(otherCount, otherHistogram.maxValue);
 
       // Record the remaining values, up to but not including the max value:
       for (let i = 0; i < otherMaxIndex; i++) {

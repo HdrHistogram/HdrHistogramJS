@@ -750,6 +750,71 @@ export abstract class AbstractHistogram extends AbstractHistogramBase {
 
 
 
+  /**
+   * Add the contents of another histogram to this one.
+   * <p>
+   * As part of adding the contents, the start/end timestamp range of this histogram will be
+   * extended to include the start/end timestamp range of the other histogram.
+   *
+   * @param otherHistogram The other histogram.
+   * @throws (may throw) if values in fromHistogram's are
+   * higher than highestTrackableValue.
+   */
+  add(otherHistogram: AbstractHistogram) {
+    const highestRecordableValue 
+      = this.highestEquivalentValue(
+          this.valueFromIndex(this.countsArrayLength - 1)
+        );
+
+    if (highestRecordableValue < otherHistogram.maxValue) {
+      if (!this.autoResize) {
+        throw "The other histogram includes values that do not fit in this histogram's range.";
+      }
+      this.resize(otherHistogram.maxValue);
+    }
+
+    if ((this.bucketCount === otherHistogram.bucketCount) &&
+        (this.subBucketCount === otherHistogram.subBucketCount) &&
+        (this.unitMagnitude === otherHistogram.unitMagnitude)) {
+
+      // Counts arrays are of the same length and meaning, so we can just iterate and add directly:
+      let observedOtherTotalCount = 0;
+      for (let i = 0; i < otherHistogram.countsArrayLength; i++) {
+        const otherCount = otherHistogram.getCountAtIndex(i);
+        if (otherCount > 0) {
+          this.addToCountAtIndex(i, otherCount);
+          observedOtherTotalCount += otherCount;
+        }
+      }
+      this.setTotalCount(this.getTotalCount() + observedOtherTotalCount);
+      this.updatedMaxValue(max(this.maxValue, otherHistogram.maxValue));
+      this.updateMinNonZeroValue(min(this.minNonZeroValue, otherHistogram.minNonZeroValue));
+    } else {
+      // Arrays are not a direct match (or the other could change on the fly in some valid way),
+      // so we can't just stream through and add them. Instead, go through the array and add each
+      // non-zero value found at it's proper value:
+
+      // Do max value first, to avoid max value updates on each iteration:
+      const otherMaxIndex = otherHistogram.countsArrayIndex(otherHistogram.maxValue);
+      let otherCount = otherHistogram.getCountAtIndex(otherMaxIndex);
+      this.recordCountAtValue(otherCount, otherHistogram.valueFromIndex(otherMaxIndex));
+
+      // Record the remaining values, up to but not including the max value:
+      for (let i = 0; i < otherMaxIndex; i++) {
+        otherCount = otherHistogram.getCountAtIndex(i);
+        if (otherCount > 0) {
+          console.log(i, otherCount);
+          this.recordCountAtValue(otherCount, otherHistogram.valueFromIndex(i));
+        }
+      }
+    }
+    this.startTimeStampMsec = min(this.startTimeStampMsec, otherHistogram.startTimeStampMsec);
+    this.endTimeStampMsec = max(this.endTimeStampMsec, otherHistogram.endTimeStampMsec);
+  }
+
+
+
+
   fillBufferFromCountsArray(buffer: ByteBuffer) {
     const countsLimit = this.countsArrayIndex(this.maxValue) + 1;
     let srcIndex = 0;

@@ -347,3 +347,49 @@ describe('Histogram encoding', () => {
   });
 
 });
+
+
+describe('Histogram add', () => {
+
+  it("should add histograms of same size", () => {
+    // given
+    const histogram = new Int32Histogram(1, Number.MAX_SAFE_INTEGER, 2);
+    const histogram2 = new Int32Histogram(1, Number.MAX_SAFE_INTEGER, 2);
+    histogram.recordValue(42);
+    histogram2.recordValue(158);
+    // when
+    histogram.add(histogram2);
+    // then
+    expect(histogram.getTotalCount()).to.be.equal(2);
+    expect(histogram.getMean()).to.be.equal(100);
+  });
+
+  it("should add histograms of different sizes", () => {
+    // given
+    const histogram = new Int32Histogram(1, Number.MAX_SAFE_INTEGER, 2);
+    const histogram2 = new Int32Histogram(1, 1024, 2);
+    histogram2.autoResize = true;
+    histogram.recordValue(42000);
+    histogram2.recordValue(1000);
+    // when
+    histogram.add(histogram2);
+    // then
+    expect(histogram.getTotalCount()).to.be.equal(2);
+    expect(Math.floor(histogram.getMean() / 100)).to.be.equal(215);
+  });
+
+  it("should add histograms of different sizes & precisions", () => {
+    // given
+    const histogram = new Int32Histogram(1, Number.MAX_SAFE_INTEGER, 2);
+    const histogram2 = new Int32Histogram(1, 1024, 3);
+    histogram2.autoResize = true;
+    histogram.recordValue(42000);
+    histogram2.recordValue(1000);
+    // when
+    histogram.add(histogram2);
+    // then
+    expect(histogram.getTotalCount()).to.be.equal(2);
+    expect(Math.floor(histogram.getMean() / 100)).to.be.equal(215);
+  });
+
+});

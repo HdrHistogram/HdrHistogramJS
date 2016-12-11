@@ -392,9 +392,24 @@ describe('Histogram add & substract', () => {
     expect(Math.floor(histogram.getMean() / 100)).to.be.equal(215);
   });
 
-  it("should be equal when anothe histogram is added then subtracted", () => {
+  it("should be equal when another histogram is added then subtracted", () => {
     // given
     const histogram = new Int32Histogram(1, 1024, 5);
+    const histogram2 = new Int32Histogram(1, Number.MAX_SAFE_INTEGER, 5);
+    histogram.autoResize = true;
+    histogram.recordValue(1000);
+    histogram2.recordValue(42000);
+    const outputBefore = histogram.outputPercentileDistribution();
+    // when
+    histogram.add(histogram2);
+    histogram.subtract(histogram2);
+    // then
+    expect(histogram.outputPercentileDistribution()).to.be.equal(outputBefore);
+  });
+
+  it("should be equal when another histogram is added then subtracted with same characteristics", () => {
+    // given
+    const histogram = new Int32Histogram(1, Number.MAX_SAFE_INTEGER, 5);
     const histogram2 = new Int32Histogram(1, Number.MAX_SAFE_INTEGER, 5);
     histogram.autoResize = true;
     histogram.recordValue(1000);

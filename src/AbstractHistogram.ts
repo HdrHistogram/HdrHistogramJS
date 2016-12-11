@@ -841,15 +841,30 @@ export abstract class AbstractHistogram extends AbstractHistogramBase {
       }
       this.resize(otherHistogram.maxValue);
     }
-    for (let i = 0; i < otherHistogram.countsArrayLength; i++) {
-      const otherCount = otherHistogram.getCountAtIndex(i);
-      if (otherCount > 0) {
-        const otherValue = otherHistogram.valueFromIndex(i);
-        if (this.getCountAtValue(otherValue) < otherCount) {
-          throw "otherHistogram count (" + otherCount + ") at value " +
-            otherValue + " is larger than this one's (" + this.getCountAtValue(otherValue) + ")";
+
+    if ((this.bucketCount === otherHistogram.bucketCount) &&
+        (this.subBucketCount === otherHistogram.subBucketCount) &&
+        (this.unitMagnitude === otherHistogram.unitMagnitude)) {
+
+      // optim
+      // Counts arrays are of the same length and meaning, so we can just iterate and add directly:
+      for (let i = 0; i < otherHistogram.countsArrayLength; i++) {
+        const otherCount = otherHistogram.getCountAtIndex(i);
+        if (otherCount > 0) {
+          this.addToCountAtIndex(i, -otherCount);
         }
-        this.recordCountAtValue(-otherCount, otherValue);
+      }
+    } else {
+      for (let i = 0; i < otherHistogram.countsArrayLength; i++) {
+        const otherCount = otherHistogram.getCountAtIndex(i);
+        if (otherCount > 0) {
+          const otherValue = otherHistogram.valueFromIndex(i);
+          if (this.getCountAtValue(otherValue) < otherCount) {
+            throw "otherHistogram count (" + otherCount + ") at value " +
+              otherValue + " is larger than this one's (" + this.getCountAtValue(otherValue) + ")";
+          }
+          this.recordCountAtValue(-otherCount, otherValue);
+        }
       }
     }
     // With subtraction, the max and minNonZero values could have changed:

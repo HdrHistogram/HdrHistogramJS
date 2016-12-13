@@ -1,6 +1,6 @@
 import "core-js"
 import { expect } from "chai";
-import { AbstractHistogram } from "./AbstractHistogram" 
+import AbstractHistogram from "./AbstractHistogram" 
 import ByteBuffer from "./ByteBuffer"
 import Int32Histogram from "./Int32Histogram"
 import PercentileIterator from "./PercentileIterator"
@@ -57,7 +57,10 @@ class HistogramForTests extends AbstractHistogram {
 
 describe('Histogram initialization', () => {
   
-  const histogram = new HistogramForTests(1, Number.MAX_SAFE_INTEGER, 3);
+  let histogram: AbstractHistogram;
+  beforeEach(() => {
+    histogram = new HistogramForTests(1, Number.MAX_SAFE_INTEGER, 3);
+  })
 
   it("should set sub bucket size", () => {
     expect(histogram.subBucketCount).to.be.equal(2048);

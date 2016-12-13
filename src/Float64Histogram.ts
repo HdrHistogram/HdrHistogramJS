@@ -5,7 +5,7 @@
  * and released to the public domain, as explained at
  * http://creativecommons.org/publicdomain/zero/1.0/
  */
-import { AbstractHistogram } from "./AbstractHistogram";
+import AbstractHistogram from "./AbstractHistogram";
 
 class Float64Histogram extends AbstractHistogram {
 

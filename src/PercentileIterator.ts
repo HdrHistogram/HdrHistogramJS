@@ -1,4 +1,4 @@
-import { AbstractHistogram } from "./AbstractHistogram";
+import AbstractHistogram from "./AbstractHistogram";
 import AbstractHistogramIterator from "./AbstractHistogramIterator";
 
 

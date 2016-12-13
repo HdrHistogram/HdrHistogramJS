@@ -6,7 +6,7 @@
  * http://creativecommons.org/publicdomain/zero/1.0/
  */
 
-import { AbstractHistogram } from "./AbstractHistogram";
+import AbstractHistogram from "./AbstractHistogram";
 import AbstractHistogramIterator from "./AbstractHistogramIterator";
 
 /**

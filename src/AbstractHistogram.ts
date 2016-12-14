@@ -986,7 +986,7 @@ abstract class AbstractHistogram extends AbstractHistogramBase {
 
     buffer.getInt32(); // cookie not used
     const payloadLengthInBytes = buffer.getInt32();
-    const normalizingIndexOffset = buffer.getInt32();
+    buffer.getInt32(); // normalizingIndexOffset not used
     const numberOfSignificantValueDigits = buffer.getInt32();
     const lowestTrackableUnitValue = buffer.getInt64();
     let highestTrackableValue = buffer.getInt64();
@@ -1020,8 +1020,7 @@ abstract class AbstractHistogram extends AbstractHistogramBase {
   ): AbstractHistogram {
 
     const initialTargetPosition = buffer.position;
-    const cookie = buffer.getInt32();
-    const headerSize = 40;
+    buffer.getInt32(); // cookie not used
     const lengthOfCompressedContents = buffer.getInt32();
 
     const pako = require("pako/lib/inflate");
@@ -1048,15 +1047,14 @@ abstract class AbstractHistogram extends AbstractHistogramBase {
   encodeIntoCompressedByteBuffer(targetBuffer: ByteBuffer, compressionLevel?: number) {
 
     const intermediateUncompressedByteBuffer = ByteBuffer.allocate();
-    const initialTargetPosition = targetBuffer.position;
-
+    
     const uncompressedLength = this.encodeIntoByteBuffer(intermediateUncompressedByteBuffer);
     targetBuffer.putInt32(compressedEncodingCookie);
 
     const pako = require("pako/lib/deflate");
     const compressionOptions = compressionLevel ? { level: compressionLevel } : {};
     const compressedArray: Uint8Array = pako.deflate(
-      intermediateUncompressedByteBuffer.data, 
+      intermediateUncompressedByteBuffer.data.slice(0, uncompressedLength), 
       compressionOptions
     );
 

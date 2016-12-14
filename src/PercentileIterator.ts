@@ -2,7 +2,7 @@ import AbstractHistogram from "./AbstractHistogram";
 import AbstractHistogramIterator from "./AbstractHistogramIterator";
 
 
-const { pow, floor, ceil, log2, max, min } = Math;
+const { pow, floor, log2 } = Math;
 
 
 /**

@@ -42,7 +42,7 @@ const defaultRequest: BuildRequest = {
   bitBucketSize: 32,
   autoResize: true,
   lowestDiscernibleValue: 1, 
-  highestTrackableValue: Number.MAX_SAFE_INTEGER,
+  highestTrackableValue: 2,
   numberOfSignificantValueDigits: 3
 }
 

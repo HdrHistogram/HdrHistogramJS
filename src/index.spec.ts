@@ -2,7 +2,7 @@ import "core-js"
 import { expect } from "chai";
 import * as hdr from "./index" 
 
-describe('Integer formatter', () => {
+describe('Histogram builder', () => {
   
   it("should build histogram with default values", () => {
     // given
@@ -10,19 +10,22 @@ describe('Integer formatter', () => {
     const histogram = hdr.build();
     // then
     expect(histogram).to.be.not.null;
+    expect(histogram.autoResize).to.be.true;
+    expect(histogram.highestTrackableValue).to.be.equal(2);
   });
 
   it("should build histogram with custom parameters", () => {
     // given
     // when
     const histogram 
-      = hdr.build({ bitBucketSize: 8, numberOfSignificantValueDigits: 2});
+      = hdr.build({ bitBucketSize: 32, numberOfSignificantValueDigits: 2});
     const expectedHistogram 
-      = new hdr.Int8Histogram(1, Number.MAX_SAFE_INTEGER, 2);
+      = new hdr.Int32Histogram(1, 2, 2);
+    expectedHistogram.autoResize = true;
 
     histogram.recordValue(12345678);
     expectedHistogram.recordValue(12345678);
-    
+   
     // then
     expect(
       histogram.outputPercentileDistribution()

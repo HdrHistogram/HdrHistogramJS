@@ -984,13 +984,13 @@ abstract class AbstractHistogram extends AbstractHistogramBase {
     minBarForHighestTrackableValue: number
   ): AbstractHistogram {
 
-    const cookie = buffer.getInt32();
+    buffer.getInt32(); // cookie not used
     const payloadLengthInBytes = buffer.getInt32();
     const normalizingIndexOffset = buffer.getInt32();
     const numberOfSignificantValueDigits = buffer.getInt32();
     const lowestTrackableUnitValue = buffer.getInt64();
     let highestTrackableValue = buffer.getInt64();
-    buffer.getInt64();
+    buffer.getInt64(); // integerToDoubleValueConversionRatio not used
     highestTrackableValue = max(highestTrackableValue, minBarForHighestTrackableValue);
 
     const constructor = histogramConstr as any;

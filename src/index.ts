@@ -1,3 +1,4 @@
+import ByteBuffer from "./ByteBuffer"
 import Int8Histogram from "./Int8Histogram"
 import Int16Histogram from "./Int16Histogram"
 import Int32Histogram from "./Int32Histogram"
@@ -77,5 +78,6 @@ export {
   Float64Histogram,
   AbstractHistogram as Histogram,
   build,
-  BuildRequest
+  BuildRequest,
+  ByteBuffer
 }

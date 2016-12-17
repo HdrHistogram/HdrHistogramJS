@@ -7,7 +7,7 @@ var libraryName = 'hdrhistogram',
     outputFile;
 
 if (yargs.argv.p) {
-  //plugins.push(new webpack.optimize.UglifyJsPlugin({ minimize: true }));
+  plugins.push(new webpack.optimize.UglifyJsPlugin({ minimize: true }));
   outputFile = libraryName + '.min.js';
 } else {
   outputFile = libraryName + '.js';
@@ -34,6 +34,13 @@ var config = {
     root: path.resolve('./src'),
     extensions: [ '', '.js', '.ts', '.jsx', '.tsx' ]
   },
+
+  externals: {
+    "pako": "pako",
+    "pako/lib/deflate": "pako",
+    "pako/lib/inflate": "pako"
+  },
+
   plugins: plugins
 };
 

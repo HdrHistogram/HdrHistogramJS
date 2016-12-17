@@ -2,15 +2,15 @@ var webpack = require('webpack'),
     path = require('path'),
     yargs = require('yargs');
 
-var libraryName = 'hdrhistogram',
+var libraryName = 'hdr',
     plugins = [],
     outputFile;
 
 if (yargs.argv.p) {
   plugins.push(new webpack.optimize.UglifyJsPlugin({ minimize: true }));
-  outputFile = libraryName + '.min.js';
+  outputFile = 'hdrhistogram.min.js';
 } else {
-  outputFile = libraryName + '.js';
+  outputFile = 'hdrhistogram.js';
 }
 
 var config = {

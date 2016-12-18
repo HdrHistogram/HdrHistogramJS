@@ -1039,6 +1039,18 @@ abstract class AbstractHistogram extends AbstractHistogramBase {
     );
   }
 
+  static decodeFromCompressedBase64(
+    base64String: string,
+    histogramConstr: typeof AbstractHistogram,
+    minBarForHighestTrackableValue: number
+  ): AbstractHistogram {
+  
+    const base64 = require('base64-js');  
+    const buffer = new ByteBuffer(base64.toByteArray(base64String));
+    
+    return this.decodeFromCompressedByteBuffer(buffer, histogramConstr, minBarForHighestTrackableValue);
+  }
+
   /**
    * Encode this histogram in compressed form into a byte array
    * @param targetBuffer The buffer to encode into

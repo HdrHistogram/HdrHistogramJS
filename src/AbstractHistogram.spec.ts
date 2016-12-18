@@ -332,6 +332,18 @@ describe('Histogram encoding', () => {
     
   });
 
+  it("should decode and decompress reading a base64 string", () => {
+    // given
+    const base64 = require('base64-js');  
+    const base64String = "HISTFAAAACB42pNpmSzMwMDAxAABMJqRQf4/GNh/gAgEMwEAkp4I6Q==";
+    // when
+    const histogram = AbstractHistogram.decodeFromCompressedBase64(base64String, Int32Histogram, 0);
+    // then
+    expect(histogram.getMean()).to.be.equal(42);
+    expect(histogram.getTotalCount()).to.be.equal(1);
+    
+  });
+
   it("should encode and compress an histogram", () => {
     // given
     const histogram = new Int32Histogram(1, Number.MAX_SAFE_INTEGER, 2);

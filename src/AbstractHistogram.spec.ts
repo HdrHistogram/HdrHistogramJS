@@ -334,8 +334,7 @@ describe('Histogram encoding', () => {
 
   it("should decode and decompress reading a base64 string", () => {
     // given
-    const base64 = require('base64-js');  
-    const base64String = "HISTFAAAACB42pNpmSzMwMDAxAABMJqRQf4/GNh/gAgEMwEAkp4I6Q==";
+    const base64String = "HISTFAAAAB542pNpmSzMwMDAxAABzFCaEUoz2X+AMIKZAEARAtM=";
     // when
     const histogram = AbstractHistogram.decodeFromCompressedBase64(base64String, Int32Histogram, 0);
     // then
@@ -359,6 +358,16 @@ describe('Histogram encoding', () => {
       = AbstractHistogram.decodeFromCompressedByteBuffer(buffer, Int32Histogram, 0);    
     expect(decodedHistogram.outputPercentileDistribution())
       .to.be.equal(histogram.outputPercentileDistribution());
+  });
+
+  it("should encode and compress an histogram to a base64 string", () => {
+    // given
+    const histogram = new Int32Histogram(1, 2, 3);
+    histogram.recordValue(42);
+    // when
+    const base64Histogram = histogram.encodeIntoBase64String();
+    // then
+    expect(base64Histogram).to.be.equal("HISTFAAAAB94nJNpmSzMwMDABMSMQMzMAAGMUJoJxg9mAgA1TQGm");
   });
 
 });

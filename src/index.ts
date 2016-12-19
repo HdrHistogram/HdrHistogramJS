@@ -5,6 +5,8 @@ import Int32Histogram from "./Int32Histogram"
 import Float64Histogram from "./Float64Histogram"
 import AbstractHistogram from "./AbstractHistogram"
 
+declare function require(name: string): any
+
 interface BuildRequest {
   /**
    * The size in bit of each count bucket
@@ -71,6 +73,26 @@ const build = (request = defaultRequest) => {
   return histogram;
 }
 
+const base64 = require('base64-js');  
+
+const decodeFromCompressedBase64 = (
+    base64String: string,
+    histogramConstr: typeof AbstractHistogram = Int32Histogram,
+    minBarForHighestTrackableValue: number = 1
+): AbstractHistogram => {
+  
+  const buffer = new ByteBuffer(base64.toByteArray(base64String));
+  return AbstractHistogram.decodeFromCompressedByteBuffer(buffer, histogramConstr, minBarForHighestTrackableValue);
+}
+
+const encodeIntoBase64String = (histogram: AbstractHistogram, compressionLevel?: number): string => {
+  const buffer = ByteBuffer.allocate();
+  const bufferSize = histogram.encodeIntoCompressedByteBuffer(buffer, compressionLevel);
+  
+  const encodedBuffer = buffer.data.slice(0, bufferSize);
+  return base64.fromByteArray(encodedBuffer)
+}
+
 export { 
   Int8Histogram,
   Int16Histogram,
@@ -79,5 +101,7 @@ export {
   AbstractHistogram as Histogram,
   build,
   BuildRequest,
-  ByteBuffer
+  ByteBuffer,
+  decodeFromCompressedBase64,
+  encodeIntoBase64String
 }

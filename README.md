@@ -55,7 +55,7 @@ const histogram
     { 
       bitBucketSize: 64,                // may be 8, 16, 32 or 64
       autoResize: true,                 // default value is true
-      lowestDiscernibleValue: 1,        // default value as well
+      lowestDiscernibleValue: 1,        // default value is also 1
       highestTrackableValue: 2,         // can increase up to Number.MAX_SAFE_INTEGER
       numberOfSignificantValueDigits: 3 // Number between 1 and 5 inclusive
     }
@@ -89,10 +89,10 @@ h.recordValue(123);
 h.recordValue(122);
 h.recordValue(1244);
 
-console.log(h.minNonZeroValue); // 122
-console.log(h.maxValue);        // 1244
-console.log(h.getMean());       // 486.333...
-// todo percentiles
+console.log(h.minNonZeroValue);           // 122
+console.log(h.maxValue);                  // 1244
+console.log(h.getMean());                 // 486.333...
+console.log(h.getValueAtPercentile(90));  // 1244 as well
 ```
 
 As with the original Java version, you can generate a textual

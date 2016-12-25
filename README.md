@@ -2,6 +2,7 @@
 
 # HdrHistogramJS
 Browser port of HdrHistogram entirely written in TypeScript!  
+Of course you can use HdrHistogramJS whatever the JS flavor you are into ;)  
 This is a work in progress so do not hesitate to give feedback using github issues or twitter (@Alex_Victoor)
 
 # Getting started
@@ -36,6 +37,7 @@ The examples below use ES6 syntax. You can check out demo sources
 for examples on how to use HdrHistogram directly within a browser, you should 
 not have any surprise though.  
 
+## Instantiate an histogram
 The API is very close to the original Java API, there is just 
 a tiny addition, a simple builder function.
 Here is how to use it to instantiate a new histogram object:
@@ -51,8 +53,11 @@ import * as hdr from "hdr-histogram-js"
 const histogram 
   = hdr.build(
     { 
-      bitBucketSize: 32, 
-      numberOfSignificantValueDigits: 2
+      bitBucketSize: 64,                // may be 8, 16, 32 or 64
+      autoResize: true,                 // default value is true
+      lowestDiscernibleValue: 1,        // default value as well
+      highestTrackableValue: 2,         // can increase up to Number.MAX_SAFE_INTEGER
+      numberOfSignificantValueDigits: 3 // Number between 1 and 5 inclusive
     }
   );
 
@@ -63,6 +68,8 @@ a single number value:
 ```
 histogram.recordValue(1234);
 ```
+
+## Coordinated omissions
 If you are recording values at a fixed rate, 
 you can correct coordinated omissions while recording values:
 ```
@@ -73,6 +80,21 @@ If you prefer to apply correction afterward:
 const correctedHistogram 
   = histogram.copyCorrectedForCoordinatedOmission(100);
 ```
+
+## Retrieve metrics
+You can get min, max, median values and of course percentiles values as shown below:
+```
+const h = hdr.build();
+h.recordValue(123);
+h.recordValue(122);
+h.recordValue(1244);
+
+console.log(h.minNonZeroValue); // 122
+console.log(h.maxValue);        // 1244
+console.log(h.getMean());       // 486.333...
+// todo percentiles
+```
+
 As with the original Java version, you can generate a textual
 representation of an histogram:
 ```
@@ -143,4 +165,5 @@ converted to good old arithmetic expressions
 # Backlog
 - Recorder class
 - Log writer and log reader
-- Let me know what's on your mind :-)
+- logarithmic iterator
+- ... let me know what's on your mind :-)

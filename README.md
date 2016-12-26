@@ -18,7 +18,7 @@ Note for TypeScript developers: since HdrHistogramJS has been written in TypeScr
 The library is packaged as a UMD module, hence you can also directly use if from the browser. 
 To use it directly within a browser, simply include a js file from github's release page:
 ```
-TODO
+<script src="https://github.com/alexvictoor/HdrHistogramJS/releases/download/1.0.0.beta.2/hdrhistogram.min.js" />
 ```
 Then you will have access to classes and functions of the APIs using "hdr" prefix.
 

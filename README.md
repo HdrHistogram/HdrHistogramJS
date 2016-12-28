@@ -3,6 +3,7 @@
 # HdrHistogramJS
 Browser port of HdrHistogram entirely written in TypeScript!  
 Of course you can use HdrHistogramJS whatever the JS flavor you are into ;)  
+See HdrHistogramJS live in action with this [simple demo](A simple demo is available [online](https://alexvictoor.github.io/HdrHistogramJSDemo/ping-demo.html)  
 This is a work in progress so do not hesitate to give feedback using github issues or twitter (@Alex_Victoor)
 
 # Getting started
@@ -69,7 +70,7 @@ a single number value:
 histogram.recordValue(1234);
 ```
 
-A simple demo is available [online](https://alexvictoor.github.io/HdrHistogramJSDemo/ping-demo.html)! 
+A simple demo is available [online](https://alexvictoor.github.io/HdrHistogramJSDemo/ping-demo.html)!   
 Watch the HTML source, at the end you will see a tiny chunk of JavaScript where an histogram is created and then used to 
 record latency ping values.  
 

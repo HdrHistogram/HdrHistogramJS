@@ -69,6 +69,10 @@ a single number value:
 histogram.recordValue(1234);
 ```
 
+A simple demo is available [online](https://alexvictoor.github.io/HdrHistogramJSDemo/ping-demo.html)! 
+Watch the HTML source, at the end you will see a tiny chunk of JavaScript where an histogram is created and then used to 
+record latency ping values.  
+
 ## Coordinated omissions
 If you are recording values at a fixed rate, 
 you can correct coordinated omissions while recording values:
@@ -156,7 +160,7 @@ The most annoying issue encountered during the code migration,
 is that bit operations, heavily used within HdrHistogram, 
 only work on the first 32 bits. That means that the following expression is true:
 ```
-Math.pow(2, 31) << 1 === 0   // sadly true
+Math.pow(2, 31) << 1 === 0   // sad but true
 ```
 Anyway bit shift operations are not really optimized 
 in most browser, so... everything related to bits have been

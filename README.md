@@ -3,7 +3,7 @@
 # HdrHistogramJS
 Browser port of HdrHistogram entirely written in TypeScript!  
 Of course you can use HdrHistogramJS whatever the JS flavor you are into ;)  
-See HdrHistogramJS live in action in your browser with this [simple demo](https://alexvictoor.github.io/HdrHistogramJSDemo/ping-demo.html)  
+See HdrHistogramJS live in action in your browser with this [simple demo](https://alexvictoor.github.io/HdrHistogramJSDemo/ping-demo.html) or [this one](https://alexvictoor.github.io/HdrHistogramJSDemo/decoding-demo.html)   
 This is a work in progress so do not hesitate to give feedback using github issues or twitter (@Alex_Victoor)
 
 # Getting started
@@ -100,7 +100,7 @@ console.log(h.getMean());                 // 486.333...
 console.log(h.getValueAtPercentile(90));  // 1244 as well
 ```
 
-As with the original Java version, you can generate a textual
+As with the original Java version, you can also generate a textual
 representation of an histogram:
 ```
 const histogram = hdr.build();
@@ -129,6 +129,8 @@ const output = histogram.outputPercentileDistribution();
 //#[Buckets =           43, SubBuckets     =         2048]
 
 ```
+
+## Encode & decode
 HistogramLogReader & Writer classes have not been ported yet, 
 but you can already encode and decode base64 compressed histograms:
 ```
@@ -147,6 +149,9 @@ If you want to use this feature you need to add external dependency
 "pako". "pako" is used for zlib compression. Using npm you should get
 it as a transitive dependency, otherwise you need to add it in 
 your html page.
+
+You can check out [this demo](https://alexvictoor.github.io/HdrHistogramJSDemo/decoding-demo.html) to see this feature live!
+
 
 # Design & Limitations
 The code is almost a direct port of the Java version.

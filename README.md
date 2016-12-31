@@ -2,13 +2,13 @@
 
 # HdrHistogramJS
 Browser port of HdrHistogram entirely written in TypeScript!  
-Of course you can use HdrHistogramJS whatever the JS flavor you are into ;)  
 See HdrHistogramJS live in action in your browser with this [simple demo](https://alexvictoor.github.io/HdrHistogramJSDemo/ping-demo.html) or [this one](https://alexvictoor.github.io/HdrHistogramJSDemo/decoding-demo.html)   
-This is a work in progress so do not hesitate to give feedback using github issues or twitter (@Alex_Victoor)
+These two demos are coded in good old JavaScript. This may sound obvious but you can use HdrHistogramJS whatever the JS flavor you are into ;)  
+This is a work in progress so do not hesitate to give feedback using github issues or twitter (DM @Alex_Victoor)
 
 # Getting started
 This library is packaged as a UMD module, hence it can be used directly 
-from JavaScript within a browser, as commonjs / es6 JavaScript module 
+from JavaScript within a browser, as a commonjs / es6 JavaScript module 
 or as a TypeScript module.  
 Using npm you can get this lib with the following command:
 ```
@@ -16,8 +16,8 @@ Using npm you can get this lib with the following command:
 ```
 Note for TypeScript developers: since HdrHistogramJS has been written in TypeScript, definition files are embedded, no additional task is needed to get them. 
 
-The library is packaged as a UMD module, hence you can also directly use if from the browser. 
-To use it directly within a browser, simply include a js file from github's release page:
+The library is packaged as a UMD module, hence you can also directly use it from your browser. 
+To do so, simply include a js file from github's release page:
 ```
 <script src="https://github.com/alexvictoor/HdrHistogramJS/releases/download/1.0.0.beta.2/hdrhistogram.min.js" />
 ```
@@ -41,7 +41,7 @@ not have any surprise though.
 ## Instantiate an histogram
 The API is very close to the original Java API, there is just 
 a tiny addition, a simple builder function.
-Here is how to use it to instantiate a new histogram object:
+Here is how to use it to instantiate a new histogram instance:
 ```
 import * as hdr from "hdr-histogram-js"
 
@@ -58,21 +58,21 @@ const histogram
       autoResize: true,                 // default value is true
       lowestDiscernibleValue: 1,        // default value is also 1
       highestTrackableValue: 2,         // can increase up to Number.MAX_SAFE_INTEGER
-      numberOfSignificantValueDigits: 3 // Number between 1 and 5 inclusive
+      numberOfSignificantValueDigits: 3 // Number between 1 and 5 (inclusive)
     }
   );
 
 ```
 Then, once you have an histogram instance, you just need 
 to call recordValue(), as with the Java version, to record 
-a single number value:
+a single value:
 ```
 histogram.recordValue(1234);
 ```
 
-A simple demo is available [online](https://alexvictoor.github.io/HdrHistogramJSDemo/ping-demo.html)!   
-Watch the HTML source, at the end you will see a tiny chunk of JavaScript where an histogram is created and then used to 
-record latency ping values.  
+A demo is available [online](https://alexvictoor.github.io/HdrHistogramJSDemo/ping-demo.html)!   
+Check out the HTML source, at the bottom of the page you will see a tiny chunk of JavaScript where an histogram is created and then used to 
+record latency values.  
 
 ## Coordinated omissions
 If you are recording values at a fixed rate, 
@@ -114,14 +114,7 @@ const output = histogram.outputPercentileDistribution();
 //       Value     Percentile TotalCount 1/(1-Percentile)
 //
 //      25.000 0.000000000000          1           1.00
-//      25.000 0.100000000000          1           1.11
-//      25.000 0.200000000000          1           1.25
-//      25.000 0.300000000000          1           1.43
-//      50.000 0.400000000000          2           1.67
-//      50.000 0.500000000000          2           2.00
-//      50.000 0.550000000000          2           2.22
-//      50.000 0.600000000000          2           2.50
-//      50.000 0.650000000000          2           2.86
+//  ...
 //      75.000 0.700000000000          3           3.33
 //      75.000 1.000000000000          3
 //#[Mean    =       50.000, StdDeviation   =       20.412]
@@ -157,22 +150,25 @@ You can check out [this demo](https://alexvictoor.github.io/HdrHistogramJSDemo/d
 The code is almost a direct port of the Java version.
 Optimisation based on inheritance to avoid false sharing 
 might not be relevant in JS, but I believe that keeping 
-the same structure might be handy to keep the code up to date.
+the same code structure might be handy to keep the code up to date 
+with the Java version in the future.
 
 Main limitations comes from number support in JavaScript. 
 There is no such thing as 64b integers in JavaScript. Everything is "number", 
 and a number is safe as an integer up to 2^53.  
 The most annoying issue encountered during the code migration, 
-is that bit operations, heavily used within HdrHistogram, 
-only work on the first 32 bits. That means that the following expression is true:
+is that bit operations, heavily used within original HdrHistogram, 
+only work on the first 32 bits. That means that the following JavaScript expression is evaluated as true:
 ```
 Math.pow(2, 31) << 1 === 0   // sad but true
 ```
 Anyway bit shift operations are not really optimized 
 in most browser, so... everything related to bits have been
-converted to good old arithmetic expressions
+converted to good old arithmetic expressions in the process
+of converting the Java code to TypeScript. 
 
 # Backlog
+- benchmarks with alternatives (native-hdr-histogram & node-hdr-histogram)
 - Recorder class
 - Log writer and log reader
 - logarithmic iterator

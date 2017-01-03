@@ -3,7 +3,8 @@
 # HdrHistogramJS
 Browser port of HdrHistogram entirely written in TypeScript!  
 See HdrHistogramJS live in action in your browser with this [simple demo](https://alexvictoor.github.io/HdrHistogramJSDemo/ping-demo.html) or [this one](https://alexvictoor.github.io/HdrHistogramJSDemo/decoding-demo.html)   
-These two demos are coded in good old JavaScript. This may sound obvious but you can use HdrHistogramJS whatever the JS flavor you are into ;)  
+A slightly modified version of [hdrhistogram plotter](https://alexvictoor.github.io/HdrHistogramJSDemo/plotFiles.html) is also available, where you can use base64 v2 encoded histograms as inputs.  
+These demos are coded in good old JavaScript. This may sound obvious but you can use HdrHistogramJS whatever the JS flavor you are into ;)  
 This is a work in progress so do not hesitate to give feedback using github issues or twitter (DM @Alex_Victoor)
 
 # Getting started
@@ -143,8 +144,8 @@ If you want to use this feature you need to add external dependency
 it as a transitive dependency, otherwise you need to add it in 
 your html page.
 
-You can check out [this demo](https://alexvictoor.github.io/HdrHistogramJSDemo/decoding-demo.html) to see this feature live!
-
+You can check out [this demo](https://alexvictoor.github.io/HdrHistogramJSDemo/decoding-demo.html) or this [plotter on steroid](https://alexvictoor.github.io/HdrHistogramJSDemo/plotFiles.html) to see this feature live!  
+*Be aware that only latest V2 encoding has been implemented, let me know if this is an issue for you*
 
 # Design & Limitations
 The code is almost a direct port of the Java version.

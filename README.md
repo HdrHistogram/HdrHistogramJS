@@ -64,18 +64,20 @@ const histogram
   );
 
 ```
-Then, once you have an histogram instance, you just need 
+## Record values
+Once you have an histogram instance, you just need 
 to call recordValue(), as with the Java version, to record 
 a single value:
 ```
 histogram.recordValue(1234);
 ```
+The number passed as a parameter is expected to be an integer. If it is not the case, the decimal part will be ignored.
 
 A demo is available [online](https://alexvictoor.github.io/HdrHistogramJSDemo/ping-demo.html)!   
 Check out the HTML source, at the bottom of the page you will see a tiny chunk of JavaScript where an histogram is created and then used to 
 record latency values.  
 
-## Coordinated omissions
+## Dealing with coordinated omissions
 If you are recording values at a fixed rate, 
 you can correct coordinated omissions while recording values:
 ```
@@ -170,6 +172,7 @@ of converting the Java code to TypeScript.
 
 # Backlog
 - benchmarks with alternatives (native-hdr-histogram & node-hdr-histogram)
+- web worker experiment
 - Recorder class
 - Log writer and log reader
 - logarithmic iterator

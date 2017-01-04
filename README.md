@@ -75,7 +75,8 @@ The number passed as a parameter is expected to be an integer. If it is not the 
 
 A demo is available [online](https://alexvictoor.github.io/HdrHistogramJSDemo/ping-demo.html)!   
 Check out the HTML source, at the bottom of the page you will see a tiny chunk of JavaScript where an histogram is created and then used to 
-record latency values.  
+record latency values.
+A very [similar demo](https://alexvictoor.github.io/HdrHistogramJSDemo/hdr-on-hdr.html) is also available where hdrhistogram is used on hdrhistogram in order to know how much time is needed to record values.   
 
 ## Dealing with coordinated omissions
 If you are recording values at a fixed rate, 

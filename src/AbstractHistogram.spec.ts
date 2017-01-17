@@ -117,6 +117,15 @@ describe('Histogram recording values', () => {
     
   })
 
+  it("should compute count index taking into account lowest discernible value", () => {
+    // given
+    const histogram = new HistogramForTests(2000, Number.MAX_SAFE_INTEGER, 3);
+    // when
+    const index = histogram.countsArrayIndex(16000); 
+    // then
+    expect(index).to.be.equal(15);
+  })
+
   it("should update min non zero value", () => {
     // given
     const histogram = new HistogramForTests(1, Number.MAX_SAFE_INTEGER, 3);

@@ -309,7 +309,7 @@ abstract class AbstractHistogram extends AbstractHistogramBase {
     // The mask maps small values to bucket 0.
 
     // return this.leadingZeroCountBase - Long.numberOfLeadingZeros(value | subBucketMask);
-    return max(floor(log2(value)) - this.subBucketHalfCountMagnitude, 0);
+    return max(floor(log2(value)) - this.subBucketHalfCountMagnitude * pow(2, this.unitMagnitude), 0);
   }
 
 

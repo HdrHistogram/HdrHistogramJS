@@ -52,11 +52,14 @@ import AbstractHistogram from "./AbstractHistogram";
 class HistogramLogReader {
 
   startTimeSec: Number;
+  baseTimeSec: Number;
+
   lines: string[];
-  currentLineIndex: Number;
+  currentLineIndex: number;
 
   constructor(logContent: string) {
-    this.lines = logContent.split("\n");
+    this.lines = logContent.split(/\r\n|\r|\n/g);
+    this.currentLineIndex = 0;
   }
 
   /**
@@ -69,10 +72,18 @@ class HistogramLogReader {
   public nextIntervalHistogram(): AbstractHistogram | null {
     
     while (this.currentLineIndex < this.lines.length) {
-      
+      const currentLine = this.lines[this.currentLineIndex];
+      if (currentLine.startsWith("#[StartTime:")) {
+        this.parseStartTimeFromLine(currentLine);
+      }
+      this.currentLineIndex++;
     }
 
       return null;
+  }
+
+  private parseStartTimeFromLine(line: string) {
+    this.startTimeSec = Number.parseFloat(line.split(" ")[1]);
   }
 
 }

@@ -13,7 +13,7 @@ describe('Histogram Log Reader', () => {
     reader = new HistogramLogReader(fileContent);
   })
 
-  it.skip("should update startTimeSec reading first histogram", () => {
+  it("should update startTimeSec reading first histogram", () => {
     // when
     reader.nextIntervalHistogram();
     // then

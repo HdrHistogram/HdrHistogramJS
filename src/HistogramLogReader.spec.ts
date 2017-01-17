@@ -7,25 +7,29 @@ import AbstractHistogram from "./AbstractHistogram"
 
 describe('Histogram Log Reader', () => {
 
-  let reader: HistogramLogReader;
+  let fileContent: string;
   before(() => {
-    const fileContent = fs.readFileSync("test_files/jHiccup-2.0.7S.logV2.hlog", "UTF-8");
-    reader = new HistogramLogReader(fileContent);
+    fileContent = fs.readFileSync("test_files/jHiccup-2.0.7S.logV2.hlog", "UTF-8");
   })
 
   it("should update startTimeSec reading first histogram", () => {
+    // given
+    const reader = new HistogramLogReader(fileContent);
     // when
     reader.nextIntervalHistogram();
     // then
     expect(reader.startTimeSec).to.be.equal(1441812279.474);
   })
   
-  it.skip("should read first histogram starting from the beginning", () => {
+  it("should read first histogram starting from the beginning", () => {
+    // given
+    const reader = new HistogramLogReader(fileContent);
     // when
     const histogram = reader.nextIntervalHistogram();
     // then
     expect(histogram).to.be.not.null;
-    expect((histogram as AbstractHistogram).maxValue).to.be.equal(2768895);
+    // if mean is good, strong probability everything else is good as well
+    expect(Math.floor((histogram as AbstractHistogram).getMean())).to.be.equal(301998); 
   })
 
 })

@@ -6,6 +6,7 @@
  * http://creativecommons.org/publicdomain/zero/1.0/
  */
 import AbstractHistogram from "./AbstractHistogram";
+import { decodeFromCompressedBase64 } from "./encoding";
 
 
 /**
@@ -75,11 +76,20 @@ class HistogramLogReader {
       const currentLine = this.lines[this.currentLineIndex];
       if (currentLine.startsWith("#[StartTime:")) {
         this.parseStartTimeFromLine(currentLine);
+      } else if (currentLine.startsWith("#") || currentLine.startsWith('"StartTimestamp"')) {
+        // skip legend & meta data for now
+      } else {
+        return this.parseHistogramLine(currentLine);
       }
       this.currentLineIndex++;
     }
 
       return null;
+  }
+
+  private parseHistogramLine(line: string): AbstractHistogram {
+    const [logTimeStampInSec, intervalLengthSec, , base64Histogram] = line.split(",");
+    return decodeFromCompressedBase64(base64Histogram);
   }
 
   private parseStartTimeFromLine(line: string) {

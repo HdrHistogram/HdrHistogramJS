@@ -1,9 +1,17 @@
+/*
+ * This is a TypeScript port of the original Java version, which was written by
+ * Gil Tene as described in
+ * https://github.com/HdrHistogram/HdrHistogram
+ * and released to the public domain, as explained at
+ * http://creativecommons.org/publicdomain/zero/1.0/
+ */
 import ByteBuffer from "./ByteBuffer"
 import Int8Histogram from "./Int8Histogram"
 import Int16Histogram from "./Int16Histogram"
 import Int32Histogram from "./Int32Histogram"
 import Float64Histogram from "./Float64Histogram"
 import AbstractHistogram from "./AbstractHistogram"
+import { decodeFromCompressedBase64, encodeIntoBase64String } from "./encoding"
 
 declare function require(name: string): any
 
@@ -71,26 +79,6 @@ const build = (request = defaultRequest) => {
     );
   histogram.autoResize = parameters.autoResize as boolean;
   return histogram;
-}
-
-const base64 = require('base64-js');  
-
-const decodeFromCompressedBase64 = (
-    base64String: string,
-    histogramConstr: typeof AbstractHistogram = Int32Histogram,
-    minBarForHighestTrackableValue: number = 1
-): AbstractHistogram => {
-  
-  const buffer = new ByteBuffer(base64.toByteArray(base64String));
-  return AbstractHistogram.decodeFromCompressedByteBuffer(buffer, histogramConstr, minBarForHighestTrackableValue);
-}
-
-const encodeIntoBase64String = (histogram: AbstractHistogram, compressionLevel?: number): string => {
-  const buffer = ByteBuffer.allocate();
-  const bufferSize = histogram.encodeIntoCompressedByteBuffer(buffer, compressionLevel);
-  
-  const encodedBuffer = buffer.data.slice(0, bufferSize);
-  return base64.fromByteArray(encodedBuffer)
 }
 
 export { 

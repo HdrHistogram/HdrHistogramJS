@@ -70,27 +70,39 @@ class HistogramLogReader {
    * from the file, this method will return a null.
    * @return a DecodedInterval, or a null if no appropriate interval found
    */
-  public nextIntervalHistogram(): AbstractHistogram | null {
+  public nextIntervalHistogram(startTimeSec = 0, endTimeSec = Number.MAX_VALUE): AbstractHistogram | null {
     
     while (this.currentLineIndex < this.lines.length) {
       const currentLine = this.lines[this.currentLineIndex];
+      this.currentLineIndex++;
       if (currentLine.startsWith("#[StartTime:")) {
         this.parseStartTimeFromLine(currentLine);
       } else if (currentLine.startsWith("#") || currentLine.startsWith('"StartTimestamp"')) {
         // skip legend & meta data for now
-      } else {
-        return this.parseHistogramLine(currentLine);
+      } else if (currentLine.indexOf(",") > -1) {       
+        const [rawLogTimeStampInSec, intervalLengthSec, , base64Histogram] = currentLine.split(",");
+        const logTimeStampInSec = Number.parseFloat(rawLogTimeStampInSec);
+        if (endTimeSec < logTimeStampInSec) {
+          return null;
+        }
+        if (logTimeStampInSec < startTimeSec) {
+          continue;
+        }
+        return decodeFromCompressedBase64(base64Histogram);
       }
-      this.currentLineIndex++;
     }
-
-      return null;
+    return null;
   }
 
+/*
   private parseHistogramLine(line: string): AbstractHistogram {
-    const [logTimeStampInSec, intervalLengthSec, , base64Histogram] = line.split(",");
-    return decodeFromCompressedBase64(base64Histogram);
+    const [rawLogTimeStampInSec, intervalLengthSec, , base64Histogram] = line.split(",");
+    const logTimeStampInSec = Number.parseFloat(rawLogTimeStampInSec);
+    const histogram = decodeFromCompressedBase64(base64Histogram);
+    histogram.startTimeStampMsec = logTimeStampInSec * 1000;
+    return histogram;
   }
+*/
 
   private parseStartTimeFromLine(line: string) {
     this.startTimeSec = Number.parseFloat(line.split(" ")[1]);

@@ -52,8 +52,8 @@ import { decodeFromCompressedBase64 } from "./encoding";
  */
 class HistogramLogReader {
 
-  startTimeSec: Number;
-  baseTimeSec: Number;
+  startTimeSec: number;
+  baseTimeSec: number;
 
   lines: string[];
   currentLineIndex: number;
@@ -80,7 +80,7 @@ class HistogramLogReader {
       } else if (currentLine.startsWith("#") || currentLine.startsWith('"StartTimestamp"')) {
         // skip legend & meta data for now
       } else if (currentLine.indexOf(",") > -1) {       
-        const [rawLogTimeStampInSec, intervalLengthSec, , base64Histogram] = currentLine.split(",");
+        const [rawLogTimeStampInSec, rawIntervalLengthSec, , base64Histogram] = currentLine.split(",");
         const logTimeStampInSec = Number.parseFloat(rawLogTimeStampInSec);
         if (endTimeSec < logTimeStampInSec) {
           return null;
@@ -88,22 +88,16 @@ class HistogramLogReader {
         if (logTimeStampInSec < startTimeSec) {
           continue;
         }
-        return decodeFromCompressedBase64(base64Histogram);
+        const histogram = decodeFromCompressedBase64(base64Histogram);
+        histogram.startTimeStampMsec = (this.startTimeSec + logTimeStampInSec) * 1000;
+        const intervalLengthSec = Number.parseFloat(rawIntervalLengthSec);
+        histogram.endTimeStampMsec = (this.startTimeSec + logTimeStampInSec + intervalLengthSec) * 1000;
+        return histogram;
       }
     }
     return null;
   }
-
-/*
-  private parseHistogramLine(line: string): AbstractHistogram {
-    const [rawLogTimeStampInSec, intervalLengthSec, , base64Histogram] = line.split(",");
-    const logTimeStampInSec = Number.parseFloat(rawLogTimeStampInSec);
-    const histogram = decodeFromCompressedBase64(base64Histogram);
-    histogram.startTimeStampMsec = logTimeStampInSec * 1000;
-    return histogram;
-  }
-*/
-
+  
   private parseStartTimeFromLine(line: string) {
     this.startTimeSec = Number.parseFloat(line.split(" ")[1]);
   }

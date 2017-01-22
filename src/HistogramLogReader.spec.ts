@@ -6,6 +6,11 @@ import AbstractHistogram from "./AbstractHistogram"
 
 const { floor } = Math;
 
+const checkNotNull = <T>(actual: T | null): actual is T => {
+  expect(actual).to.be.not.null;
+  return true;
+}
+
 describe('Histogram Log Reader', () => {
 
   let fileContent: string;
@@ -28,7 +33,7 @@ describe('Histogram Log Reader', () => {
     // when
     const histogram = reader.nextIntervalHistogram();
     // then
-    expect(histogram).to.be.not.null;
+    checkNotNull(histogram);
     // if mean is good, strong probability everything else is good as well
     expect(floor((histogram as AbstractHistogram).getMean())).to.be.equal(301998); 
   })
@@ -49,9 +54,10 @@ describe('Histogram Log Reader', () => {
     // when
     const histogram = reader.nextIntervalHistogram();
     // then
-    expect(histogram).to.be.not.null;
-    // if mean is good, strong probability everything else is good as well
-    expect(floor((histogram as AbstractHistogram).getMean())).to.be.equal(293719);
+    if (checkNotNull(histogram)) {
+      // if mean is good, strong probability everything else is good as well
+      expect(floor(histogram.getMean())).to.be.equal(293719);
+    }
   })
 
   it("should return null if all histograms are after specified time range", () => {
@@ -80,12 +86,34 @@ describe('Histogram Log Reader', () => {
     const secondHistogram = reader.nextIntervalHistogram(0, 2);
     const thirdHistogram = reader.nextIntervalHistogram(0, 2);
     // then
-    expect(firstHistogram).to.be.not.null;
-    expect(secondHistogram).to.be.not.null;
     expect(thirdHistogram).to.be.null;
-    // if mean is good, strong probability everything else is good as well
-    expect(floor((firstHistogram as AbstractHistogram).getMean())).to.be.equal(301998);
-    expect(floor((secondHistogram as AbstractHistogram).getMean())).to.be.equal(293719);
+    if (checkNotNull(firstHistogram) && checkNotNull(secondHistogram)) {
+      // if mean is good, strong probability everything else is good as well
+      expect(floor(firstHistogram.getMean())).to.be.equal(301998);
+      expect(floor(secondHistogram.getMean())).to.be.equal(293719);
+    }
+  })
+
+  it("should set start timestamp on histogram", () => {
+    // given
+    const reader = new HistogramLogReader(fileContent);
+    // when
+    const histogram = reader.nextIntervalHistogram();
+    // then
+    if (checkNotNull(histogram)) {
+      expect(histogram.startTimeStampMsec).to.be.equal(1441812279601);
+    }
+  })
+
+  it("should set end timestamp on histogram", () => {
+    // given
+    const reader = new HistogramLogReader(fileContent);
+    // when
+    const histogram = reader.nextIntervalHistogram();
+    // then
+    if (checkNotNull(histogram)) {
+      expect(histogram.endTimeStampMsec).to.be.equal(1441812280608);
+    }
   })
 
 })

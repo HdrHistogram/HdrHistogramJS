@@ -15,8 +15,12 @@ describe('Histogram Log Reader', () => {
 
   let fileContent: string;
   let tagFileContent: string;
+  let fileContentWithBaseTime: string;
+  let fileContentWithoutHeader: string;
   before(() => {
     fileContent = fs.readFileSync("test_files/jHiccup-2.0.7S.logV2.hlog", "UTF-8");
+    fileContentWithBaseTime = fs.readFileSync("test_files/jHiccup-with-basetime-2.0.7S.logV2.hlog", "UTF-8");
+    fileContentWithoutHeader = fs.readFileSync("test_files/jHiccup-no-header-2.0.7S.logV2.hlog", "UTF-8");
     tagFileContent = fs.readFileSync("test_files/tagged-Log.logV2.hlog", "UTF-8");
   })
 
@@ -131,6 +135,29 @@ describe('Histogram Log Reader', () => {
     }
   })
 
+  it("should use basetime to set timestamps on histogram", () => {
+    // given
+    const reader = new HistogramLogReader(fileContentWithBaseTime);
+    // when
+    const histogram = reader.nextIntervalHistogram();
+    // then
+    if (checkNotNull(histogram)) {
+      expect(histogram.startTimeStampMsec).to.be.equal(1441812123250);
+      expect(histogram.endTimeStampMsec).to.be.equal(1441812124257);  
+    }
+  })
+
+  it("should default startTime using 1st observed time", () => {
+    // given
+    const reader = new HistogramLogReader(fileContentWithoutHeader);
+    // when
+    const histogram = reader.nextIntervalHistogram();
+    // then
+    if (checkNotNull(histogram)) {
+      expect(histogram.startTimeStampMsec).to.be.equal(127);
+      expect(histogram.endTimeStampMsec).to.be.equal(1134);  
+    }
+  })
 
 
 })

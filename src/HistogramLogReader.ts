@@ -70,13 +70,15 @@ class HistogramLogReader {
    * from the file, this method will return a null.
    * @return a DecodedInterval, or a null if no appropriate interval found
    */
-  public nextIntervalHistogram(startTimeSec = 0, endTimeSec = Number.MAX_VALUE): AbstractHistogram | null {
+  public nextIntervalHistogram(rangeStartTimeSec = 0, rangeEndTimeSec = Number.MAX_VALUE): AbstractHistogram | null {
     
     while (this.currentLineIndex < this.lines.length) {
       const currentLine = this.lines[this.currentLineIndex];
       this.currentLineIndex++;
       if (currentLine.startsWith("#[StartTime:")) {
         this.parseStartTimeFromLine(currentLine);
+      } else if (currentLine.startsWith("#[BaseTime:")) {
+        this.parseBaseTimeFromLine(currentLine);
       } else if (currentLine.startsWith("#") || currentLine.startsWith('"StartTimestamp"')) {
         // skip legend & meta data for now
       } else if (currentLine.indexOf(",") > -1) {
@@ -90,18 +92,30 @@ class HistogramLogReader {
         } 
 
         const [rawLogTimeStampInSec, rawIntervalLengthSec, , base64Histogram] = tokens;
-
         const logTimeStampInSec = Number.parseFloat(rawLogTimeStampInSec);
-        if (endTimeSec < logTimeStampInSec) {
+        
+        if (!this.baseTimeSec) {
+          // No explicit base time noted. Deduce from 1st observed time (compared to start time):
+          if (logTimeStampInSec < this.startTimeSec - (365 * 24 * 3600.0)) {
+            // Criteria Note: if log timestamp is more than a year in the past (compared to
+            // StartTime), we assume that timestamps in the log are not absolute
+            this.baseTimeSec = this.startTimeSec;
+          } else {
+            // Timestamps are absolute
+            this.baseTimeSec = 0.0;
+          }
+        }
+
+        if (rangeEndTimeSec < logTimeStampInSec) {
           return null;
         }
-        if (logTimeStampInSec < startTimeSec) {
+        if (logTimeStampInSec < rangeStartTimeSec) {
           continue;
         }
         const histogram = decodeFromCompressedBase64(base64Histogram);
-        histogram.startTimeStampMsec = (this.startTimeSec + logTimeStampInSec) * 1000;
+        histogram.startTimeStampMsec = (this.baseTimeSec + logTimeStampInSec) * 1000;
         const intervalLengthSec = Number.parseFloat(rawIntervalLengthSec);
-        histogram.endTimeStampMsec = (this.startTimeSec + logTimeStampInSec + intervalLengthSec) * 1000;
+        histogram.endTimeStampMsec = (this.baseTimeSec + logTimeStampInSec + intervalLengthSec) * 1000;
         
         histogram.tag = tag;
   
@@ -113,6 +127,10 @@ class HistogramLogReader {
 
   private parseStartTimeFromLine(line: string) {
     this.startTimeSec = Number.parseFloat(line.split(" ")[1]);
+  }
+
+  private parseBaseTimeFromLine(line: string) {
+    this.baseTimeSec = Number.parseFloat(line.split(" ")[1]);
   }
 
 }

@@ -14,8 +14,10 @@ const checkNotNull = <T>(actual: T | null): actual is T => {
 describe('Histogram Log Reader', () => {
 
   let fileContent: string;
+  let tagFileContent: string;
   before(() => {
     fileContent = fs.readFileSync("test_files/jHiccup-2.0.7S.logV2.hlog", "UTF-8");
+    tagFileContent = fs.readFileSync("test_files/tagged-Log.logV2.hlog", "UTF-8");
   })
 
   it("should update startTimeSec reading first histogram", () => {
@@ -115,5 +117,20 @@ describe('Histogram Log Reader', () => {
       expect(histogram.endTimeStampMsec).to.be.equal(1441812280608);
     }
   })
+
+  it("should parse tagged histogram", () => {
+    // given
+    const reader = new HistogramLogReader(tagFileContent);
+    reader.nextIntervalHistogram();
+    // when
+    const histogram = reader.nextIntervalHistogram();
+    // then
+    if (checkNotNull(histogram)) {
+      expect(histogram.tag).to.be.equal("A");
+      expect(floor(histogram.getMean())).to.be.equal(301998);
+    }
+  })
+
+
 
 })

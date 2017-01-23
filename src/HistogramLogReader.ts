@@ -79,8 +79,18 @@ class HistogramLogReader {
         this.parseStartTimeFromLine(currentLine);
       } else if (currentLine.startsWith("#") || currentLine.startsWith('"StartTimestamp"')) {
         // skip legend & meta data for now
-      } else if (currentLine.indexOf(",") > -1) {       
-        const [rawLogTimeStampInSec, rawIntervalLengthSec, , base64Histogram] = currentLine.split(",");
+      } else if (currentLine.indexOf(",") > -1) {
+ 
+        const tokens = currentLine.split(",");
+        const [firstToken, ...rest] = tokens;
+        let tag: string | null = null;
+        if (firstToken.startsWith("Tag=")) {
+          tag = firstToken.substring(4);
+          tokens.shift();
+        } 
+
+        const [rawLogTimeStampInSec, rawIntervalLengthSec, , base64Histogram] = tokens;
+
         const logTimeStampInSec = Number.parseFloat(rawLogTimeStampInSec);
         if (endTimeSec < logTimeStampInSec) {
           return null;
@@ -92,12 +102,15 @@ class HistogramLogReader {
         histogram.startTimeStampMsec = (this.startTimeSec + logTimeStampInSec) * 1000;
         const intervalLengthSec = Number.parseFloat(rawIntervalLengthSec);
         histogram.endTimeStampMsec = (this.startTimeSec + logTimeStampInSec + intervalLengthSec) * 1000;
+        
+        histogram.tag = tag;
+  
         return histogram;
       }
     }
     return null;
   }
-  
+
   private parseStartTimeFromLine(line: string) {
     this.startTimeSec = Number.parseFloat(line.split(" ")[1]);
   }

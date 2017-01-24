@@ -11,6 +11,7 @@ import Int16Histogram from "./Int16Histogram"
 import Int32Histogram from "./Int32Histogram"
 import Float64Histogram from "./Float64Histogram"
 import AbstractHistogram from "./AbstractHistogram"
+import HistogramLogReader from "./HistogramLogReader"
 import { decodeFromCompressedBase64, encodeIntoBase64String } from "./encoding"
 
 declare function require(name: string): any
@@ -87,6 +88,7 @@ export {
   Int32Histogram,
   Float64Histogram,
   AbstractHistogram as Histogram,
+  HistogramLogReader,
   build,
   BuildRequest,
   ByteBuffer,

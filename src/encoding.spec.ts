@@ -41,4 +41,11 @@ describe('Histogram encoding', () => {
     expect(base64Histogram).to.be.equal("HISTFAAAAB94nJNpmSzMwMDABMSMQMzMAAGMUJoJxg9mAgA1TQGm");
   });
 
+  it("should throw an error when trying to decompress an histogram using V1 encoding", () => {
+    // given
+    const base64V1EncodingString = "HISTIgAAAFd42pNpmazIwMAYxgABTBDKT4GBgdnNYMcCBvsPUBkeBkYGZqA8MwMbAzsDC5DFBCTZgJCDQY1BjkGLQZRBlUEPCB8zWDCYMxgDZZkZhgJgHDibAY8JB/A=";
+    // when & then
+    expect(() => hdr.decodeFromCompressedBase64(base64V1EncodingString)).to.throw("Encoding not supported");
+  });
+
 });

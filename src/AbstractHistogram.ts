@@ -267,7 +267,7 @@ abstract class AbstractHistogram extends AbstractHistogramBase {
 
   handleRecordException(count: number, value: number) {
     if(!this.autoResize) {
-        throw "Value outside of histogram covered range";
+        throw "Value " + value + " is outside of histogram covered range";
     }
     this.resize(value);
     var countsIndex : number = this.countsArrayIndex(value);
@@ -309,7 +309,7 @@ abstract class AbstractHistogram extends AbstractHistogramBase {
     // The mask maps small values to bucket 0.
 
     // return this.leadingZeroCountBase - Long.numberOfLeadingZeros(value | subBucketMask);
-    return max(floor(log2(value)) - this.subBucketHalfCountMagnitude * pow(2, this.unitMagnitude), 0);
+    return max(floor(log2(value)) - this.subBucketHalfCountMagnitude - this.unitMagnitude, 0);
   }
 
 
@@ -803,7 +803,6 @@ abstract class AbstractHistogram extends AbstractHistogramBase {
       for (let i = 0; i < otherMaxIndex; i++) {
         otherCount = otherHistogram.getCountAtIndex(i);
         if (otherCount > 0) {
-          console.log(i, otherCount);
           this.recordCountAtValue(otherCount, otherHistogram.valueFromIndex(i));
         }
       }
@@ -977,6 +976,18 @@ abstract class AbstractHistogram extends AbstractHistogramBase {
     this.setTotalCount(observedTotalCount);
   }
 
+  private static getCookieBase(cookie: number): number {
+    return (cookie & ~0xf0);
+  }
+
+  private static getWordSizeInBytesFromCookie(cookie: number): number {
+    if ((this.getCookieBase(cookie) == V2EncodingCookieBase) ||
+        (this.getCookieBase(cookie) == V2CompressedEncodingCookieBase)) {
+      return V2maxWordSizeInBytes;
+    }
+    const sizeByte = (cookie & 0xf0) >> 4;
+    return sizeByte & 0xe;
+  }
   
   static decodeFromByteBuffer(
     buffer: ByteBuffer,
@@ -984,13 +995,27 @@ abstract class AbstractHistogram extends AbstractHistogramBase {
     minBarForHighestTrackableValue: number
   ): AbstractHistogram {
 
-    buffer.getInt32(); // cookie not used
-    const payloadLengthInBytes = buffer.getInt32();
-    buffer.getInt32(); // normalizingIndexOffset not used
-    const numberOfSignificantValueDigits = buffer.getInt32();
-    const lowestTrackableUnitValue = buffer.getInt64();
-    let highestTrackableValue = buffer.getInt64();
-    buffer.getInt64(); // integerToDoubleValueConversionRatio not used
+    const cookie = buffer.getInt32();
+
+    let payloadLengthInBytes: number;
+    let numberOfSignificantValueDigits: number;
+    let lowestTrackableUnitValue: number;
+    let highestTrackableValue: number;
+
+    if ((this.getCookieBase(cookie) === V2EncodingCookieBase)) { 
+      if (this.getWordSizeInBytesFromCookie(cookie) != V2maxWordSizeInBytes) {
+        throw "The buffer does not contain a Histogram (no valid cookie found)";
+      }
+      payloadLengthInBytes = buffer.getInt32();
+      buffer.getInt32(); // normalizingIndexOffset not used
+      numberOfSignificantValueDigits = buffer.getInt32();
+      lowestTrackableUnitValue = buffer.getInt64();
+      highestTrackableValue = buffer.getInt64();
+      buffer.getInt64(); // integerToDoubleValueConversionRatio not used
+    } else {
+      throw "The buffer does not contain a Histogram (no valid V2 encoding cookie found)";
+    }
+    
     highestTrackableValue = max(highestTrackableValue, minBarForHighestTrackableValue);
 
     const constructor = histogramConstr as any;
@@ -1020,7 +1045,13 @@ abstract class AbstractHistogram extends AbstractHistogramBase {
   ): AbstractHistogram {
 
     const initialTargetPosition = buffer.position;
-    buffer.getInt32(); // cookie not used
+
+    const cookie = buffer.getInt32(); 
+
+    if ((cookie & ~0xf0) !== V2CompressedEncodingCookieBase) {
+      throw "Encoding not supported, only V2 is supported";
+    }
+    
     const lengthOfCompressedContents = buffer.getInt32();
 
     const pako = require("pako/lib/inflate");

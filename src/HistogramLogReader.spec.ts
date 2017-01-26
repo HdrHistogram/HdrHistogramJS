@@ -1,8 +1,9 @@
 import "core-js"
 import * as fs from "fs";
 import { expect } from "chai";
-import HistogramLogReader from "./HistogramLogReader" 
-import AbstractHistogram from "./AbstractHistogram" 
+import HistogramLogReader from "./HistogramLogReader"; 
+import AbstractHistogram from "./AbstractHistogram";
+import Int32Histogram from "./Int32Histogram";
 
 const { floor } = Math;
 
@@ -159,5 +160,27 @@ describe('Histogram Log Reader', () => {
     }
   })
 
+
+  it("should do the whole 9 yards just like the original Java version :-)", () => {
+    // given
+    const reader = new HistogramLogReader(fileContent);
+    const accumulatedHistogram = new Int32Histogram(1, Number.MAX_SAFE_INTEGER, 3);
+    let histogram: AbstractHistogram | null;
+    let histogramCount = 0;
+    let totalCount = 0;
+
+    // when
+    while ((histogram = reader.nextIntervalHistogram()) != null) {
+      histogramCount++;
+      totalCount += histogram.getTotalCount();
+      accumulatedHistogram.add(histogram);
+    }
+       
+    // then
+    expect(histogramCount).to.be.equal(62);
+    expect(totalCount).to.be.equal(48761);
+    expect(accumulatedHistogram.getValueAtPercentile(99.9)).to.be.equal(1745879039);
+    expect(reader.startTimeSec).to.be.equal(1441812279.474);
+  })
 
 })

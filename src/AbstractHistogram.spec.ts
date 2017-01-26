@@ -107,23 +107,23 @@ describe('Histogram recording values', () => {
     expect(index).to.be.equal(2049);
   })
 
-  it("should compute count index when value outside second bucket 2", () => {
-    // given
-    const histogram = new HistogramForTests(1, Number.MAX_SAFE_INTEGER, 3);
-    // when
-    const index = histogram.countsArrayIndex(123456); 
-    // then
-    expect(index).to.be.equal(8073);
-    
-  })
-
   it("should compute count index taking into account lowest discernible value", () => {
     // given
-    const histogram = new HistogramForTests(2000, Number.MAX_SAFE_INTEGER, 3);
+    const histogram = new HistogramForTests(2000, Number.MAX_SAFE_INTEGER, 2);
     // when
     const index = histogram.countsArrayIndex(16000); 
     // then
     expect(index).to.be.equal(15);
+  })
+
+  it("should compute count index of a big value taking into account lowest discernible value", () => {
+    // given
+    const histogram = new HistogramForTests(2000, Number.MAX_SAFE_INTEGER, 2);
+    // when
+    const bigValue = Number.MAX_SAFE_INTEGER - 1;
+    const index = histogram.countsArrayIndex(bigValue); 
+    // then
+    expect(index).to.be.equal(4735);
   })
 
   it("should update min non zero value", () => {

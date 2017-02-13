@@ -1,7 +1,7 @@
 import "core-js"
 import * as fs from "fs";
 import { expect } from "chai";
-import HistogramLogReader from "./HistogramLogReader"; 
+import HistogramLogReader, { listTags } from "./HistogramLogReader"; 
 import AbstractHistogram from "./AbstractHistogram";
 import Int32Histogram from "./Int32Histogram";
 
@@ -181,6 +181,31 @@ describe('Histogram Log Reader', () => {
     expect(totalCount).to.be.equal(48761);
     expect(accumulatedHistogram.getValueAtPercentile(99.9)).to.be.equal(1745879039);
     expect(reader.startTimeSec).to.be.equal(1441812279.474);
+  })
+
+
+  it("should list all the tags of a log file", () => {
+    // given
+    // when
+    const tags = listTags(tagFileContent);
+    // then
+    expect(tags).to.be.deep.equal(["NO TAG", "A"]);
+  })
+
+  it("should list all the tags of alog filr where all histograms are tagged", () => {
+    // given
+    const content = (
+`#[Fake log chunk]
+#[Histogram log format version 1.2]
+#[StartTime: 1441812279.474 (seconds since epoch), Wed Sep 09 08:24:39 PDT 2015]
+"StartTimestamp","Interval_Length","Interval_Max","Interval_Compressed_Histogram"
+Tag=NOT-EMPTY,0.127,1.007,2.769,HISTFAAAAEV42pNpmSzMwMCgyAABTBDKT4GBgdnNYMcCBvsPEBEJISEuATEZMQ4uASkhIR4nrxg9v2lMaxhvMekILGZkKmcCAEf2CsI=
+Tag=A,0.127,1.007,2.769,HISTFAAAAEV42pNpmSzMwMCgyAABTBDKT4GBgdnNYMcCBvsPEBEJISEuATEZMQ4uASkhIR4nrxg9v2lMaxhvMekILGZkKmcCAEf2CsI=
+`);
+    // when
+    const tags = listTags(content);
+    // then
+    expect(tags).to.be.deep.equal(["NOT-EMPTY", "A"]);
   })
 
 })

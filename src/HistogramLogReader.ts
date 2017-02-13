@@ -8,6 +8,8 @@
 import AbstractHistogram from "./AbstractHistogram";
 import { decodeFromCompressedBase64 } from "./encoding";
 
+const TAG_PREFIX = "Tag=";
+const TAG_PREFIX_LENGTH = "Tag=".length;
 
 /**
  * A histogram log reader.
@@ -59,7 +61,7 @@ class HistogramLogReader {
   currentLineIndex: number;
 
   constructor(logContent: string) {
-    this.lines = logContent.split(/\r\n|\r|\n/g);
+    this.lines = splitLines(logContent);
     this.currentLineIndex = 0;
   }
 
@@ -81,13 +83,13 @@ class HistogramLogReader {
         this.parseBaseTimeFromLine(currentLine);
       } else if (currentLine.startsWith("#") || currentLine.startsWith('"StartTimestamp"')) {
         // skip legend & meta data for now
-      } else if (currentLine.indexOf(",") > -1) {
+      } else if (currentLine.includes(",")) {
  
         const tokens = currentLine.split(",");
         const [firstToken, ...rest] = tokens;
         let tag: string | null = null;
-        if (firstToken.startsWith("Tag=")) {
-          tag = firstToken.substring(4);
+        if (firstToken.startsWith(TAG_PREFIX)) {
+          tag = firstToken.substring(TAG_PREFIX_LENGTH);
           tokens.shift();
         } 
 
@@ -133,6 +135,32 @@ class HistogramLogReader {
     this.baseTimeSec = Number.parseFloat(line.split(" ")[1]);
   }
 
+}
+
+const splitLines = (logContent: string) => logContent.split(/\r\n|\r|\n/g);
+
+
+const shouldIncludeNoTag = (lines: string[]) => (
+  lines
+    .find(line => (
+      !line.startsWith("#") 
+      && !line.startsWith("\"")
+      && !line.startsWith(TAG_PREFIX)
+      && line.includes(","))
+    )
+)
+
+export const listTags = (content: string) => {
+  const lines = splitLines(content);
+  const tags = lines
+    .filter(line => line.includes(",") && line.startsWith(TAG_PREFIX))
+    .map(line => line.substring(TAG_PREFIX_LENGTH, line.indexOf(",")))
+  const tagsWithoutDuplicates = new Set(tags);
+  const result = Array.from(tagsWithoutDuplicates); 
+  if (shouldIncludeNoTag(lines)) {
+    result.unshift("NO TAG");
+  }
+  return result;
 }
 
 export default HistogramLogReader;

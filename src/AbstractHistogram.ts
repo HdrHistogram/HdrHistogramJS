@@ -5,7 +5,7 @@
  * and released to the public domain, as explained at
  * http://creativecommons.org/publicdomain/zero/1.0/
  */
-import { AbstractHistogramBase } from "./AbstractHistogramBase"
+import { AbstractHistogramBase, NO_TAG } from "./AbstractHistogramBase"
 import ByteBuffer from "./ByteBuffer"
 import RecordedValuesIterator from "./RecordedValuesIterator"
 import PercentileIterator from "./PercentileIterator"
@@ -91,9 +91,9 @@ abstract class AbstractHistogram extends AbstractHistogramBase {
   abstract incrementTotalCount(): void;
   
   abstract addToTotalCount(value: number): void;
-  /*
-    abstract clearCounts(): void;
-  */
+  
+  abstract clearCounts(): void;
+ 
   protected abstract _getEstimatedFootprintInBytes(): number;
   
   abstract resize(newHighestTrackableValue: number): void;
@@ -1093,6 +1093,16 @@ abstract class AbstractHistogram extends AbstractHistogramBase {
     targetBuffer.putArray(compressedArray);
 
     return targetBuffer.position;
+  }
+
+  reset() {
+    this.clearCounts();
+    this.setTotalCount(0);
+    this.startTimeStampMsec = 0;
+    this.endTimeStampMsec = 0;
+    this.tag = NO_TAG;
+    this.maxValue = 0;
+    this.minNonZeroValue = Number.MAX_SAFE_INTEGER;
   }
 
 }

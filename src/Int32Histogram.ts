@@ -26,6 +26,10 @@ class Int32Histogram extends AbstractHistogram {
     this.counts = new Uint32Array(this.countsArrayLength);
   }
 
+  clearCounts() {
+    this.counts.fill(0);
+  }
+
   incrementCountAtIndex(index: number) {
     const currentCount = this.counts[index];
     const newCount = currentCount + 1;

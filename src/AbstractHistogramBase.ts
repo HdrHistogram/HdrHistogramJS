@@ -9,6 +9,7 @@ import { EncodableHistogram } from "./EncodableHistogram";
 import RecordedValuesIterator from "./RecordedValuesIterator";
 import PercentileIterator from "./PercentileIterator";
 
+export const NO_TAG = "NO TAG";
 
 export abstract class AbstractHistogramBase extends EncodableHistogram {
 
@@ -32,7 +33,7 @@ export abstract class AbstractHistogramBase extends EncodableHistogram {
 
   startTimeStampMsec: number = Number.MAX_SAFE_INTEGER;
   endTimeStampMsec: number = 0;
-  tag: string | null = null;
+  tag: string = NO_TAG;
 
   integerToDoubleValueConversionRatio: number = 1.0;
 

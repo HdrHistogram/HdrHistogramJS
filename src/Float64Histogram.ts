@@ -26,6 +26,10 @@ class Float64Histogram extends AbstractHistogram {
     this.counts = new Float64Array(this.countsArrayLength);
   }
 
+  clearCounts() {
+    this.counts.fill(0);
+  }
+
   incrementCountAtIndex(index: number) {
     const currentCount = this.counts[index];
     const newCount = currentCount + 1;

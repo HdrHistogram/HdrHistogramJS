@@ -1,5 +1,6 @@
 import "core-js"
-import { expect } from "chai";
+import { expect } from "chai"
+import { NO_TAG } from "./AbstractHistogramBase"
 import AbstractHistogram from "./AbstractHistogram" 
 import ByteBuffer from "./ByteBuffer"
 import Int32Histogram from "./Int32Histogram"
@@ -11,6 +12,9 @@ declare function require(name: string): any
 class HistogramForTests extends AbstractHistogram {
 
   //constructor() {}
+
+  clearCounts() {
+  }
 
   incrementCountAtIndex(index: number): void {
   }
@@ -191,9 +195,11 @@ describe('Histogram recording values', () => {
 
 describe('Histogram computing statistics', () => {
 
+  const histogram = new Int32Histogram(1, Number.MAX_SAFE_INTEGER, 3);
+
   it("should compute mean value", () => {
     // given
-    const histogram = new Int32Histogram(1, Number.MAX_SAFE_INTEGER, 3);
+    histogram.reset();
     // when
     histogram.recordValue(25);
     histogram.recordValue(50);
@@ -204,7 +210,7 @@ describe('Histogram computing statistics', () => {
 
   it("should compute standard deviation", () => {
     // given
-    const histogram = new Int32Histogram(1, Number.MAX_SAFE_INTEGER, 3);
+    histogram.reset();
     // when
     histogram.recordValue(25);
     histogram.recordValue(50);
@@ -216,7 +222,7 @@ describe('Histogram computing statistics', () => {
 
   it("should compute percentile distribution", () => {
     // given
-    const histogram = new Int32Histogram(1, Number.MAX_SAFE_INTEGER, 3);
+    histogram.reset();
     // when
     histogram.recordValue(25);
     histogram.recordValue(50);
@@ -246,7 +252,7 @@ describe('Histogram computing statistics', () => {
 
   it("should compute percentile distribution in csv format", () => {
     // given
-    const histogram = new Int32Histogram(1, Number.MAX_SAFE_INTEGER, 3);
+    histogram.reset();
     // when
     histogram.recordValue(25);
     histogram.recordValue(50);
@@ -274,9 +280,11 @@ describe('Histogram computing statistics', () => {
 
 describe('Histogram correcting coordinated omissions', () => {
 
+  const histogram = new Int32Histogram(1, Number.MAX_SAFE_INTEGER, 3);
+
   it("should generate additional values when recording", () => {
     // given
-    const histogram = new Int32Histogram(1, Number.MAX_SAFE_INTEGER, 3);
+    histogram.reset();
     // when
     histogram.recordValueWithExpectedInterval(207, 100);
     // then
@@ -287,7 +295,7 @@ describe('Histogram correcting coordinated omissions', () => {
 
   it("should generate additional values when correcting after recording", () => {
     // given
-    const histogram = new Int32Histogram(1, Number.MAX_SAFE_INTEGER, 3);
+    histogram.reset();
     histogram.recordValue(207);
     histogram.recordValue(207);
     // when
@@ -435,4 +443,26 @@ describe('Histogram add & substract', () => {
   });
 
 
+});
+
+describe('Histogram clearing support', () => {
+
+  it("should reset data in order to reuse histogram", () => {
+    // given
+    const histogram = new Int32Histogram(1, Number.MAX_SAFE_INTEGER, 5);
+    histogram.startTimeStampMsec = 42;
+    histogram.endTimeStampMsec = 56;
+    histogram.tag = "blabla";
+    histogram.recordValue(1000);
+    // when
+    histogram.reset();
+    // then
+    expect(histogram.totalCount).to.be.equal(0);
+    expect(histogram.startTimeStampMsec).to.be.equal(0);
+    expect(histogram.endTimeStampMsec).to.be.equal(0);
+    expect(histogram.tag).to.be.equal(NO_TAG);
+    expect(histogram.maxValue).to.be.equal(0);
+    expect(histogram.minNonZeroValue).to.be.equal(Number.MAX_SAFE_INTEGER);
+    expect(histogram.getValueAtPercentile(99.999)).to.be.equal(0);
+  })
 });

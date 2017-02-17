@@ -5,6 +5,7 @@
  * and released to the public domain, as explained at
  * http://creativecommons.org/publicdomain/zero/1.0/
  */
+import { NO_TAG } from "./AbstractHistogramBase";
 import AbstractHistogram from "./AbstractHistogram";
 import { decodeFromCompressedBase64 } from "./encoding";
 
@@ -86,12 +87,14 @@ class HistogramLogReader {
       } else if (currentLine.includes(",")) {
  
         const tokens = currentLine.split(",");
-        const [firstToken, ...rest] = tokens;
-        let tag: string | null = null;
+        const [firstToken, ] = tokens;
+        let tag: string;
         if (firstToken.startsWith(TAG_PREFIX)) {
           tag = firstToken.substring(TAG_PREFIX_LENGTH);
           tokens.shift();
-        } 
+        } else {
+          tag = NO_TAG;
+        }
 
         const [rawLogTimeStampInSec, rawIntervalLengthSec, , base64Histogram] = tokens;
         const logTimeStampInSec = Number.parseFloat(rawLogTimeStampInSec);

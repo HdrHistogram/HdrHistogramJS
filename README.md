@@ -136,8 +136,7 @@ const output = histogram.outputPercentileDistribution();
 ```
 
 ## Encode & decode
-HistogramLogReader & Writer classes have not been ported yet, 
-but you can already encode and decode base64 compressed histograms:
+You can encode and decode base64 compressed histograms:
 ```
 import * as hdr from "hdr-histogram-js"
 
@@ -157,6 +156,19 @@ your html page.
 
 You can check out [this demo](https://alexvictoor.github.io/HdrHistogramJSDemo/decoding-demo.html) or this [plotter on steroid](https://alexvictoor.github.io/HdrHistogramJSDemo/plotFiles.html) to see this feature live!  
 *Be aware that only latest V2 encoding has been implemented, let me know if this is an issue for you*
+
+## Histogram logs
+The HistogramLogWriter class has not been implemented yet, however you can now use the HistogramLogReader class on V2 encoded files. 
+As you can see below, the API is quite similar to the Java version:
+```
+const reader = new HistogramLogReader(fileContent);
+let histogram;
+while ((histogram = reader.nextIntervalHistogram()) != null) {
+  // iterate on all histogram log lines 
+  ...
+
+}
+```
 
 # Design & Limitations
 The code is almost a direct port of the Java version.

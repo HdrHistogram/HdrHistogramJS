@@ -1,6 +1,6 @@
 {
   "name": "hdr-histogram-js",
-  "version": "1.0.0-beta.2",
+  "version": "1.0.0-beta.3",
   "description": "TypeScript port of HdrHistogram",
   "main": "./dist/hdrhistogram.js",
   "types": "./dist/index.d.ts",

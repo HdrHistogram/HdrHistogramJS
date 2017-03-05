@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/alexvictoor/HdrHistogramJS.svg?branch=master)](https://travis-ci.org/alexvictoor/HdrHistogramJS)
+[![Build Status](https://travis-ci.org/HdrHistogram/HdrHistogramJS.svg?branch=master)](https://travis-ci.org/HdrHistogram/HdrHistogramJS)
 
 # HdrHistogramJS
 Browser port of HdrHistogram entirely written in TypeScript!  

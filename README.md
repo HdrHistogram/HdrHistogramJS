@@ -2,17 +2,17 @@
 
 # HdrHistogramJS
 Browser port of HdrHistogram entirely written in TypeScript!  
-See HdrHistogramJS live in action in your browser with this [simple demo](https://alexvictoor.github.io/HdrHistogramJSDemo/ping-demo.html) or [this one](https://alexvictoor.github.io/HdrHistogramJSDemo/decoding-demo.html)   
+See HdrHistogramJS live in action in your browser with this [simple demo](https://hdrhistogram.github.io/HdrHistogramJSDemo/ping-demo.html) or [this one](https://hdrhistogram.github.io/HdrHistogramJSDemo/decoding-demo.html)   
 These demos are coded in good old JavaScript. This may sound obvious but you can use HdrHistogramJS whatever the JS flavor you are into ;)
 Obviously, due to JavaScript limitations, performances will not be as good as with the original version. A few micro seconds might be needed to record a value, but you 
-should [check this out for yourself](https://alexvictoor.github.io/HdrHistogramJSDemo/hdr-on-hdr.html)    
+should [check this out for yourself](https://hdrhistogram.github.io/HdrHistogramJSDemo/hdr-on-hdr.html)    
 This is a work in progress so do not hesitate to give feedback, using github issues or twitter (DM @Alex_Victoor)
 
 # Dataviz
 HdrHistogramJS allows to display histograms without server-side processing. Hence, within your browser, you can:
 
-- Display histograms with this slightly modified version of the [hdrhistogram plotter](https://alexvictoor.github.io/HdrHistogramJSDemo/plotFiles.html). With this one you can use base64 v2 encoded histograms as inputs.  
-- Analyze log files with this [log analyzer](https://alexvictoor.github.io/HdrHistogramJSDemo/logparser.html), inspired from the original [java/swing based log analyzer](https://github.com/HdrHistogram/HistogramLogAnalyzer). 
+- Display histograms with this slightly modified version of the [hdrhistogram plotter](https://hdrhistogram.github.io/HdrHistogramJSDemo/plotFiles.html). With this one you can use base64 v2 encoded histograms as inputs.  
+- Analyze log files with this [log analyzer](https://hdrhistogram.github.io/HdrHistogramJSDemo/logparser.html), inspired from the original [java/swing based log analyzer](https://github.com/HdrHistogram/HistogramLogAnalyzer). 
 
 
 # Getting started
@@ -28,7 +28,7 @@ Note for TypeScript developers: since HdrHistogramJS has been written in TypeScr
 The library is packaged as a UMD module, hence you can also directly use it from your browser. 
 To do so, simply include a js file from github's release page:
 ```
-<script src="https://github.com/alexvictoor/HdrHistogramJS/releases/download/1.0.0.beta.3/hdrhistogram.min.js" />
+<script src="https://github.com/HdrHistogram/HdrHistogramJS/releases/download/1.0.0.beta.3/hdrhistogram.min.js" />
 ```
 Then you will have access to classes and functions of the APIs using "hdr" prefix.
 
@@ -81,10 +81,10 @@ histogram.recordValue(1234);
 ```
 The number passed as a parameter is expected to be an integer. If it is not the case, the decimal part will be ignored.
 
-A demo is available [online](https://alexvictoor.github.io/HdrHistogramJSDemo/ping-demo.html)!   
+A demo is available [online](https://hdrhistogram.github.io/HdrHistogramJSDemo/ping-demo.html)!   
 Check out the HTML source, at the bottom of the page you will see a tiny chunk of JavaScript where an histogram is created and then used to 
 record latency values.
-A very [similar demo](https://alexvictoor.github.io/HdrHistogramJSDemo/hdr-on-hdr.html) is also available where hdrhistogram is used on hdrhistogram in order to know how much time is needed to record values.   
+A very [similar demo](https://hdrhistogram.github.io/HdrHistogramJSDemo/hdr-on-hdr.html) is also available where hdrhistogram is used on hdrhistogram in order to know how much time is needed to record values.   
 
 ## Dealing with coordinated omissions
 If you are recording values at a fixed rate, 
@@ -154,7 +154,7 @@ If you want to use this feature you need to add external dependency
 it as a transitive dependency, otherwise you need to add it in 
 your html page.
 
-You can check out [this demo](https://alexvictoor.github.io/HdrHistogramJSDemo/decoding-demo.html) or this [plotter on steroid](https://alexvictoor.github.io/HdrHistogramJSDemo/plotFiles.html) to see this feature live!  
+You can check out [this demo](https://hdrhistogram.github.io/HdrHistogramJSDemo/decoding-demo.html) or this [plotter on steroid](https://hdrhistogram.github.io/HdrHistogramJSDemo/plotFiles.html) to see this feature live!  
 *Be aware that only latest V2 encoding has been implemented, let me know if this is an issue for you*
 
 ## Histogram logs

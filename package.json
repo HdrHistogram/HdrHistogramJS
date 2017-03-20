@@ -14,9 +14,9 @@
   "license": "BSD",
   "devDependencies": {
     "@types/chai": "^3.4.34",
-    "@types/core-js": "^0.9.35",
+    "@types/core-js": "0.9.35",
     "@types/mocha": "^2.2.37",
-    "@types/node": "^7.0.0",
+    "@types/node": "7.0.0",
     "chai": "^3.5.0",
     "core-js": "^2.4.1",
     "mocha": "^3.0.2",

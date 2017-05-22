@@ -1,0 +1,71 @@
+import { expect } from "chai"
+import Recorder from "./Recorder"
+import Int32Histogram from "./Int32Histogram"
+
+describe('Recorder', () => {
+  
+  it("should record value", () => {
+    // given
+    const recorder = new Recorder();
+    // when
+    recorder.recordValue(123);
+    // then
+    const histogram = recorder.getIntervalHistogram();
+    expect(histogram.getTotalCount()).to.be.equal(1);
+  });
+
+  it("should record value only on one interval histogram", () => {
+    // given
+    const recorder = new Recorder();
+    // when
+    recorder.recordValue(123);
+    const firstHistogram = recorder.getIntervalHistogram();
+    // then
+    const secondHistogram = recorder.getIntervalHistogram();
+    expect(secondHistogram.getTotalCount()).to.be.equal(0);
+  });
+
+  it("should not record value on returned interval histogram", () => {
+    // given
+    const recorder = new Recorder();
+    const firstHistogram = recorder.getIntervalHistogram();
+    const secondHistogram = recorder.getIntervalHistogram();
+    // when
+    firstHistogram.recordValue(42); // should have 0 impact on recorder
+    const thirdHistogram = recorder.getIntervalHistogram();
+    // then
+    expect(thirdHistogram.getTotalCount()).to.be.equal(0);
+  });
+
+  it("should return interval histograms with expected significant digits", () => {
+    // given
+    const recorder = new Recorder(4);
+    const firstHistogram = recorder.getIntervalHistogram();
+    const secondHistogram = recorder.getIntervalHistogram();
+    // when
+    const thirdHistogram = recorder.getIntervalHistogram();
+    // then
+    expect(thirdHistogram.numberOfSignificantValueDigits).to.be.equal(4);
+  });
+
+  it("should return recycled histograms when asking for interval histogram", () => {
+    // given
+    const recorder = new Recorder();
+    const firstHistogram = recorder.getIntervalHistogram();
+    // when
+    const secondHistogram = recorder.getIntervalHistogram(firstHistogram);
+    const thirdHistogram = recorder.getIntervalHistogram();
+    // then
+    expect(thirdHistogram === firstHistogram).to.be.true;
+  });
+
+  it.skip("should throw an error when trying to recycle an histogram not created by the recorder", () => {
+    // given
+    const recorder = new Recorder();
+    const somehistogram = new Int32Histogram(1, 2, 3);
+    // when & then
+    expect(() => recorder.getIntervalHistogram(somehistogram)).to.throw();
+  });
+
+
+});

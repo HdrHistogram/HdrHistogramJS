@@ -110,4 +110,21 @@ describe('Recorder', () => {
   });
 
 
+  it("should copy interval histogram", () => {
+    // given
+    let currentTime = 42;
+    let clock = () => currentTime;
+    const recorder = new Recorder(4, clock);
+    recorder.recordValue(123);
+    // when
+    const histogram = new Int32Histogram(1, Number.MAX_SAFE_INTEGER, 3);
+    currentTime = 51;
+    recorder.getIntervalHistogramInto(histogram);
+    // then
+    expect(histogram.getTotalCount()).to.be.equal(1);
+    expect(histogram.startTimeStampMsec).to.be.equal(42);
+    expect(histogram.endTimeStampMsec).to.be.equal(51);
+  });
+
+
 });

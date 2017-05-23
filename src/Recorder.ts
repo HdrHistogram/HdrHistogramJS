@@ -39,16 +39,17 @@ class Recorder {
    * @param numberOfSignificantValueDigits Specifies the precision to use. This is the number of significant
    *                                       decimal digits to which the histogram will maintain value resolution
    *                                       and separation. Must be a non-negative integer between 0 and 5.
+   * @param clock (for testing purpose) an action that give current time in ms since 1970
    */
-  constructor(public numberOfSignificantValueDigits = 3) {
+  constructor(
+    private numberOfSignificantValueDigits = 3, 
+    private clock = () => new Date().getTime()) {
 
     this.activeHistogram = new Int32Histogram(1, Number.MAX_SAFE_INTEGER, numberOfSignificantValueDigits);
-    this.inactiveHistogram = new Int32Histogram(1, Number.MAX_SAFE_INTEGER, numberOfSignificantValueDigits);
     
     Recorder.idGenerator++;
     this.activeHistogram.containingInstanceId = Recorder.idGenerator;
-    this.inactiveHistogram.containingInstanceId = Recorder.idGenerator;
-    
+    this.activeHistogram.startTimeStampMsec = clock();
   }
 
 
@@ -63,6 +64,13 @@ class Recorder {
   }
 
   getIntervalHistogram(histogramToRecycle?: AbstractHistogram): AbstractHistogram {
+    if (histogramToRecycle) {
+      const histogramToRecycleWithId: HistogramWithId = histogramToRecycle;
+      if (histogramToRecycleWithId.containingInstanceId !== this.activeHistogram.containingInstanceId) {
+        throw "replacement histogram must have been obtained via a previous getIntervalHistogram() call from this Recorder";
+      }
+    }
+    
     this.inactiveHistogram = histogramToRecycle;
     this.performIntervalSample();
     const sampledHistogram = this.inactiveHistogram;
@@ -73,11 +81,16 @@ class Recorder {
   private performIntervalSample() {
     if (!this.inactiveHistogram) {
       this.inactiveHistogram = new Int32Histogram(1, Number.MAX_SAFE_INTEGER, this.numberOfSignificantValueDigits);
+      this.inactiveHistogram.containingInstanceId = this.activeHistogram.containingInstanceId;
     }
     this.inactiveHistogram.reset();
     const tempHistogram = this.activeHistogram;
     this.activeHistogram = this.inactiveHistogram;
     this.inactiveHistogram = tempHistogram;
+
+    const currentTimeInMs = this.clock();
+    this.inactiveHistogram.endTimeStampMsec = currentTimeInMs;
+    this.activeHistogram.startTimeStampMsec = currentTimeInMs;
   }
 }
 

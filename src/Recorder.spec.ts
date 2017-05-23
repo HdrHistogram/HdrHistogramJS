@@ -59,12 +59,54 @@ describe('Recorder', () => {
     expect(thirdHistogram === firstHistogram).to.be.true;
   });
 
-  it.skip("should throw an error when trying to recycle an histogram not created by the recorder", () => {
+  it("should throw an error when trying to recycle an histogram not created by the recorder", () => {
     // given
     const recorder = new Recorder();
     const somehistogram = new Int32Histogram(1, 2, 3);
     // when & then
     expect(() => recorder.getIntervalHistogram(somehistogram)).to.throw();
+  });
+
+  it("should reset histogram when recycling", () => {
+    // given
+    const recorder = new Recorder();
+    recorder.recordValue(42);
+    const firstHistogram = recorder.getIntervalHistogram();
+    // when
+    const secondHistogram = recorder.getIntervalHistogram(firstHistogram);
+    const thirdHistogram = recorder.getIntervalHistogram();
+    // then
+    expect(thirdHistogram.getTotalCount()).to.be.equal(0);
+  });
+
+
+  it("should set timestamps on first interval histogram", () => {
+    // given
+    let currentTime = 42;
+    let clock = () => currentTime;
+    const recorder = new Recorder(3, clock);
+    // when
+    currentTime = 123;
+    const histogram = recorder.getIntervalHistogram();
+    // then
+    expect(histogram.startTimeStampMsec).to.be.equal(42);
+    expect(histogram.endTimeStampMsec).to.be.equal(123);
+  });
+
+
+  it("should set timestamps on any interval histogram", () => {
+    // given
+    let currentTime = 42;
+    let clock = () => currentTime;
+    const recorder = new Recorder(3, clock);
+    currentTime = 51;
+    const firstHistogram = recorder.getIntervalHistogram();
+    // when
+    currentTime = 56;
+    const secondHistogram = recorder.getIntervalHistogram();
+    // then
+    expect(secondHistogram.startTimeStampMsec).to.be.equal(51);
+    expect(secondHistogram.endTimeStampMsec).to.be.equal(56);
   });
 
 

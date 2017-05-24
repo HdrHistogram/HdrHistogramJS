@@ -127,4 +127,20 @@ describe('Recorder', () => {
   });
 
 
+  it("should reset values and timestamp", () => {
+    // given
+    let currentTime = 42;
+    let clock = () => currentTime;
+    const recorder = new Recorder(4, clock);
+    recorder.recordValue(123);
+    // when
+    currentTime = 55;
+    recorder.reset();
+    const histogram = recorder.getIntervalHistogram();
+    // then
+    expect(histogram.getTotalCount()).to.be.equal(0);
+    expect(histogram.startTimeStampMsec).to.be.equal(55);
+  });
+
+
 });

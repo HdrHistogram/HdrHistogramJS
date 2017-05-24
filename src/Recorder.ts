@@ -123,6 +123,13 @@ class Recorder {
     }
   }
 
+  /**
+   * Reset any value counts accumulated thus far.
+   */
+  reset() {
+    this.activeHistogram.reset();
+    this.activeHistogram.startTimeStampMsec = this.clock();
+  }
 
   private performIntervalSample() {
     if (!this.inactiveHistogram) {

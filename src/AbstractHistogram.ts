@@ -646,6 +646,17 @@ abstract class AbstractHistogram extends AbstractHistogramBase {
   }
 
   /**
+   * Record a value in the histogram (adding to the value's current count)
+   *
+   * @param value The value to be recorded
+   * @param count The number of occurrences of this value to record
+   * @throws ArrayIndexOutOfBoundsException (may throw) if value is exceeds highestTrackableValue
+   */
+  recordValueWithCount(value: number, count: number) {
+    this.recordCountAtValue(count, value);
+  }
+
+  /**
    * Record a value in the histogram.
    * <p>
    * To compensate for the loss of sampled values when a recorded value is larger than the expected

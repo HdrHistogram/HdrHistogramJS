@@ -14,6 +14,26 @@ describe('Recorder', () => {
     expect(histogram.getTotalCount()).to.be.equal(1);
   });
 
+  it("should record value with count", () => {
+    // given
+    const recorder = new Recorder();
+    // when
+    recorder.recordValueWithCount(123, 3);
+    // then
+    const histogram = recorder.getIntervalHistogram();
+    expect(histogram.getTotalCount()).to.be.equal(3);
+  });
+
+  it("should record value with expected interval", () => {
+    // given
+    const recorder = new Recorder();
+    // when
+    recorder.recordValueWithExpectedInterval(223, 100);
+    // then
+    const histogram = recorder.getIntervalHistogram();
+    expect(histogram.getTotalCount()).to.be.equal(2);
+  });
+
   it("should record value only on one interval histogram", () => {
     // given
     const recorder = new Recorder();

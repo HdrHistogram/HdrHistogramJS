@@ -64,6 +64,37 @@ class Recorder {
   }
 
   /**
+   * Record a value in the histogram (adding to the value's current count)
+   *
+   * @param value The value to be recorded
+   * @param count The number of occurrences of this value to record
+   * @throws ArrayIndexOutOfBoundsException (may throw) if value is exceeds highestTrackableValue
+   */
+  recordValueWithCount(value: number, count: number) {
+    this.activeHistogram.recordValueWithCount(value, count);
+  }
+
+  /**
+   * Record a value
+   * <p>
+   * To compensate for the loss of sampled values when a recorded value is larger than the expected
+   * interval between value samples, Histogram will auto-generate an additional series of decreasingly-smaller
+   * (down to the expectedIntervalBetweenValueSamples) value records.
+   * <p>
+   * See related notes {@link AbstractHistogram#recordValueWithExpectedInterval(long, long)}
+   * for more explanations about coordinated omission and expected interval correction.
+   *      *
+   * @param value The value to record
+   * @param expectedIntervalBetweenValueSamples If expectedIntervalBetweenValueSamples is larger than 0, add
+   *                                           auto-generated value records as appropriate if value is larger
+   *                                           than expectedIntervalBetweenValueSamples
+   * @throws ArrayIndexOutOfBoundsException (may throw) if value is exceeds highestTrackableValue
+   */
+  recordValueWithExpectedInterval(value: number, expectedIntervalBetweenValueSamples: number) {
+    this.activeHistogram.recordValueWithExpectedInterval(value, expectedIntervalBetweenValueSamples);
+  }
+
+  /**
    * Get an interval histogram, which will include a stable, consistent view of all value counts
    * accumulated since the last interval histogram was taken.
    * <p>

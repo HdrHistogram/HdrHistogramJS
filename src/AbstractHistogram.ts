@@ -12,6 +12,7 @@ import PercentileIterator from "./PercentileIterator"
 import HistogramIterationValue from "./HistogramIterationValue"
 import { integerFormatter, floatFormatter } from "./formatters"
 import ZigZagEncoding from "./ZigZagEncoding"
+import ulp from "./ulp"
 
 declare function require(name: string): any
 
@@ -349,8 +350,20 @@ abstract class AbstractHistogram extends AbstractHistogramBase {
    */
   getValueAtPercentile(percentile: number) {
     const requestedPercentile = min(percentile, 100);  // Truncate down to 100%
-    const countAtPercentile 
-      = max(floor((requestedPercentile / 100.0) * this.getTotalCount() + 0.5), 1); // round to nearest and make sure we at least reach the first recorded entry
+
+    // round count up to nearest integer, to ensure that the largest value that the requested percentile
+    // of overall recorded values is actually included. However, this must be done with care:
+    //
+    // First, Compute fp value for count at the requested percentile. Note that fp result end up
+    // being 1 ulp larger than the correct integer count for this percentile:
+    const fpCountAtPercentile = (requestedPercentile / 100.0) * this.getTotalCount();
+    // Next, round up, but make sure to prevent <= 1 ulp inaccurancies in the above fp math from
+    // making us skip a count:
+    const countAtPercentile = max(
+      ceil(fpCountAtPercentile - ulp(fpCountAtPercentile)),   // round up
+      1                                                       // Make sure we at least reach the first recorded entry
+    ); 
+ 
     let totalToCurrentIndex = 0;
     for (let i = 0; i < this.countsArrayLength; i++) {
       totalToCurrentIndex += this.getCountAtIndex(i);

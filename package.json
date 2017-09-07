@@ -10,6 +10,10 @@
     "test:coverage": "nyc mocha --opts mocha.opts",
     "prepublish": "webpack --debug && webpack -p"
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/HdrHistogram/HdrHistogramJS.git"
+  },
   "author": "Alexandre Victoor",
   "license": "BSD",
   "devDependencies": {

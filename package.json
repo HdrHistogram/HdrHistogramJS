@@ -8,7 +8,8 @@
     "tsc": "tsc",
     "test": "mocha --opts mocha.opts --watch",
     "test:coverage": "nyc mocha --opts mocha.opts",
-    "prepublish": "webpack --debug && webpack -p"
+    "prepublish": "webpack --debug && webpack -p",
+    "prettier": "prettier --parser typescript -l src/**/*.ts"
   },
   "repository": {
     "type": "git",
@@ -24,6 +25,7 @@
     "core-js": "^2.4.1",
     "mocha": "^3.0.2",
     "nyc": "^8.4.0",
+    "prettier": "^1.6.1",
     "ts-loader": "^2.3.2",
     "ts-node": "^3.3.0",
     "typescript": "^2.2.2",

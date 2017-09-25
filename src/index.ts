@@ -94,5 +94,6 @@ export {
   BuildRequest,
   ByteBuffer,
   decodeFromCompressedBase64,
-  encodeIntoBase64String
+  encodeIntoBase64String,
+  Writer
 }

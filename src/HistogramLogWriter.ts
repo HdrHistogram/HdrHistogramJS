@@ -1,5 +1,6 @@
 import AbstractHistogram from "./AbstractHistogram"
 import { encodeIntoBase64String } from "./encoding"
+import { floatFormatter } from "./formatters" 
 
 export interface Writable {
     (c: string):  void
@@ -43,6 +44,31 @@ class HistogramLogWriter {
             this.log(`${startTimeStampSec},${endTimeStampSec-startTimeStampSec},${histogram.maxValue/maxValueUnitRatio},${base64}\n`);
         }
     }
+
+    /**
+     * Log a comment to the log.
+     * Comments will be preceded with with the '#' character.
+     * @param comment the comment string.
+     */
+    outputComment(comment: string) {
+        this.log(`#${comment}\n`);
+    }
+
+    /**
+     * Log a start time in the log.
+     * @param startTimeMsec time (in milliseconds) since the absolute start time (the epoch)
+     */
+    outputStartTime(startTimeMsec: number) {
+        this.outputComment(`[StartTime: ${floatFormatter(5,3)(startTimeMsec/1000)} (seconds since epoch), ${new Date(startTimeMsec)}]\n`);
+    }
+
+    /**
+     * Output a legend line to the log.
+     */
+    outputLegend() {
+        this.log('"StartTimestamp","Interval_Length","Interval_Max","Interval_Compressed_Histogram"');
+    }
+
 }
 
 export default HistogramLogWriter;

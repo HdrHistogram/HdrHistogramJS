@@ -34,8 +34,6 @@ describe("Histogram builder", () => {
     expectedHistogram.recordValue(12345678);
 
     // then
-    expect(histogram.outputPercentileDistribution()).to.be.equal(
-      expectedHistogram.outputPercentileDistribution()
-    );
+    expect(histogram.outputPercentileDistribution()).to.be.equal(expectedHistogram.outputPercentileDistribution());
   });
 });

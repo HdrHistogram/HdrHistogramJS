@@ -231,9 +231,7 @@ describe("Histogram computing statistics", () => {
 #[Max     =       75.000, Total count    =            3]
 #[Buckets =           43, SubBuckets     =         2048]
 `;
-    expect(histogram.outputPercentileDistribution()).to.be.equal(
-      expectedResult
-    );
+    expect(histogram.outputPercentileDistribution()).to.be.equal(expectedResult);
   });
 
   it("should compute percentile distribution in csv format", () => {
@@ -257,9 +255,7 @@ describe("Histogram computing statistics", () => {
 75.000,0.700000000000,3,3.33
 75.000,1.000000000000,3,Infinity
 `;
-    expect(
-      histogram.outputPercentileDistribution(undefined, undefined, true)
-    ).to.be.equal(expectedResult);
+    expect(histogram.outputPercentileDistribution(undefined, undefined, true)).to.be.equal(expectedResult);
   });
 });
 
@@ -283,9 +279,7 @@ describe("Histogram correcting coordinated omissions", () => {
     histogram.recordValue(207);
     histogram.recordValue(207);
     // when
-    const correctedHistogram = histogram.copyCorrectedForCoordinatedOmission(
-      100
-    );
+    const correctedHistogram = histogram.copyCorrectedForCoordinatedOmission(100);
     // then
     expect(correctedHistogram.totalCount).to.be.equal(4);
     expect(correctedHistogram.minNonZeroValue).to.be.equal(107);
@@ -315,31 +309,17 @@ describe("Histogram encoding", () => {
     const encodedSize = histogram.encodeIntoByteBuffer(buffer);
     buffer.position = 0;
     // when
-    const result = AbstractHistogram.decodeFromByteBuffer(
-      buffer,
-      Int32Histogram,
-      0
-    );
+    const result = AbstractHistogram.decodeFromByteBuffer(buffer, Int32Histogram, 0);
     // then
-    expect(result.outputPercentileDistribution()).to.be.equal(
-      histogram.outputPercentileDistribution()
-    );
+    expect(result.outputPercentileDistribution()).to.be.equal(histogram.outputPercentileDistribution());
   });
 
   it("should decode and decompress reading a byte buffer", () => {
     // given
     const base64 = require("base64-js");
-    const buffer = new ByteBuffer(
-      base64.toByteArray(
-        "HISTFAAAACB42pNpmSzMwMDAxAABMJqRQf4/GNh/gAgEMwEAkp4I6Q=="
-      )
-    );
+    const buffer = new ByteBuffer(base64.toByteArray("HISTFAAAACB42pNpmSzMwMDAxAABMJqRQf4/GNh/gAgEMwEAkp4I6Q=="));
     // when
-    const histogram = AbstractHistogram.decodeFromCompressedByteBuffer(
-      buffer,
-      Int32Histogram,
-      0
-    );
+    const histogram = AbstractHistogram.decodeFromCompressedByteBuffer(buffer, Int32Histogram, 0);
     // then
     expect(histogram.getMean()).to.be.equal(42);
     expect(histogram.getTotalCount()).to.be.equal(1);
@@ -356,14 +336,8 @@ describe("Histogram encoding", () => {
     histogram.encodeIntoCompressedByteBuffer(buffer);
     // then
     buffer.resetPosition();
-    const decodedHistogram = AbstractHistogram.decodeFromCompressedByteBuffer(
-      buffer,
-      Int32Histogram,
-      0
-    );
-    expect(decodedHistogram.outputPercentileDistribution()).to.be.equal(
-      histogram.outputPercentileDistribution()
-    );
+    const decodedHistogram = AbstractHistogram.decodeFromCompressedByteBuffer(buffer, Int32Histogram, 0);
+    expect(decodedHistogram.outputPercentileDistribution()).to.be.equal(histogram.outputPercentileDistribution());
   });
 });
 

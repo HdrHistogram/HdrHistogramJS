@@ -18,22 +18,10 @@ describe("Histogram Log Reader", () => {
   let fileContentWithBaseTime: string;
   let fileContentWithoutHeader: string;
   before(() => {
-    fileContent = fs.readFileSync(
-      "test_files/jHiccup-2.0.7S.logV2.hlog",
-      "UTF-8"
-    );
-    fileContentWithBaseTime = fs.readFileSync(
-      "test_files/jHiccup-with-basetime-2.0.7S.logV2.hlog",
-      "UTF-8"
-    );
-    fileContentWithoutHeader = fs.readFileSync(
-      "test_files/jHiccup-no-header-2.0.7S.logV2.hlog",
-      "UTF-8"
-    );
-    tagFileContent = fs.readFileSync(
-      "test_files/tagged-Log.logV2.hlog",
-      "UTF-8"
-    );
+    fileContent = fs.readFileSync("test_files/jHiccup-2.0.7S.logV2.hlog", "UTF-8");
+    fileContentWithBaseTime = fs.readFileSync("test_files/jHiccup-with-basetime-2.0.7S.logV2.hlog", "UTF-8");
+    fileContentWithoutHeader = fs.readFileSync("test_files/jHiccup-no-header-2.0.7S.logV2.hlog", "UTF-8");
+    tagFileContent = fs.readFileSync("test_files/tagged-Log.logV2.hlog", "UTF-8");
   });
 
   it("should update startTimeSec reading first histogram", () => {
@@ -53,9 +41,7 @@ describe("Histogram Log Reader", () => {
     // then
     checkNotNull(histogram);
     // if mean is good, strong probability everything else is good as well
-    expect(floor((histogram as AbstractHistogram).getMean())).to.be.equal(
-      301998
-    );
+    expect(floor((histogram as AbstractHistogram).getMean())).to.be.equal(301998);
   });
 
   it("should return null if no histogram in the logs", () => {
@@ -176,11 +162,7 @@ describe("Histogram Log Reader", () => {
   it("should do the whole 9 yards just like the original Java version :-)", () => {
     // given
     const reader = new HistogramLogReader(fileContent);
-    const accumulatedHistogram = new Int32Histogram(
-      1,
-      Number.MAX_SAFE_INTEGER,
-      3
-    );
+    const accumulatedHistogram = new Int32Histogram(1, Number.MAX_SAFE_INTEGER, 3);
     let histogram: AbstractHistogram | null;
     let histogramCount = 0;
     let totalCount = 0;
@@ -195,9 +177,7 @@ describe("Histogram Log Reader", () => {
     // then
     expect(histogramCount).to.be.equal(62);
     expect(totalCount).to.be.equal(48761);
-    expect(accumulatedHistogram.getValueAtPercentile(99.9)).to.be.equal(
-      1745879039
-    );
+    expect(accumulatedHistogram.getValueAtPercentile(99.9)).to.be.equal(1745879039);
     expect(reader.startTimeSec).to.be.equal(1441812279.474);
   });
 

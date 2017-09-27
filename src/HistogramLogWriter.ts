@@ -6,6 +6,8 @@ export interface Writable {
     (c: string):  void
 }
 
+const HISTOGRAM_LOG_FORMAT_VERSION = "1.3";
+
 class HistogramLogWriter {
 
     /**
@@ -67,6 +69,13 @@ class HistogramLogWriter {
      */
     outputLegend() {
         this.log('"StartTimestamp","Interval_Length","Interval_Max","Interval_Compressed_Histogram"');
+    }
+
+    /**
+     * Output a log format version to the log.
+     */
+    outputLogFormatVersion() {
+        this.outputComment("[Histogram log format version " + HISTOGRAM_LOG_FORMAT_VERSION +"]");
     }
 
 }

@@ -5,29 +5,26 @@
  * and released to the public domain, as explained at
  * http://creativecommons.org/publicdomain/zero/1.0/
  */
-import { AbstractHistogramBase, NO_TAG } from "./AbstractHistogramBase"
-import ByteBuffer from "./ByteBuffer"
-import RecordedValuesIterator from "./RecordedValuesIterator"
-import PercentileIterator from "./PercentileIterator"
-import HistogramIterationValue from "./HistogramIterationValue"
-import { integerFormatter, floatFormatter } from "./formatters"
-import ZigZagEncoding from "./ZigZagEncoding"
-import ulp from "./ulp"
+import { AbstractHistogramBase, NO_TAG } from "./AbstractHistogramBase";
+import ByteBuffer from "./ByteBuffer";
+import RecordedValuesIterator from "./RecordedValuesIterator";
+import PercentileIterator from "./PercentileIterator";
+import HistogramIterationValue from "./HistogramIterationValue";
+import { integerFormatter, floatFormatter } from "./formatters";
+import ZigZagEncoding from "./ZigZagEncoding";
+import ulp from "./ulp";
 
-declare function require(name: string): any
+declare function require(name: string): any;
 
 const { pow, floor, ceil, log2, max, min } = Math;
 
 const V2EncodingCookieBase = 0x1c849303;
 const V2CompressedEncodingCookieBase = 0x1c849304;
 const V2maxWordSizeInBytes = 9; // LEB128-64b9B + ZigZag require up to 9 bytes per word
-const encodingCookie =  V2EncodingCookieBase | 0x10; // LSBit of wordsize byte indicates TLZE Encoding
+const encodingCookie = V2EncodingCookieBase | 0x10; // LSBit of wordsize byte indicates TLZE Encoding
 const compressedEncodingCookie = V2CompressedEncodingCookieBase | 0x10; // LSBit of wordsize byte indicates TLZE Encoding
 
-
-
 abstract class AbstractHistogram extends AbstractHistogramBase {
-
   // "Hot" accessed fields (used in the the value recording code path) are bunched here, such
   // that they will have a good chance of ending up in the same cache line as the totalCounts and
   // counts array reference fields that subclass implementations will typically add.
@@ -57,7 +54,6 @@ abstract class AbstractHistogram extends AbstractHistogramBase {
   maxValue: number = 0;
   minNonZeroValue: number = Number.MAX_SAFE_INTEGER;
 
- 
   // Sub-classes will typically add a totalCount field and a counts array field, which will likely be laid out
   // right around here due to the subclass layout rules in most practical JVM implementations.
 
@@ -68,13 +64,13 @@ abstract class AbstractHistogram extends AbstractHistogramBase {
   //
   //
   //
-  
-    abstract getCountAtIndex(index: number): number;
+
+  abstract getCountAtIndex(index: number): number;
   /*
     abstract getCountAtNormalizedIndex(index: number): number;
   */
   abstract incrementCountAtIndex(index: number): void;
-  
+
   abstract addToCountAtIndex(index: number, value: number): void;
 
   abstract setCountAtIndex(index: number, value: number): void;
@@ -88,15 +84,15 @@ abstract class AbstractHistogram extends AbstractHistogramBase {
     abstract shiftNormalizingIndexByOffset(offsetToAdd: number, lowestHalfBucketPopulated: boolean): void;
   */
   abstract setTotalCount(totalCount: number): void;
-  
+
   abstract incrementTotalCount(): void;
-  
+
   abstract addToTotalCount(value: number): void;
-  
+
   abstract clearCounts(): void;
- 
+
   protected abstract _getEstimatedFootprintInBytes(): number;
-  
+
   abstract resize(newHighestTrackableValue: number): void;
 
   /**
@@ -114,38 +110,61 @@ abstract class AbstractHistogram extends AbstractHistogramBase {
     if (value <= this.unitMagnitudeMask) {
       return;
     }
-    const internalValue = floor(value / this.lowestDiscernibleValueRounded) * this.lowestDiscernibleValueRounded;
+    const internalValue =
+      floor(value / this.lowestDiscernibleValueRounded) *
+      this.lowestDiscernibleValueRounded;
     this.minNonZeroValue = internalValue;
   }
 
   private resetMinNonZeroValue(minNonZeroValue: number) {
-    const internalValue = floor(minNonZeroValue / this.lowestDiscernibleValueRounded) * this.lowestDiscernibleValueRounded;
-    this.minNonZeroValue = (minNonZeroValue === Number.MAX_SAFE_INTEGER) ? minNonZeroValue : internalValue;
+    const internalValue =
+      floor(minNonZeroValue / this.lowestDiscernibleValueRounded) *
+      this.lowestDiscernibleValueRounded;
+    this.minNonZeroValue =
+      minNonZeroValue === Number.MAX_SAFE_INTEGER
+        ? minNonZeroValue
+        : internalValue;
   }
 
-  constructor(lowestDiscernibleValue: number, highestTrackableValue: number, numberOfSignificantValueDigits: number) {
+  constructor(
+    lowestDiscernibleValue: number,
+    highestTrackableValue: number,
+    numberOfSignificantValueDigits: number
+  ) {
     super();
     // Verify argument validity
     if (lowestDiscernibleValue < 1) {
       throw new Error("lowestDiscernibleValue must be >= 1");
     }
     if (highestTrackableValue < 2 * lowestDiscernibleValue) {
-      throw new Error("highestTrackableValue must be >= 2 * lowestDiscernibleValue");
+      throw new Error(
+        "highestTrackableValue must be >= 2 * lowestDiscernibleValue"
+      );
     }
-    if ((numberOfSignificantValueDigits < 0) || (numberOfSignificantValueDigits > 5)) {
+    if (
+      numberOfSignificantValueDigits < 0 ||
+      numberOfSignificantValueDigits > 5
+    ) {
       throw new Error("numberOfSignificantValueDigits must be between 0 and 5");
     }
     this.identity = AbstractHistogramBase.identityBuilder++;
 
-    this.init(lowestDiscernibleValue, highestTrackableValue, numberOfSignificantValueDigits, 1.0, 0);
+    this.init(
+      lowestDiscernibleValue,
+      highestTrackableValue,
+      numberOfSignificantValueDigits,
+      1.0,
+      0
+    );
   }
 
-  init(lowestDiscernibleValue: number,
+  init(
+    lowestDiscernibleValue: number,
     highestTrackableValue: number,
     numberOfSignificantValueDigits: number,
     integerToDoubleValueConversionRatio: number,
-    normalizingIndexOffset: number) {
-
+    normalizingIndexOffset: number
+  ) {
     this.lowestDiscernibleValue = lowestDiscernibleValue;
     this.highestTrackableValue = highestTrackableValue;
     this.numberOfSignificantValueDigits = numberOfSignificantValueDigits;
@@ -159,7 +178,8 @@ abstract class AbstractHistogram extends AbstractHistogramBase {
     * it's "ok to be +/- 2 units at 2000". The "tricky" thing is that it is NOT ok to be +/- 2 units at 1999. Only
     * starting at 2000. So internally, we need to maintain single unit resolution to 2x 10^decimalPoints.
     */
-    const largestValueWithSingleUnitResolution = 2 * floor(pow(10, numberOfSignificantValueDigits));
+    const largestValueWithSingleUnitResolution =
+      2 * floor(pow(10, numberOfSignificantValueDigits));
 
     this.unitMagnitude = floor(log2(lowestDiscernibleValue));
 
@@ -169,15 +189,20 @@ abstract class AbstractHistogram extends AbstractHistogramBase {
     // We need to maintain power-of-two subBucketCount (for clean direct indexing) that is large enough to
     // provide unit resolution to at least largestValueWithSingleUnitResolution. So figure out
     // largestValueWithSingleUnitResolution's nearest power-of-two (rounded up), and use that:
-    const subBucketCountMagnitude = ceil(log2(largestValueWithSingleUnitResolution));
-    this.subBucketHalfCountMagnitude = ((subBucketCountMagnitude > 1) ? subBucketCountMagnitude : 1) - 1;
+    const subBucketCountMagnitude = ceil(
+      log2(largestValueWithSingleUnitResolution)
+    );
+    this.subBucketHalfCountMagnitude =
+      (subBucketCountMagnitude > 1 ? subBucketCountMagnitude : 1) - 1;
     this.subBucketCount = pow(2, this.subBucketHalfCountMagnitude + 1);
     this.subBucketHalfCount = this.subBucketCount / 2;
-    this.subBucketMask = (floor(this.subBucketCount) - 1) * pow(2, this.unitMagnitude);
+    this.subBucketMask =
+      (floor(this.subBucketCount) - 1) * pow(2, this.unitMagnitude);
 
     this.establishSize(highestTrackableValue);
 
-    this.leadingZeroCountBase = 53 - this.unitMagnitude - this.subBucketHalfCountMagnitude - 1;
+    this.leadingZeroCountBase =
+      53 - this.unitMagnitude - this.subBucketHalfCountMagnitude - 1;
     this.percentileIterator = new PercentileIterator(this, 1);
     this.recordedValuesIterator = new RecordedValuesIterator(this);
   }
@@ -200,20 +225,29 @@ abstract class AbstractHistogram extends AbstractHistogramBase {
    */
   establishSize(newHighestTrackableValue: number): void {
     // establish counts array length:
-    this.countsArrayLength = this.determineArrayLengthNeeded(newHighestTrackableValue);
+    this.countsArrayLength = this.determineArrayLengthNeeded(
+      newHighestTrackableValue
+    );
     // establish exponent range needed to support the trackable value with no overflow:
-    this.bucketCount = this.getBucketsNeededToCoverValue(newHighestTrackableValue);
+    this.bucketCount = this.getBucketsNeededToCoverValue(
+      newHighestTrackableValue
+    );
     // establish the new highest trackable value:
     this.highestTrackableValue = newHighestTrackableValue;
   }
 
   determineArrayLengthNeeded(highestTrackableValue: number): number {
     if (highestTrackableValue < 2 * this.lowestDiscernibleValue) {
-      throw new Error("highestTrackableValue (" + highestTrackableValue +
-        ") cannot be < (2 * lowestDiscernibleValue)");
+      throw new Error(
+        "highestTrackableValue (" +
+          highestTrackableValue +
+          ") cannot be < (2 * lowestDiscernibleValue)"
+      );
     }
     //determine counts array length needed:
-    const countsArrayLength = this.getLengthForNumberOfBuckets(this.getBucketsNeededToCoverValue(highestTrackableValue));
+    const countsArrayLength = this.getLengthForNumberOfBuckets(
+      this.getBucketsNeededToCoverValue(highestTrackableValue)
+    );
     return countsArrayLength;
   }
 
@@ -224,17 +258,20 @@ abstract class AbstractHistogram extends AbstractHistogramBase {
    * value if we consider the sub-bucket length to be halved.
    */
   getLengthForNumberOfBuckets(numberOfBuckets: number): number {
-    const lengthNeeded: number = (numberOfBuckets + 1) * (this.subBucketCount / 2);
+    const lengthNeeded: number =
+      (numberOfBuckets + 1) * (this.subBucketCount / 2);
     return lengthNeeded;
   }
 
   getBucketsNeededToCoverValue(value: number): number {
     // the k'th bucket can express from 0 * 2^k to subBucketCount * 2^k in units of 2^k
-    let smallestUntrackableValue = this.subBucketCount * pow(2, this.unitMagnitude);
+    let smallestUntrackableValue =
+      this.subBucketCount * pow(2, this.unitMagnitude);
     // always have at least 1 bucket
     let bucketsNeeded = 1;
     while (smallestUntrackableValue <= value) {
-      if (smallestUntrackableValue > (Number.MAX_SAFE_INTEGER / 2)) { // TODO check array max size in JavaScript
+      if (smallestUntrackableValue > Number.MAX_SAFE_INTEGER / 2) {
+        // TODO check array max size in JavaScript
         // next shift will overflow, meaning that bucket could represent values up to ones greater than
         // Number.MAX_SAFE_INTEGER, so it's the last bucket
         return bucketsNeeded + 1;
@@ -267,13 +304,15 @@ abstract class AbstractHistogram extends AbstractHistogramBase {
   }
 
   handleRecordException(count: number, value: number) {
-    if(!this.autoResize) {
-        throw "Value " + value + " is outside of histogram covered range";
+    if (!this.autoResize) {
+      throw "Value " + value + " is outside of histogram covered range";
     }
     this.resize(value);
-    var countsIndex : number = this.countsArrayIndex(value);
+    var countsIndex: number = this.countsArrayIndex(value);
     this.addToCountAtIndex(countsIndex, count);
-    this.highestTrackableValue = this.highestEquivalentValue(this.valueFromIndex(this.countsArrayLength - 1));
+    this.highestTrackableValue = this.highestEquivalentValue(
+      this.valueFromIndex(this.countsArrayLength - 1)
+    );
   }
 
   countsArrayIndex(value: number): number {
@@ -292,7 +331,8 @@ abstract class AbstractHistogram extends AbstractHistogramBase {
 
     // Calculate the index for the first entry that will be used in the bucket (halfway through subBucketCount).
     // For bucketIndex 0, all subBucketCount entries may be used, but bucketBaseIndex is still set in the middle.
-    const bucketBaseIndex = (bucketIndex + 1) * pow(2, this.subBucketHalfCountMagnitude);
+    const bucketBaseIndex =
+      (bucketIndex + 1) * pow(2, this.subBucketHalfCountMagnitude);
     // Calculate the offset in the bucket. This subtraction will result in a positive value in all buckets except
     // the 0th bucket (since a value in that bucket may be less than half the bucket's 0 to subBucketCount range).
     // However, this works out since we give bucket 0 twice as much space.
@@ -310,9 +350,13 @@ abstract class AbstractHistogram extends AbstractHistogramBase {
     // The mask maps small values to bucket 0.
 
     // return this.leadingZeroCountBase - Long.numberOfLeadingZeros(value | subBucketMask);
-    return max(floor(log2(value)) - this.subBucketHalfCountMagnitude - this.unitMagnitude, 0);
+    return max(
+      floor(log2(value)) -
+        this.subBucketHalfCountMagnitude -
+        this.unitMagnitude,
+      0
+    );
   }
-
 
   getSubBucketIndex(value: number, bucketIndex: number) {
     // For bucketIndex 0, this is just value, so it may be anywhere in 0 to subBucketCount.
@@ -321,14 +365,14 @@ abstract class AbstractHistogram extends AbstractHistogramBase {
     // buckets overlap, it would have also been in the top half of bucket k-1, and therefore would have
     // returned k-1 in getBucketIndex(). Since we would then shift it one fewer bits here, it would be twice as big,
     // and therefore in the top half of subBucketCount.
-    return floor(value / pow(2, (bucketIndex + this.unitMagnitude)));
+    return floor(value / pow(2, bucketIndex + this.unitMagnitude));
   }
 
   updateMinAndMax(value: number) {
     if (value > this.maxValue) {
       this.updatedMaxValue(value);
     }
-    if ((value < this.minNonZeroValue) && (value !== 0)) {
+    if (value < this.minNonZeroValue && value !== 0) {
       this.updateMinNonZeroValue(value);
     }
   }
@@ -349,27 +393,30 @@ abstract class AbstractHistogram extends AbstractHistogramBase {
    * value that all value entries in the histogram are either larger than or equivalent to.
    */
   getValueAtPercentile(percentile: number) {
-    const requestedPercentile = min(percentile, 100);  // Truncate down to 100%
+    const requestedPercentile = min(percentile, 100); // Truncate down to 100%
 
     // round count up to nearest integer, to ensure that the largest value that the requested percentile
     // of overall recorded values is actually included. However, this must be done with care:
     //
     // First, Compute fp value for count at the requested percentile. Note that fp result end up
     // being 1 ulp larger than the correct integer count for this percentile:
-    const fpCountAtPercentile = (requestedPercentile / 100.0) * this.getTotalCount();
+    const fpCountAtPercentile =
+      requestedPercentile / 100.0 * this.getTotalCount();
     // Next, round up, but make sure to prevent <= 1 ulp inaccurancies in the above fp math from
     // making us skip a count:
     const countAtPercentile = max(
-      ceil(fpCountAtPercentile - ulp(fpCountAtPercentile)),   // round up
-      1                                                       // Make sure we at least reach the first recorded entry
-    ); 
- 
+      ceil(fpCountAtPercentile - ulp(fpCountAtPercentile)), // round up
+      1 // Make sure we at least reach the first recorded entry
+    );
+
     let totalToCurrentIndex = 0;
     for (let i = 0; i < this.countsArrayLength; i++) {
       totalToCurrentIndex += this.getCountAtIndex(i);
       if (totalToCurrentIndex >= countAtPercentile) {
         var valueAtIndex: number = this.valueFromIndex(i);
-        return (percentile === 0.0) ? this.lowestEquivalentValue(valueAtIndex) : this.highestEquivalentValue(valueAtIndex);
+        return percentile === 0.0
+          ? this.lowestEquivalentValue(valueAtIndex)
+          : this.highestEquivalentValue(valueAtIndex);
       }
     }
     return 0;
@@ -381,8 +428,9 @@ abstract class AbstractHistogram extends AbstractHistogramBase {
 
   valueFromIndex(index: number) {
     let bucketIndex = floor(index / this.subBucketHalfCount) - 1;
-    let subBucketIndex = (index % this.subBucketHalfCount) + this.subBucketHalfCount;
-    if(bucketIndex < 0) {
+    let subBucketIndex =
+      index % this.subBucketHalfCount + this.subBucketHalfCount;
+    if (bucketIndex < 0) {
       subBucketIndex -= this.subBucketHalfCount;
       bucketIndex = 0;
     }
@@ -400,7 +448,10 @@ abstract class AbstractHistogram extends AbstractHistogramBase {
   lowestEquivalentValue(value: number) {
     const bucketIndex = this.getBucketIndex(value);
     const subBucketIndex = this.getSubBucketIndex(value, bucketIndex);
-    const thisValueBaseLevel = this.valueFromIndexes(bucketIndex, subBucketIndex);
+    const thisValueBaseLevel = this.valueFromIndexes(
+      bucketIndex,
+      subBucketIndex
+    );
     return thisValueBaseLevel;
   }
 
@@ -425,7 +476,9 @@ abstract class AbstractHistogram extends AbstractHistogramBase {
    * @return The next value that is not equivalent to the given value within the histogram's resolution.
    */
   nextNonEquivalentValue(value: number) {
-    return this.lowestEquivalentValue(value) + this.sizeOfEquivalentValueRange(value);
+    return (
+      this.lowestEquivalentValue(value) + this.sizeOfEquivalentValueRange(value)
+    );
   }
 
   /**
@@ -439,11 +492,13 @@ abstract class AbstractHistogram extends AbstractHistogramBase {
   sizeOfEquivalentValueRange(value: number) {
     const bucketIndex = this.getBucketIndex(value);
     const subBucketIndex = this.getSubBucketIndex(value, bucketIndex);
-    const distanceToNextValue 
-      = pow(2, this.unitMagnitude + ((subBucketIndex >= this.subBucketCount) ? (bucketIndex + 1) : bucketIndex));
+    const distanceToNextValue = pow(
+      2,
+      this.unitMagnitude +
+        (subBucketIndex >= this.subBucketCount ? bucketIndex + 1 : bucketIndex)
+    );
     return distanceToNextValue;
   }
-
 
   /**
    * Get a value that lies in the middle (rounded up) of the range of values equivalent the given value.
@@ -454,7 +509,10 @@ abstract class AbstractHistogram extends AbstractHistogramBase {
    * @return The value lies in the middle (rounded up) of the range of values equivalent the given value.
    */
   medianEquivalentValue(value: number) {
-    return (this.lowestEquivalentValue(value) + floor(this.sizeOfEquivalentValueRange(value) / 2));
+    return (
+      this.lowestEquivalentValue(value) +
+      floor(this.sizeOfEquivalentValueRange(value) / 2)
+    );
   }
 
   /**
@@ -470,13 +528,12 @@ abstract class AbstractHistogram extends AbstractHistogramBase {
     let totalValue = 0;
     while (this.recordedValuesIterator.hasNext()) {
       const iterationValue = this.recordedValuesIterator.next();
-      totalValue += this.medianEquivalentValue(iterationValue.valueIteratedTo)
-              * iterationValue.countAtValueIteratedTo;
+      totalValue +=
+        this.medianEquivalentValue(iterationValue.valueIteratedTo) *
+        iterationValue.countAtValueIteratedTo;
     }
-    return (totalValue * 1.0) / this.getTotalCount();
+    return totalValue * 1.0 / this.getTotalCount();
   }
-
-
 
   /**
    * Get the computed standard deviation of all recorded values in the histogram
@@ -492,14 +549,16 @@ abstract class AbstractHistogram extends AbstractHistogramBase {
     this.recordedValuesIterator.reset();
     while (this.recordedValuesIterator.hasNext()) {
       const iterationValue = this.recordedValuesIterator.next();
-      const deviation = this.medianEquivalentValue(iterationValue.valueIteratedTo) - mean;
-      geometric_deviation_total += (deviation * deviation) * iterationValue.countAddedInThisIterationStep;
+      const deviation =
+        this.medianEquivalentValue(iterationValue.valueIteratedTo) - mean;
+      geometric_deviation_total +=
+        deviation * deviation * iterationValue.countAddedInThisIterationStep;
     }
-    const std_deviation = Math.sqrt(geometric_deviation_total / this.getTotalCount());
+    const std_deviation = Math.sqrt(
+      geometric_deviation_total / this.getTotalCount()
+    );
     return std_deviation;
   }
-
-
 
   /**
    * Produce textual representation of the value distribution of histogram data by percentile. The distribution is
@@ -514,116 +573,128 @@ abstract class AbstractHistogram extends AbstractHistogramBase {
    *                                     output
    * @param useCsvFormat  Output in CSV format if true. Otherwise use plain text form.
    */
-  outputPercentileDistribution(percentileTicksPerHalfDistance = 5,
-                               outputValueUnitScalingRatio = 1,
-                               useCsvFormat = false): string {
-
+  outputPercentileDistribution(
+    percentileTicksPerHalfDistance = 5,
+    outputValueUnitScalingRatio = 1,
+    useCsvFormat = false
+  ): string {
     let result = "";
     if (useCsvFormat) {
-          result += '"Value","Percentile","TotalCount","1/(1-Percentile)"\n';
-      } else {
-          result += "       Value     Percentile TotalCount 1/(1-Percentile)\n\n";
-      }
-
-      const iterator = this.percentileIterator;
-      iterator.reset(percentileTicksPerHalfDistance);
-
-      let lineFormatter: (iterationValue: HistogramIterationValue) => string;
-      let lastLineFormatter: (iterationValue: HistogramIterationValue) => string;
-      
-      if (useCsvFormat) {
-        const valueFormatter = floatFormatter(0, this.numberOfSignificantValueDigits);
-        const percentileFormatter = floatFormatter(0, 12);
-        const lastFormatter = floatFormatter(0, 2);
-        
-        lineFormatter = (iterationValue: HistogramIterationValue) => (
-          valueFormatter(iterationValue.valueIteratedTo / outputValueUnitScalingRatio)
-          + ","
-          + percentileFormatter(iterationValue.percentileLevelIteratedTo / 100)
-          + ","
-          + iterationValue.totalCountToThisValue
-          + ","
-          + lastFormatter(1/(1 - (iterationValue.percentileLevelIteratedTo/100)))
-          + "\n"
-        );
-        lastLineFormatter = (iterationValue: HistogramIterationValue) => (
-          valueFormatter(iterationValue.valueIteratedTo / outputValueUnitScalingRatio)
-          + ","
-          + percentileFormatter(iterationValue.percentileLevelIteratedTo / 100)
-          + ","
-          + iterationValue.totalCountToThisValue
-          + ",Infinity\n"
-        );
-
-      } else {
-        const valueFormatter = floatFormatter(12, this.numberOfSignificantValueDigits);
-        const percentileFormatter = floatFormatter(2, 12);
-        const totalCountFormatter = integerFormatter(10);
-        const lastFormatter = floatFormatter(14, 2);
-        
-        lineFormatter = (iterationValue: HistogramIterationValue) => (
-          valueFormatter(iterationValue.valueIteratedTo / outputValueUnitScalingRatio)
-          + " "
-          + percentileFormatter(iterationValue.percentileLevelIteratedTo / 100)
-          + " "
-          + totalCountFormatter(iterationValue.totalCountToThisValue)
-          + " "
-          + lastFormatter(1/(1 - (iterationValue.percentileLevelIteratedTo/100)))
-          + "\n"
-        );
-
-        lastLineFormatter = (iterationValue: HistogramIterationValue) => (
-          valueFormatter(iterationValue.valueIteratedTo / outputValueUnitScalingRatio)
-          + " "
-          + percentileFormatter(iterationValue.percentileLevelIteratedTo / 100)
-          + " "
-          + totalCountFormatter(iterationValue.totalCountToThisValue)
-          + "\n"
-        );
-
-      }
-
-      while (iterator.hasNext()) {
-        const iterationValue = iterator.next();
-        if (iterationValue.percentileLevelIteratedTo < 100) {
-          result += lineFormatter(iterationValue);
-        } else {
-          result += lastLineFormatter(iterationValue);
-        }
-      }
-
-      if (!useCsvFormat) {
-        // Calculate and output mean and std. deviation.
-        // Note: mean/std. deviation numbers are very often completely irrelevant when
-        // data is extremely non-normal in distribution (e.g. in cases of strong multi-modal
-        // response time distribution associated with GC pauses). However, reporting these numbers
-        // can be very useful for contrasting with the detailed percentile distribution
-        // reported by outputPercentileDistribution(). It is not at all surprising to find
-        // percentile distributions where results fall many tens or even hundreds of standard
-        // deviations away from the mean - such results simply indicate that the data sampled
-        // exhibits a very non-normal distribution, highlighting situations for which the std.
-        // deviation metric is a useless indicator.
-        //
-        const formatter = floatFormatter(12, this.numberOfSignificantValueDigits);
-        const mean = formatter(this.getMean() / outputValueUnitScalingRatio);
-        const std_deviation = formatter(this.getStdDeviation() / outputValueUnitScalingRatio);
-        const max = formatter(this.maxValue / outputValueUnitScalingRatio);
-        const intFormatter = integerFormatter(12);
-        const totalCount = intFormatter(this.getTotalCount());
-        const bucketCount = intFormatter(this.bucketCount);
-        const subBucketCount = intFormatter(this.subBucketCount);
-
-        result += (
-`#[Mean    = ${mean}, StdDeviation   = ${std_deviation}]
-#[Max     = ${max}, Total count    = ${totalCount}]
-#[Buckets = ${bucketCount}, SubBuckets     = ${subBucketCount}]
-`
-        );
-      }
-
-      return result;
+      result += '"Value","Percentile","TotalCount","1/(1-Percentile)"\n';
+    } else {
+      result += "       Value     Percentile TotalCount 1/(1-Percentile)\n\n";
     }
 
+    const iterator = this.percentileIterator;
+    iterator.reset(percentileTicksPerHalfDistance);
+
+    let lineFormatter: (iterationValue: HistogramIterationValue) => string;
+    let lastLineFormatter: (iterationValue: HistogramIterationValue) => string;
+
+    if (useCsvFormat) {
+      const valueFormatter = floatFormatter(
+        0,
+        this.numberOfSignificantValueDigits
+      );
+      const percentileFormatter = floatFormatter(0, 12);
+      const lastFormatter = floatFormatter(0, 2);
+
+      lineFormatter = (iterationValue: HistogramIterationValue) =>
+        valueFormatter(
+          iterationValue.valueIteratedTo / outputValueUnitScalingRatio
+        ) +
+        "," +
+        percentileFormatter(iterationValue.percentileLevelIteratedTo / 100) +
+        "," +
+        iterationValue.totalCountToThisValue +
+        "," +
+        lastFormatter(
+          1 / (1 - iterationValue.percentileLevelIteratedTo / 100)
+        ) +
+        "\n";
+      lastLineFormatter = (iterationValue: HistogramIterationValue) =>
+        valueFormatter(
+          iterationValue.valueIteratedTo / outputValueUnitScalingRatio
+        ) +
+        "," +
+        percentileFormatter(iterationValue.percentileLevelIteratedTo / 100) +
+        "," +
+        iterationValue.totalCountToThisValue +
+        ",Infinity\n";
+    } else {
+      const valueFormatter = floatFormatter(
+        12,
+        this.numberOfSignificantValueDigits
+      );
+      const percentileFormatter = floatFormatter(2, 12);
+      const totalCountFormatter = integerFormatter(10);
+      const lastFormatter = floatFormatter(14, 2);
+
+      lineFormatter = (iterationValue: HistogramIterationValue) =>
+        valueFormatter(
+          iterationValue.valueIteratedTo / outputValueUnitScalingRatio
+        ) +
+        " " +
+        percentileFormatter(iterationValue.percentileLevelIteratedTo / 100) +
+        " " +
+        totalCountFormatter(iterationValue.totalCountToThisValue) +
+        " " +
+        lastFormatter(
+          1 / (1 - iterationValue.percentileLevelIteratedTo / 100)
+        ) +
+        "\n";
+
+      lastLineFormatter = (iterationValue: HistogramIterationValue) =>
+        valueFormatter(
+          iterationValue.valueIteratedTo / outputValueUnitScalingRatio
+        ) +
+        " " +
+        percentileFormatter(iterationValue.percentileLevelIteratedTo / 100) +
+        " " +
+        totalCountFormatter(iterationValue.totalCountToThisValue) +
+        "\n";
+    }
+
+    while (iterator.hasNext()) {
+      const iterationValue = iterator.next();
+      if (iterationValue.percentileLevelIteratedTo < 100) {
+        result += lineFormatter(iterationValue);
+      } else {
+        result += lastLineFormatter(iterationValue);
+      }
+    }
+
+    if (!useCsvFormat) {
+      // Calculate and output mean and std. deviation.
+      // Note: mean/std. deviation numbers are very often completely irrelevant when
+      // data is extremely non-normal in distribution (e.g. in cases of strong multi-modal
+      // response time distribution associated with GC pauses). However, reporting these numbers
+      // can be very useful for contrasting with the detailed percentile distribution
+      // reported by outputPercentileDistribution(). It is not at all surprising to find
+      // percentile distributions where results fall many tens or even hundreds of standard
+      // deviations away from the mean - such results simply indicate that the data sampled
+      // exhibits a very non-normal distribution, highlighting situations for which the std.
+      // deviation metric is a useless indicator.
+      //
+      const formatter = floatFormatter(12, this.numberOfSignificantValueDigits);
+      const mean = formatter(this.getMean() / outputValueUnitScalingRatio);
+      const std_deviation = formatter(
+        this.getStdDeviation() / outputValueUnitScalingRatio
+      );
+      const max = formatter(this.maxValue / outputValueUnitScalingRatio);
+      const intFormatter = integerFormatter(12);
+      const totalCount = intFormatter(this.getTotalCount());
+      const bucketCount = intFormatter(this.bucketCount);
+      const subBucketCount = intFormatter(this.subBucketCount);
+
+      result += `#[Mean    = ${mean}, StdDeviation   = ${std_deviation}]
+#[Max     = ${max}, Total count    = ${totalCount}]
+#[Buckets = ${bucketCount}, SubBuckets     = ${subBucketCount}]
+`;
+    }
+
+    return result;
+  }
 
   /**
    * Provide a (conservatively high) estimate of the Histogram's total footprint in bytes
@@ -634,16 +705,20 @@ abstract class AbstractHistogram extends AbstractHistogramBase {
     return this._getEstimatedFootprintInBytes();
   }
 
-  recordSingleValueWithExpectedInterval(value : number, expectedIntervalBetweenValueSamples : number) {
+  recordSingleValueWithExpectedInterval(
+    value: number,
+    expectedIntervalBetweenValueSamples: number
+  ) {
     this.recordSingleValue(value);
     if (expectedIntervalBetweenValueSamples <= 0) {
       return;
     }
-    for (let missingValue = value - expectedIntervalBetweenValueSamples; 
-          missingValue >= expectedIntervalBetweenValueSamples; 
-          missingValue -= expectedIntervalBetweenValueSamples) {
-        
-        this.recordSingleValue(missingValue);
+    for (
+      let missingValue = value - expectedIntervalBetweenValueSamples;
+      missingValue >= expectedIntervalBetweenValueSamples;
+      missingValue -= expectedIntervalBetweenValueSamples
+    ) {
+      this.recordSingleValue(missingValue);
     }
   }
 
@@ -690,26 +765,33 @@ abstract class AbstractHistogram extends AbstractHistogramBase {
    *                                           than expectedIntervalBetweenValueSamples
    * @throws ArrayIndexOutOfBoundsException (may throw) if value is exceeds highestTrackableValue
    */
-  recordValueWithExpectedInterval(value: number, expectedIntervalBetweenValueSamples: number) {
-    this.recordSingleValueWithExpectedInterval(value, expectedIntervalBetweenValueSamples);
+  recordValueWithExpectedInterval(
+    value: number,
+    expectedIntervalBetweenValueSamples: number
+  ) {
+    this.recordSingleValueWithExpectedInterval(
+      value,
+      expectedIntervalBetweenValueSamples
+    );
   }
 
   private recordValueWithCountAndExpectedInterval(
-    value: number, 
+    value: number,
     count: number,
-    expectedIntervalBetweenValueSamples: number) {
-
-      this.recordCountAtValue(count, value);
-      if (expectedIntervalBetweenValueSamples <= 0) {
-        return;
-      }
-      for (let missingValue = value - expectedIntervalBetweenValueSamples;
-        missingValue >= expectedIntervalBetweenValueSamples;
-        missingValue -= expectedIntervalBetweenValueSamples) {
-        
-        this.recordCountAtValue(count, missingValue);
-      }
+    expectedIntervalBetweenValueSamples: number
+  ) {
+    this.recordCountAtValue(count, value);
+    if (expectedIntervalBetweenValueSamples <= 0) {
+      return;
     }
+    for (
+      let missingValue = value - expectedIntervalBetweenValueSamples;
+      missingValue >= expectedIntervalBetweenValueSamples;
+      missingValue -= expectedIntervalBetweenValueSamples
+    ) {
+      this.recordCountAtValue(count, missingValue);
+    }
+  }
 
   /**
    * Add the contents of another histogram to this one, while correcting the incoming data for coordinated omission.
@@ -735,16 +817,20 @@ abstract class AbstractHistogram extends AbstractHistogramBase {
    * @throws ArrayIndexOutOfBoundsException (may throw) if values exceed highestTrackableValue
    */
   addWhileCorrectingForCoordinatedOmission(
-    otherHistogram: AbstractHistogram, 
-    expectedIntervalBetweenValueSamples: number) {
-    
+    otherHistogram: AbstractHistogram,
+    expectedIntervalBetweenValueSamples: number
+  ) {
     const toHistogram = this;
 
     const otherValues = new RecordedValuesIterator(otherHistogram);
 
     while (otherValues.hasNext()) {
       const v = otherValues.next();
-      toHistogram.recordValueWithCountAndExpectedInterval(v.valueIteratedTo, v.countAtValueIteratedTo, expectedIntervalBetweenValueSamples);
+      toHistogram.recordValueWithCountAndExpectedInterval(
+        v.valueIteratedTo,
+        v.countAtValueIteratedTo,
+        expectedIntervalBetweenValueSamples
+      );
     }
   }
 
@@ -770,9 +856,9 @@ abstract class AbstractHistogram extends AbstractHistogramBase {
    *                                           than expectedIntervalBetweenValueSamples
    * @return a copy of this histogram, corrected for coordinated omission.
    */
-  abstract copyCorrectedForCoordinatedOmission(expectedIntervalBetweenValueSamples: number): AbstractHistogram
-
-
+  abstract copyCorrectedForCoordinatedOmission(
+    expectedIntervalBetweenValueSamples: number
+  ): AbstractHistogram;
 
   /**
    * Add the contents of another histogram to this one.
@@ -785,10 +871,9 @@ abstract class AbstractHistogram extends AbstractHistogramBase {
    * higher than highestTrackableValue.
    */
   add(otherHistogram: AbstractHistogram) {
-    const highestRecordableValue 
-      = this.highestEquivalentValue(
-          this.valueFromIndex(this.countsArrayLength - 1)
-        );
+    const highestRecordableValue = this.highestEquivalentValue(
+      this.valueFromIndex(this.countsArrayLength - 1)
+    );
 
     if (highestRecordableValue < otherHistogram.maxValue) {
       if (!this.autoResize) {
@@ -797,10 +882,11 @@ abstract class AbstractHistogram extends AbstractHistogramBase {
       this.resize(otherHistogram.maxValue);
     }
 
-    if ((this.bucketCount === otherHistogram.bucketCount) &&
-        (this.subBucketCount === otherHistogram.subBucketCount) &&
-        (this.unitMagnitude === otherHistogram.unitMagnitude)) {
-
+    if (
+      this.bucketCount === otherHistogram.bucketCount &&
+      this.subBucketCount === otherHistogram.subBucketCount &&
+      this.unitMagnitude === otherHistogram.unitMagnitude
+    ) {
       // Counts arrays are of the same length and meaning, so we can just iterate and add directly:
       let observedOtherTotalCount = 0;
       for (let i = 0; i < otherHistogram.countsArrayLength; i++) {
@@ -812,14 +898,18 @@ abstract class AbstractHistogram extends AbstractHistogramBase {
       }
       this.setTotalCount(this.getTotalCount() + observedOtherTotalCount);
       this.updatedMaxValue(max(this.maxValue, otherHistogram.maxValue));
-      this.updateMinNonZeroValue(min(this.minNonZeroValue, otherHistogram.minNonZeroValue));
+      this.updateMinNonZeroValue(
+        min(this.minNonZeroValue, otherHistogram.minNonZeroValue)
+      );
     } else {
       // Arrays are not a direct match (or the other could change on the fly in some valid way),
       // so we can't just stream through and add them. Instead, go through the array and add each
       // non-zero value found at it's proper value:
 
       // Do max value first, to avoid max value updates on each iteration:
-      const otherMaxIndex = otherHistogram.countsArrayIndex(otherHistogram.maxValue);
+      const otherMaxIndex = otherHistogram.countsArrayIndex(
+        otherHistogram.maxValue
+      );
       let otherCount = otherHistogram.getCountAtIndex(otherMaxIndex);
       this.recordCountAtValue(otherCount, otherHistogram.maxValue);
 
@@ -831,8 +921,14 @@ abstract class AbstractHistogram extends AbstractHistogramBase {
         }
       }
     }
-    this.startTimeStampMsec = min(this.startTimeStampMsec, otherHistogram.startTimeStampMsec);
-    this.endTimeStampMsec = max(this.endTimeStampMsec, otherHistogram.endTimeStampMsec);
+    this.startTimeStampMsec = min(
+      this.startTimeStampMsec,
+      otherHistogram.startTimeStampMsec
+    );
+    this.endTimeStampMsec = max(
+      this.endTimeStampMsec,
+      otherHistogram.endTimeStampMsec
+    );
   }
 
   /**
@@ -843,8 +939,11 @@ abstract class AbstractHistogram extends AbstractHistogramBase {
    * {@literal >=} lowestEquivalentValue(<i>value</i>) and {@literal <=} highestEquivalentValue(<i>value</i>)
    */
   private getCountAtValue(value: number) {
-      const index = min(max(0, this.countsArrayIndex(value)), (this.countsArrayLength - 1));
-      return this.getCountAtIndex(index);
+    const index = min(
+      max(0, this.countsArrayIndex(value)),
+      this.countsArrayLength - 1
+    );
+    return this.getCountAtIndex(index);
   }
 
   /**
@@ -857,7 +956,9 @@ abstract class AbstractHistogram extends AbstractHistogramBase {
    *
    */
   subtract(otherHistogram: AbstractHistogram) {
-    const highestRecordableValue = this.valueFromIndex(this.countsArrayLength - 1);
+    const highestRecordableValue = this.valueFromIndex(
+      this.countsArrayLength - 1
+    );
     if (highestRecordableValue < otherHistogram.maxValue) {
       if (!this.autoResize) {
         throw "The other histogram includes values that do not fit in this histogram's range.";
@@ -865,10 +966,11 @@ abstract class AbstractHistogram extends AbstractHistogramBase {
       this.resize(otherHistogram.maxValue);
     }
 
-    if ((this.bucketCount === otherHistogram.bucketCount) &&
-        (this.subBucketCount === otherHistogram.subBucketCount) &&
-        (this.unitMagnitude === otherHistogram.unitMagnitude)) {
-
+    if (
+      this.bucketCount === otherHistogram.bucketCount &&
+      this.subBucketCount === otherHistogram.subBucketCount &&
+      this.unitMagnitude === otherHistogram.unitMagnitude
+    ) {
       // optim
       // Counts arrays are of the same length and meaning, so we can just iterate and add directly:
       for (let i = 0; i < otherHistogram.countsArrayLength; i++) {
@@ -883,15 +985,23 @@ abstract class AbstractHistogram extends AbstractHistogramBase {
         if (otherCount > 0) {
           const otherValue = otherHistogram.valueFromIndex(i);
           if (this.getCountAtValue(otherValue) < otherCount) {
-            throw "otherHistogram count (" + otherCount + ") at value " +
-              otherValue + " is larger than this one's (" + this.getCountAtValue(otherValue) + ")";
+            throw "otherHistogram count (" +
+              otherCount +
+              ") at value " +
+              otherValue +
+              " is larger than this one's (" +
+              this.getCountAtValue(otherValue) +
+              ")";
           }
           this.recordCountAtValue(-otherCount, otherValue);
         }
       }
     }
     // With subtraction, the max and minNonZero values could have changed:
-    if ((this.getCountAtValue(this.maxValue) <= 0) || this.getCountAtValue(this.minNonZeroValue) <= 0) {
+    if (
+      this.getCountAtValue(this.maxValue) <= 0 ||
+      this.getCountAtValue(this.minNonZeroValue) <= 0
+    ) {
       this.establishInternalTackingValues();
     }
   }
@@ -906,15 +1016,20 @@ abstract class AbstractHistogram extends AbstractHistogramBase {
       const count = this.getCountAtIndex(srcIndex++);
       if (count < 0) {
         throw "Cannot encode histogram containing negative counts (" +
-              count + ") at index " + srcIndex + ", corresponding the value range [" +
-              this.lowestEquivalentValue(this.valueFromIndex(srcIndex)) + "," +
-              this.nextNonEquivalentValue(this.valueFromIndex(srcIndex)) + ")";
+          count +
+          ") at index " +
+          srcIndex +
+          ", corresponding the value range [" +
+          this.lowestEquivalentValue(this.valueFromIndex(srcIndex)) +
+          "," +
+          this.nextNonEquivalentValue(this.valueFromIndex(srcIndex)) +
+          ")";
       }
       // Count trailing 0s (which follow this count):
       let zerosCount = 0;
       if (count == 0) {
         zerosCount = 1;
-        while ((srcIndex < countsLimit) && (this.getCountAtIndex(srcIndex) == 0)) {
+        while (srcIndex < countsLimit && this.getCountAtIndex(srcIndex) == 0) {
           zerosCount++;
           srcIndex++;
         }
@@ -945,7 +1060,7 @@ abstract class AbstractHistogram extends AbstractHistogramBase {
     const payloadStartPosition = buffer.position;
     this.fillBufferFromCountsArray(buffer);
 
-    const backupIndex =  buffer.position;
+    const backupIndex = buffer.position;
     buffer.position = initialPosition + 4;
     buffer.putInt32(backupIndex - payloadStartPosition); // Record the payload length
 
@@ -954,28 +1069,39 @@ abstract class AbstractHistogram extends AbstractHistogramBase {
     return backupIndex - initialPosition;
   }
 
-  private fillCountsArrayFromSourceBuffer(sourceBuffer: ByteBuffer, lengthInBytes: number, wordSizeInBytes: number) {
-    if ((wordSizeInBytes != 2) && (wordSizeInBytes != 4) &&
-            (wordSizeInBytes != 8) && (wordSizeInBytes != V2maxWordSizeInBytes)) {
-        throw "word size must be 2, 4, 8, or V2maxWordSizeInBytes ("+
-                V2maxWordSizeInBytes + ") bytes";
+  private fillCountsArrayFromSourceBuffer(
+    sourceBuffer: ByteBuffer,
+    lengthInBytes: number,
+    wordSizeInBytes: number
+  ) {
+    if (
+      wordSizeInBytes != 2 &&
+      wordSizeInBytes != 4 &&
+      wordSizeInBytes != 8 &&
+      wordSizeInBytes != V2maxWordSizeInBytes
+    ) {
+      throw "word size must be 2, 4, 8, or V2maxWordSizeInBytes (" +
+        V2maxWordSizeInBytes +
+        ") bytes";
     }
     let dstIndex = 0;
     const endPosition = sourceBuffer.position + lengthInBytes;
     while (sourceBuffer.position < endPosition) {
       let zerosCount = 0;
-      let count= ZigZagEncoding.decode(sourceBuffer);
+      let count = ZigZagEncoding.decode(sourceBuffer);
       if (count < 0) {
         zerosCount = -count;
         dstIndex += zerosCount; // No need to set zeros in array. Just skip them.
       } else {
         this.setCountAtIndex(dstIndex++, count);
-      }  
+      }
     }
     return dstIndex; // this is the destination length
   }
 
-  private establishInternalTackingValues(lengthToCover = this.countsArrayLength) {
+  private establishInternalTackingValues(
+    lengthToCover = this.countsArrayLength
+  ) {
     this.maxValue = 0;
     this.minNonZeroValue = Number.MAX_VALUE;
     let maxIndex = -1;
@@ -986,13 +1112,15 @@ abstract class AbstractHistogram extends AbstractHistogramBase {
       if (countAtIndex > 0) {
         observedTotalCount += countAtIndex;
         maxIndex = index;
-        if ((minNonZeroIndex == -1) && (index != 0)) {
+        if (minNonZeroIndex == -1 && index != 0) {
           minNonZeroIndex = index;
         }
       }
     }
     if (maxIndex >= 0) {
-      this.updatedMaxValue(this.highestEquivalentValue(this.valueFromIndex(maxIndex)));
+      this.updatedMaxValue(
+        this.highestEquivalentValue(this.valueFromIndex(maxIndex))
+      );
     }
     if (minNonZeroIndex >= 0) {
       this.updateMinNonZeroValue(this.valueFromIndex(minNonZeroIndex));
@@ -1001,24 +1129,25 @@ abstract class AbstractHistogram extends AbstractHistogramBase {
   }
 
   private static getCookieBase(cookie: number): number {
-    return (cookie & ~0xf0);
+    return cookie & ~0xf0;
   }
 
   private static getWordSizeInBytesFromCookie(cookie: number): number {
-    if ((this.getCookieBase(cookie) == V2EncodingCookieBase) ||
-        (this.getCookieBase(cookie) == V2CompressedEncodingCookieBase)) {
+    if (
+      this.getCookieBase(cookie) == V2EncodingCookieBase ||
+      this.getCookieBase(cookie) == V2CompressedEncodingCookieBase
+    ) {
       return V2maxWordSizeInBytes;
     }
     const sizeByte = (cookie & 0xf0) >> 4;
     return sizeByte & 0xe;
   }
-  
+
   static decodeFromByteBuffer(
     buffer: ByteBuffer,
     histogramConstr: typeof AbstractHistogram,
     minBarForHighestTrackableValue: number
   ): AbstractHistogram {
-
     const cookie = buffer.getInt32();
 
     let payloadLengthInBytes: number;
@@ -1026,7 +1155,7 @@ abstract class AbstractHistogram extends AbstractHistogramBase {
     let lowestTrackableUnitValue: number;
     let highestTrackableValue: number;
 
-    if ((this.getCookieBase(cookie) === V2EncodingCookieBase)) { 
+    if (this.getCookieBase(cookie) === V2EncodingCookieBase) {
       if (this.getWordSizeInBytesFromCookie(cookie) != V2maxWordSizeInBytes) {
         throw "The buffer does not contain a Histogram (no valid cookie found)";
       }
@@ -1039,16 +1168,18 @@ abstract class AbstractHistogram extends AbstractHistogramBase {
     } else {
       throw "The buffer does not contain a Histogram (no valid V2 encoding cookie found)";
     }
-    
-    highestTrackableValue = max(highestTrackableValue, minBarForHighestTrackableValue);
+
+    highestTrackableValue = max(
+      highestTrackableValue,
+      minBarForHighestTrackableValue
+    );
 
     const constructor = histogramConstr as any;
-    const histogram: AbstractHistogram 
-      = new constructor(
-          lowestTrackableUnitValue, 
-          highestTrackableValue,
-          numberOfSignificantValueDigits
-        );
+    const histogram: AbstractHistogram = new constructor(
+      lowestTrackableUnitValue,
+      highestTrackableValue,
+      numberOfSignificantValueDigits
+    );
 
     const filledLength = histogram.fillCountsArrayFromSourceBuffer(
       buffer,
@@ -1061,35 +1192,33 @@ abstract class AbstractHistogram extends AbstractHistogramBase {
     return histogram;
   }
 
-
   static decodeFromCompressedByteBuffer(
     buffer: ByteBuffer,
     histogramConstr: typeof AbstractHistogram,
     minBarForHighestTrackableValue: number
   ): AbstractHistogram {
-
     const initialTargetPosition = buffer.position;
 
-    const cookie = buffer.getInt32(); 
+    const cookie = buffer.getInt32();
 
     if ((cookie & ~0xf0) !== V2CompressedEncodingCookieBase) {
       throw "Encoding not supported, only V2 is supported";
     }
-    
+
     const lengthOfCompressedContents = buffer.getInt32();
 
     const pako = require("pako/lib/inflate");
 
     const uncompressedBuffer: Uint8Array = pako.inflate(
       buffer.data.slice(
-        initialTargetPosition + 8, 
+        initialTargetPosition + 8,
         initialTargetPosition + 8 + lengthOfCompressedContents
-      )    
+      )
     );
 
     return this.decodeFromByteBuffer(
-      new ByteBuffer(uncompressedBuffer), 
-      histogramConstr, 
+      new ByteBuffer(uncompressedBuffer),
+      histogramConstr,
       minBarForHighestTrackableValue
     );
   }
@@ -1099,17 +1228,23 @@ abstract class AbstractHistogram extends AbstractHistogramBase {
    * @param targetBuffer The buffer to encode into
    * @return The number of bytes written to the array
    */
-  encodeIntoCompressedByteBuffer(targetBuffer: ByteBuffer, compressionLevel?: number) {
-
+  encodeIntoCompressedByteBuffer(
+    targetBuffer: ByteBuffer,
+    compressionLevel?: number
+  ) {
     const intermediateUncompressedByteBuffer = ByteBuffer.allocate();
-    
-    const uncompressedLength = this.encodeIntoByteBuffer(intermediateUncompressedByteBuffer);
+
+    const uncompressedLength = this.encodeIntoByteBuffer(
+      intermediateUncompressedByteBuffer
+    );
     targetBuffer.putInt32(compressedEncodingCookie);
 
     const pako = require("pako/lib/deflate");
-    const compressionOptions = compressionLevel ? { level: compressionLevel } : {};
+    const compressionOptions = compressionLevel
+      ? { level: compressionLevel }
+      : {};
     const compressedArray: Uint8Array = pako.deflate(
-      intermediateUncompressedByteBuffer.data.slice(0, uncompressedLength), 
+      intermediateUncompressedByteBuffer.data.slice(0, uncompressedLength),
       compressionOptions
     );
 
@@ -1128,7 +1263,6 @@ abstract class AbstractHistogram extends AbstractHistogramBase {
     this.maxValue = 0;
     this.minNonZeroValue = Number.MAX_SAFE_INTEGER;
   }
-
 }
 
 export default AbstractHistogram;

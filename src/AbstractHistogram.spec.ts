@@ -1,51 +1,42 @@
-import "core-js"
-import { expect } from "chai"
-import { NO_TAG } from "./AbstractHistogramBase"
-import AbstractHistogram from "./AbstractHistogram" 
-import ByteBuffer from "./ByteBuffer"
-import Int32Histogram from "./Int32Histogram"
-import PercentileIterator from "./PercentileIterator"
-import HistogramIterationValue from "./HistogramIterationValue"
+import "core-js";
+import { expect } from "chai";
+import { NO_TAG } from "./AbstractHistogramBase";
+import AbstractHistogram from "./AbstractHistogram";
+import ByteBuffer from "./ByteBuffer";
+import Int32Histogram from "./Int32Histogram";
+import PercentileIterator from "./PercentileIterator";
+import HistogramIterationValue from "./HistogramIterationValue";
 
-declare function require(name: string): any
+declare function require(name: string): any;
 
 class HistogramForTests extends AbstractHistogram {
-
   //constructor() {}
 
-  clearCounts() {
-  }
+  clearCounts() {}
 
-  incrementCountAtIndex(index: number): void {
-  }
+  incrementCountAtIndex(index: number): void {}
 
-  setNormalizingIndexOffset(normalizingIndexOffset: number): void {
-  }
+  setNormalizingIndexOffset(normalizingIndexOffset: number): void {}
 
-  incrementTotalCount(): void {
-  }
+  incrementTotalCount(): void {}
 
-  addToTotalCount(value: number) {
-  }
+  addToTotalCount(value: number) {}
 
-  setTotalCount(totalCount: number) {
-  }
+  setTotalCount(totalCount: number) {}
 
   resize(newHighestTrackableValue: number): void {
     this.establishSize(newHighestTrackableValue);
   }
 
-  addToCountAtIndex(index: number, value: number): void {
-  }
+  addToCountAtIndex(index: number, value: number): void {}
 
-  setCountAtIndex(index: number, value: number): void {
-  }
+  setCountAtIndex(index: number, value: number): void {}
 
   getTotalCount() {
     return 0;
   }
 
-  getCountAtIndex(index: number): number  {
+  getCountAtIndex(index: number): number {
     return 0;
   }
 
@@ -53,54 +44,52 @@ class HistogramForTests extends AbstractHistogram {
     return 42;
   }
 
-  copyCorrectedForCoordinatedOmission(expectedIntervalBetweenValueSamples: number) {
+  copyCorrectedForCoordinatedOmission(
+    expectedIntervalBetweenValueSamples: number
+  ) {
     return this;
   }
-
 }
 
-describe('Histogram initialization', () => {
-  
+describe("Histogram initialization", () => {
   let histogram: AbstractHistogram;
   beforeEach(() => {
     histogram = new HistogramForTests(1, Number.MAX_SAFE_INTEGER, 3);
-  })
+  });
 
   it("should set sub bucket size", () => {
     expect(histogram.subBucketCount).to.be.equal(2048);
-  })
+  });
 
   it("should set resize to false when max value specified", () => {
     expect(histogram.autoResize).to.be.false;
-  })
+  });
 
   it("should compute counts array length", () => {
     expect(histogram.countsArrayLength).to.be.equal(45056);
-  })
+  });
 
   it("should compute bucket count", () => {
     expect(histogram.bucketCount).to.be.equal(43);
-  })
+  });
 
   it("should set min non zero value", () => {
     expect(histogram.minNonZeroValue).to.be.equal(Number.MAX_SAFE_INTEGER);
-  })
+  });
 
   it("should set max value", () => {
     expect(histogram.maxValue).to.be.equal(0);
-  })
-
+  });
 });
 
-describe('Histogram recording values', () => {
-
+describe("Histogram recording values", () => {
   it("should compute count index when value in first bucket", () => {
     // given
     const histogram = new HistogramForTests(1, Number.MAX_SAFE_INTEGER, 3);
     // when
     const index = histogram.countsArrayIndex(2000); // 2000 < 2048
     expect(index).to.be.equal(2000);
-  })
+  });
 
   it("should compute count index when value outside first bucket", () => {
     // given
@@ -109,61 +98,59 @@ describe('Histogram recording values', () => {
     const index = histogram.countsArrayIndex(2050); // 2050 > 2048
     // then
     expect(index).to.be.equal(2049);
-  })
+  });
 
   it("should compute count index taking into account lowest discernible value", () => {
     // given
     const histogram = new HistogramForTests(2000, Number.MAX_SAFE_INTEGER, 2);
     // when
-    const index = histogram.countsArrayIndex(16000); 
+    const index = histogram.countsArrayIndex(16000);
     // then
     expect(index).to.be.equal(15);
-  })
+  });
 
   it("should compute count index of a big value taking into account lowest discernible value", () => {
     // given
     const histogram = new HistogramForTests(2000, Number.MAX_SAFE_INTEGER, 2);
     // when
     const bigValue = Number.MAX_SAFE_INTEGER - 1;
-    const index = histogram.countsArrayIndex(bigValue); 
+    const index = histogram.countsArrayIndex(bigValue);
     // then
     expect(index).to.be.equal(4735);
-  })
+  });
 
   it("should update min non zero value", () => {
     // given
     const histogram = new HistogramForTests(1, Number.MAX_SAFE_INTEGER, 3);
     // when
-    histogram.recordValue(123); 
+    histogram.recordValue(123);
     // then
     expect(histogram.minNonZeroValue).to.be.equal(123);
-    
-  })
+  });
 
   it("should update max value", () => {
     // given
     const histogram = new HistogramForTests(1, Number.MAX_SAFE_INTEGER, 3);
     // when
-    histogram.recordValue(123); 
+    histogram.recordValue(123);
     // then
     expect(histogram.maxValue).to.be.equal(123);
-    
-  })
+  });
 
   it("should throw an error when value bigger than highest trackable value", () => {
     // given
     const histogram = new HistogramForTests(1, 4096, 3);
     // when then
-    expect(() => histogram.recordValue(9000)).to.throw();   
-  })
+    expect(() => histogram.recordValue(9000)).to.throw();
+  });
 
   it("should not throw an error when autoresize enable and value bigger than highest trackable value", () => {
     // given
     const histogram = new HistogramForTests(1, 4096, 3);
     histogram.autoResize = true;
     // when then
-    expect(() => histogram.recordValue(9000)).to.not.throw();   
-  })
+    expect(() => histogram.recordValue(9000)).to.not.throw();
+  });
 
   it("should increase counts array size when recording value bigger than highest trackable value", () => {
     // given
@@ -172,10 +159,10 @@ describe('Histogram recording values', () => {
     // when
     histogram.recordValue(9000);
     // then
-    expect(histogram.highestTrackableValue).to.be.greaterThan(9000);   
-  })
+    expect(histogram.highestTrackableValue).to.be.greaterThan(9000);
+  });
 
-/*
+  /*
   it("should bench", () => {
     const histogram = new HistogramForTests(1, Number.MAX_SAFE_INTEGER, 3);
     for (var i = 0; i < 1000; i++) {
@@ -193,8 +180,7 @@ describe('Histogram recording values', () => {
 */
 });
 
-describe('Histogram computing statistics', () => {
-
+describe("Histogram computing statistics", () => {
   const histogram = new Int32Histogram(1, Number.MAX_SAFE_INTEGER, 3);
 
   it("should compute mean value", () => {
@@ -216,8 +202,8 @@ describe('Histogram computing statistics', () => {
     histogram.recordValue(50);
     histogram.recordValue(75);
     // then
-    expect(histogram.getStdDeviation()).to.be.greaterThan(20.4124)
-    expect(histogram.getStdDeviation()).to.be.below(20.4125)
+    expect(histogram.getStdDeviation()).to.be.greaterThan(20.4124);
+    expect(histogram.getStdDeviation()).to.be.below(20.4125);
   });
 
   it("should compute percentile distribution", () => {
@@ -228,8 +214,7 @@ describe('Histogram computing statistics', () => {
     histogram.recordValue(50);
     histogram.recordValue(75);
     // then
-    const expectedResult = (
-`       Value     Percentile TotalCount 1/(1-Percentile)
+    const expectedResult = `       Value     Percentile TotalCount 1/(1-Percentile)
 
       25.000 0.000000000000          1           1.00
       25.000 0.100000000000          1           1.11
@@ -245,9 +230,10 @@ describe('Histogram computing statistics', () => {
 #[Mean    =       50.000, StdDeviation   =       20.412]
 #[Max     =       75.000, Total count    =            3]
 #[Buckets =           43, SubBuckets     =         2048]
-`
+`;
+    expect(histogram.outputPercentileDistribution()).to.be.equal(
+      expectedResult
     );
-    expect(histogram.outputPercentileDistribution()).to.be.equal(expectedResult);
   });
 
   it("should compute percentile distribution in csv format", () => {
@@ -258,8 +244,7 @@ describe('Histogram computing statistics', () => {
     histogram.recordValue(50);
     histogram.recordValue(75);
     // then
-    const expectedResult = (
-`"Value","Percentile","TotalCount","1/(1-Percentile)"
+    const expectedResult = `"Value","Percentile","TotalCount","1/(1-Percentile)"
 25.000,0.000000000000,1,1.00
 25.000,0.100000000000,1,1.11
 25.000,0.200000000000,1,1.25
@@ -271,15 +256,14 @@ describe('Histogram computing statistics', () => {
 50.000,0.650000000000,2,2.86
 75.000,0.700000000000,3,3.33
 75.000,1.000000000000,3,Infinity
-`
-    );
-    expect(histogram.outputPercentileDistribution(undefined,undefined,true)).to.be.equal(expectedResult);
+`;
+    expect(
+      histogram.outputPercentileDistribution(undefined, undefined, true)
+    ).to.be.equal(expectedResult);
   });
-
 });
 
-describe('Histogram correcting coordinated omissions', () => {
-
+describe("Histogram correcting coordinated omissions", () => {
   const histogram = new Int32Histogram(1, Number.MAX_SAFE_INTEGER, 3);
 
   it("should generate additional values when recording", () => {
@@ -299,18 +283,17 @@ describe('Histogram correcting coordinated omissions', () => {
     histogram.recordValue(207);
     histogram.recordValue(207);
     // when
-    const correctedHistogram = histogram.copyCorrectedForCoordinatedOmission(100);
+    const correctedHistogram = histogram.copyCorrectedForCoordinatedOmission(
+      100
+    );
     // then
     expect(correctedHistogram.totalCount).to.be.equal(4);
     expect(correctedHistogram.minNonZeroValue).to.be.equal(107);
     expect(correctedHistogram.maxValue).to.be.equal(207);
   });
-
 });
 
-
-describe('Histogram encoding', () => {
-
+describe("Histogram encoding", () => {
   it("should encode filling a byte buffer", () => {
     // given
     const histogram = new Int32Histogram(1, Number.MAX_SAFE_INTEGER, 2);
@@ -332,21 +315,34 @@ describe('Histogram encoding', () => {
     const encodedSize = histogram.encodeIntoByteBuffer(buffer);
     buffer.position = 0;
     // when
-    const result = AbstractHistogram.decodeFromByteBuffer(buffer, Int32Histogram, 0);
+    const result = AbstractHistogram.decodeFromByteBuffer(
+      buffer,
+      Int32Histogram,
+      0
+    );
     // then
-    expect(result.outputPercentileDistribution()).to.be.equal(histogram.outputPercentileDistribution());
+    expect(result.outputPercentileDistribution()).to.be.equal(
+      histogram.outputPercentileDistribution()
+    );
   });
 
   it("should decode and decompress reading a byte buffer", () => {
     // given
-    const base64 = require('base64-js');  
-    const buffer = new ByteBuffer(base64.toByteArray("HISTFAAAACB42pNpmSzMwMDAxAABMJqRQf4/GNh/gAgEMwEAkp4I6Q=="));
+    const base64 = require("base64-js");
+    const buffer = new ByteBuffer(
+      base64.toByteArray(
+        "HISTFAAAACB42pNpmSzMwMDAxAABMJqRQf4/GNh/gAgEMwEAkp4I6Q=="
+      )
+    );
     // when
-    const histogram = AbstractHistogram.decodeFromCompressedByteBuffer(buffer, Int32Histogram, 0);
+    const histogram = AbstractHistogram.decodeFromCompressedByteBuffer(
+      buffer,
+      Int32Histogram,
+      0
+    );
     // then
     expect(histogram.getMean()).to.be.equal(42);
     expect(histogram.getTotalCount()).to.be.equal(1);
-    
   });
 
   it("should encode and compress an histogram", () => {
@@ -357,20 +353,21 @@ describe('Histogram encoding', () => {
     histogram.recordValue(77);
     // when
     const buffer = ByteBuffer.allocate();
-    histogram.encodeIntoCompressedByteBuffer(buffer)
+    histogram.encodeIntoCompressedByteBuffer(buffer);
     // then
     buffer.resetPosition();
-    const decodedHistogram 
-      = AbstractHistogram.decodeFromCompressedByteBuffer(buffer, Int32Histogram, 0);    
-    expect(decodedHistogram.outputPercentileDistribution())
-      .to.be.equal(histogram.outputPercentileDistribution());
+    const decodedHistogram = AbstractHistogram.decodeFromCompressedByteBuffer(
+      buffer,
+      Int32Histogram,
+      0
+    );
+    expect(decodedHistogram.outputPercentileDistribution()).to.be.equal(
+      histogram.outputPercentileDistribution()
+    );
   });
-
 });
 
-
-describe('Histogram add & substract', () => {
-
+describe("Histogram add & substract", () => {
   it("should add histograms of same size", () => {
     // given
     const histogram = new Int32Histogram(1, Number.MAX_SAFE_INTEGER, 2);
@@ -441,12 +438,9 @@ describe('Histogram add & substract', () => {
     // then
     expect(histogram.outputPercentileDistribution()).to.be.equal(outputBefore);
   });
-
-
 });
 
-describe('Histogram clearing support', () => {
-
+describe("Histogram clearing support", () => {
   it("should reset data in order to reuse histogram", () => {
     // given
     const histogram = new Int32Histogram(1, Number.MAX_SAFE_INTEGER, 5);
@@ -464,5 +458,5 @@ describe('Histogram clearing support', () => {
     expect(histogram.maxValue).to.be.equal(0);
     expect(histogram.minNonZeroValue).to.be.equal(Number.MAX_SAFE_INTEGER);
     expect(histogram.getValueAtPercentile(99.999)).to.be.equal(0);
-  })
+  });
 });

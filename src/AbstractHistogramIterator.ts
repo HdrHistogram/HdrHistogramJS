@@ -6,8 +6,7 @@
  * http://creativecommons.org/publicdomain/zero/1.0/
  */
 import AbstractHistogram from "./AbstractHistogram";
-import HistogramIterationValue from "./HistogramIterationValue"
-
+import HistogramIterationValue from "./HistogramIterationValue";
 
 /**
  * Used for iterating through histogram values.
@@ -28,7 +27,7 @@ abstract class AbstractHistogramIterator /* implements Iterator<HistogramIterati
   private freshSubBucket: boolean;
 
   currentIterationValue: HistogramIterationValue = new HistogramIterationValue();
-  
+
   resetIterator(histogram: AbstractHistogram) {
     this.histogram = histogram;
     this.savedHistogramTotalRawCount = histogram.getTotalCount();
@@ -52,10 +51,10 @@ abstract class AbstractHistogramIterator /* implements Iterator<HistogramIterati
    * @return true if the iterator has more elements.
    */
   public hasNext(): boolean {
-    if(this.histogram.getTotalCount() !== this.savedHistogramTotalRawCount) {
-        throw "Concurrent Modification Exception";
+    if (this.histogram.getTotalCount() !== this.savedHistogramTotalRawCount) {
+      throw "Concurrent Modification Exception";
     }
-    return (this.totalCountToCurrentIndex < this.arrayTotalCount);
+    return this.totalCountToCurrentIndex < this.arrayTotalCount;
   }
 
   /**
@@ -65,37 +64,44 @@ abstract class AbstractHistogramIterator /* implements Iterator<HistogramIterati
    */
   public next(): HistogramIterationValue {
     // Move through the sub buckets and buckets until we hit the next reporting level:
-    while((!this.exhaustedSubBuckets())){
-        this.countAtThisValue = this.histogram.getCountAtIndex(this.currentIndex);
-        if(this.freshSubBucket) {  // Don't add unless we've incremented since last bucket...
-            this.totalCountToCurrentIndex += this.countAtThisValue;
-            this.totalValueToCurrentIndex += this.countAtThisValue * this.histogram.highestEquivalentValue(this.currentValueAtIndex);
-            this.freshSubBucket = false;
-        }
-        if(this.reachedIterationLevel()) {
-            const valueIteratedTo = this.getValueIteratedTo();
+    while (!this.exhaustedSubBuckets()) {
+      this.countAtThisValue = this.histogram.getCountAtIndex(this.currentIndex);
+      if (this.freshSubBucket) {
+        // Don't add unless we've incremented since last bucket...
+        this.totalCountToCurrentIndex += this.countAtThisValue;
+        this.totalValueToCurrentIndex +=
+          this.countAtThisValue *
+          this.histogram.highestEquivalentValue(this.currentValueAtIndex);
+        this.freshSubBucket = false;
+      }
+      if (this.reachedIterationLevel()) {
+        const valueIteratedTo = this.getValueIteratedTo();
 
-            Object.assign(this.currentIterationValue, {
-                valueIteratedTo,
-                valueIteratedFrom: this.prevValueIteratedTo,
-                countAtValueIteratedTo: this.countAtThisValue,
-                countAddedInThisIterationStep: (this.totalCountToCurrentIndex - this.totalCountToPrevIndex),
-                totalCountToThisValue: this.totalCountToCurrentIndex,
-                totalValueToThisValue: this.totalValueToCurrentIndex,
-                percentile: ((100 * this.totalCountToCurrentIndex) / this.arrayTotalCount),
-                percentileLevelIteratedTo: this.getPercentileIteratedTo()
-            });
+        Object.assign(this.currentIterationValue, {
+          valueIteratedTo,
+          valueIteratedFrom: this.prevValueIteratedTo,
+          countAtValueIteratedTo: this.countAtThisValue,
+          countAddedInThisIterationStep:
+            this.totalCountToCurrentIndex - this.totalCountToPrevIndex,
+          totalCountToThisValue: this.totalCountToCurrentIndex,
+          totalValueToThisValue: this.totalValueToCurrentIndex,
+          percentile:
+            100 * this.totalCountToCurrentIndex / this.arrayTotalCount,
+          percentileLevelIteratedTo: this.getPercentileIteratedTo()
+        });
 
-            this.prevValueIteratedTo = valueIteratedTo;
-            this.totalCountToPrevIndex = this.totalCountToCurrentIndex;
-            this.incrementIterationLevel();
-            if(this.histogram.getTotalCount() !== this.savedHistogramTotalRawCount) {
-                throw "Concurrent Modification Exception";
-            }
-            return this.currentIterationValue;
+        this.prevValueIteratedTo = valueIteratedTo;
+        this.totalCountToPrevIndex = this.totalCountToCurrentIndex;
+        this.incrementIterationLevel();
+        if (
+          this.histogram.getTotalCount() !== this.savedHistogramTotalRawCount
+        ) {
+          throw "Concurrent Modification Exception";
         }
-        this.incrementSubBucket();
-    };
+        return this.currentIterationValue;
+      }
+      this.incrementSubBucket();
+    }
     throw "Index Out Of Bounds Exception";
   }
 
@@ -107,11 +113,11 @@ abstract class AbstractHistogramIterator /* implements Iterator<HistogramIterati
   abstract reachedIterationLevel(): boolean;
 
   getPercentileIteratedTo(): number {
-    return (100 * this.totalCountToCurrentIndex) / this.arrayTotalCount;
+    return 100 * this.totalCountToCurrentIndex / this.arrayTotalCount;
   }
 
   getPercentileIteratedFrom(): number {
-    return (100 * this.totalCountToPrevIndex) / this.arrayTotalCount;
+    return 100 * this.totalCountToPrevIndex / this.arrayTotalCount;
   }
 
   getValueIteratedTo(): number {
@@ -119,16 +125,17 @@ abstract class AbstractHistogramIterator /* implements Iterator<HistogramIterati
   }
 
   private exhaustedSubBuckets(): boolean {
-    return (this.currentIndex >= this.histogram.countsArrayLength);
+    return this.currentIndex >= this.histogram.countsArrayLength;
   }
 
   incrementSubBucket() {
     this.freshSubBucket = true;
     this.currentIndex++;
     this.currentValueAtIndex = this.histogram.valueFromIndex(this.currentIndex);
-    this.nextValueAtIndex = this.histogram.valueFromIndex(this.currentIndex + 1);
+    this.nextValueAtIndex = this.histogram.valueFromIndex(
+      this.currentIndex + 1
+    );
   }
-
 }
 
 export default AbstractHistogramIterator;

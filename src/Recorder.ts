@@ -6,11 +6,11 @@
  * http://creativecommons.org/publicdomain/zero/1.0/
  */
 
-import Int32Histogram from "./Int32Histogram"
-import AbstractHistogram from "./AbstractHistogram"
+import Int32Histogram from "./Int32Histogram";
+import AbstractHistogram from "./AbstractHistogram";
 
 interface HistogramWithId extends AbstractHistogram {
-  containingInstanceId?: number 
+  containingInstanceId?: number;
 }
 
 /**
@@ -27,7 +27,6 @@ interface HistogramWithId extends AbstractHistogram {
  *
  */
 class Recorder {
-  
   static idGenerator = 0;
   private activeHistogram: HistogramWithId;
   private inactiveHistogram: HistogramWithId | null | undefined;
@@ -42,16 +41,19 @@ class Recorder {
    * @param clock (for testing purpose) an action that give current time in ms since 1970
    */
   constructor(
-    private numberOfSignificantValueDigits = 3, 
-    private clock = () => new Date().getTime()) {
+    private numberOfSignificantValueDigits = 3,
+    private clock = () => new Date().getTime()
+  ) {
+    this.activeHistogram = new Int32Histogram(
+      1,
+      Number.MAX_SAFE_INTEGER,
+      numberOfSignificantValueDigits
+    );
 
-    this.activeHistogram = new Int32Histogram(1, Number.MAX_SAFE_INTEGER, numberOfSignificantValueDigits);
-    
     Recorder.idGenerator++;
     this.activeHistogram.containingInstanceId = Recorder.idGenerator;
     this.activeHistogram.startTimeStampMsec = clock();
   }
-
 
   /**
    * Record a value in the histogram
@@ -90,8 +92,14 @@ class Recorder {
    *                                           than expectedIntervalBetweenValueSamples
    * @throws ArrayIndexOutOfBoundsException (may throw) if value is exceeds highestTrackableValue
    */
-  recordValueWithExpectedInterval(value: number, expectedIntervalBetweenValueSamples: number) {
-    this.activeHistogram.recordValueWithExpectedInterval(value, expectedIntervalBetweenValueSamples);
+  recordValueWithExpectedInterval(
+    value: number,
+    expectedIntervalBetweenValueSamples: number
+  ) {
+    this.activeHistogram.recordValueWithExpectedInterval(
+      value,
+      expectedIntervalBetweenValueSamples
+    );
   }
 
   /**
@@ -121,14 +129,19 @@ class Recorder {
    *                           copy operations.
    * @return a histogram containing the value counts accumulated since the last interval histogram was taken.
    */
-  getIntervalHistogram(histogramToRecycle?: AbstractHistogram): AbstractHistogram {
+  getIntervalHistogram(
+    histogramToRecycle?: AbstractHistogram
+  ): AbstractHistogram {
     if (histogramToRecycle) {
       const histogramToRecycleWithId: HistogramWithId = histogramToRecycle;
-      if (histogramToRecycleWithId.containingInstanceId !== this.activeHistogram.containingInstanceId) {
+      if (
+        histogramToRecycleWithId.containingInstanceId !==
+        this.activeHistogram.containingInstanceId
+      ) {
         throw "replacement histogram must have been obtained via a previous getIntervalHistogram() call from this Recorder";
       }
     }
-    
+
     this.inactiveHistogram = histogramToRecycle;
     this.performIntervalSample();
     const sampledHistogram = this.inactiveHistogram;
@@ -164,7 +177,11 @@ class Recorder {
 
   private performIntervalSample() {
     if (!this.inactiveHistogram) {
-      this.inactiveHistogram = new Int32Histogram(1, Number.MAX_SAFE_INTEGER, this.numberOfSignificantValueDigits);
+      this.inactiveHistogram = new Int32Histogram(
+        1,
+        Number.MAX_SAFE_INTEGER,
+        this.numberOfSignificantValueDigits
+      );
       this.inactiveHistogram.containingInstanceId = this.activeHistogram.containingInstanceId;
     }
     this.inactiveHistogram.reset();

@@ -6,6 +6,4 @@
  * http://creativecommons.org/publicdomain/zero/1.0/
  */
 
-export abstract class EncodableHistogram {
-
-}
+export abstract class EncodableHistogram {}

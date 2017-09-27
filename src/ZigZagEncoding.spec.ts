@@ -1,10 +1,9 @@
-import "core-js"
+import "core-js";
 import { expect } from "chai";
 import ByteBuffer from "./ByteBuffer";
 import ZigZagEncoding from "./ZigZagEncoding";
 
-describe('Zig Zag Encoding', () => {
-  
+describe("Zig Zag Encoding", () => {
   it("should encode int using one byte when value is less than 64", () => {
     // given
     const buffer = ByteBuffer.allocate(4);
@@ -22,7 +21,7 @@ describe('Zig Zag Encoding', () => {
     ZigZagEncoding.encode(buffer, 456);
     // then
     expect(buffer.data).to.have.length(4);
-    expect(Array.from(buffer.data)).to.deep.equals([ 144, 7, 0 , 0 ]);
+    expect(Array.from(buffer.data)).to.deep.equals([144, 7, 0, 0]);
   });
 
   it("should encode negative int using several bytes when value is more than 64", () => {
@@ -32,7 +31,7 @@ describe('Zig Zag Encoding', () => {
     ZigZagEncoding.encode(buffer, -456);
     // then
     expect(buffer.data).to.have.length(4);
-    expect(Array.from(buffer.data)).to.deep.equals([ 143, 7, 0 , 0 ]);
+    expect(Array.from(buffer.data)).to.deep.equals([143, 7, 0, 0]);
   });
 
   it("should encode large safe int greater than 2^32", () => {
@@ -42,7 +41,16 @@ describe('Zig Zag Encoding', () => {
     ZigZagEncoding.encode(buffer, Math.pow(2, 50));
     // then
     expect(buffer.data).to.have.length(8);
-    expect(Array.from(buffer.data)).to.deep.equals([ 128, 128, 128, 128, 128, 128, 128, 4 ]);
+    expect(Array.from(buffer.data)).to.deep.equals([
+      128,
+      128,
+      128,
+      128,
+      128,
+      128,
+      128,
+      4
+    ]);
   });
 
   it("should decode int using one byte", () => {
@@ -91,5 +99,4 @@ describe('Zig Zag Encoding', () => {
     // then
     expect(value).to.equals(Math.pow(2, 50) + 1234);
   });
-
 });

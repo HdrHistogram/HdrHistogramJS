@@ -15,7 +15,6 @@ import AbstractHistogramIterator from "./AbstractHistogramIterator";
  * all recorded histogram values are exhausted.
  */
 class RecordedValuesIterator extends AbstractHistogramIterator {
-
   visitedIndex: number;
 
   /**
@@ -44,7 +43,7 @@ class RecordedValuesIterator extends AbstractHistogramIterator {
 
   reachedIterationLevel() {
     const currentCount = this.histogram.getCountAtIndex(this.currentIndex);
-    return (currentCount != 0) && (this.visitedIndex !== this.currentIndex);
+    return currentCount != 0 && this.visitedIndex !== this.currentIndex;
   }
 }
 

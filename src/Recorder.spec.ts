@@ -1,9 +1,8 @@
-import { expect } from "chai"
-import Recorder from "./Recorder"
-import Int32Histogram from "./Int32Histogram"
+import { expect } from "chai";
+import Recorder from "./Recorder";
+import Int32Histogram from "./Int32Histogram";
 
-describe('Recorder', () => {
-  
+describe("Recorder", () => {
   it("should record value", () => {
     // given
     const recorder = new Recorder();
@@ -99,7 +98,6 @@ describe('Recorder', () => {
     expect(thirdHistogram.getTotalCount()).to.be.equal(0);
   });
 
-
   it("should set timestamps on first interval histogram", () => {
     // given
     let currentTime = 42;
@@ -112,7 +110,6 @@ describe('Recorder', () => {
     expect(histogram.startTimeStampMsec).to.be.equal(42);
     expect(histogram.endTimeStampMsec).to.be.equal(123);
   });
-
 
   it("should set timestamps on any interval histogram", () => {
     // given
@@ -128,7 +125,6 @@ describe('Recorder', () => {
     expect(secondHistogram.startTimeStampMsec).to.be.equal(51);
     expect(secondHistogram.endTimeStampMsec).to.be.equal(56);
   });
-
 
   it("should copy interval histogram", () => {
     // given
@@ -146,7 +142,6 @@ describe('Recorder', () => {
     expect(histogram.endTimeStampMsec).to.be.equal(51);
   });
 
-
   it("should reset values and timestamp", () => {
     // given
     let currentTime = 42;
@@ -161,6 +156,4 @@ describe('Recorder', () => {
     expect(histogram.getTotalCount()).to.be.equal(0);
     expect(histogram.startTimeStampMsec).to.be.equal(55);
   });
-
-
 });

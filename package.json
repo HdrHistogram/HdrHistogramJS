@@ -9,7 +9,8 @@
     "test": "mocha --opts mocha.opts --watch",
     "test:coverage": "nyc mocha --opts mocha.opts",
     "prepublish": "webpack --debug && webpack -p",
-    "prettier": "prettier --parser typescript -l src/**/*.ts"
+    "prettier": "prettier --parser typescript -l src/**/*.ts",
+    "prettier:fix": "prettier --write --parser typescript -l src/**/*.ts"
   },
   "repository": {
     "type": "git",

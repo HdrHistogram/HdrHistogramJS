@@ -8,18 +8,17 @@
 import AbstractHistogram from "./AbstractHistogram";
 
 class Int32Histogram extends AbstractHistogram {
-
-  counts: Uint32Array
+  counts: Uint32Array;
   totalCount: number;
 
   constructor(
-    lowestDiscernibleValue: number, 
-    highestTrackableValue: number, 
-    numberOfSignificantValueDigits: number) {
-
+    lowestDiscernibleValue: number,
+    highestTrackableValue: number,
+    numberOfSignificantValueDigits: number
+  ) {
     super(
-      lowestDiscernibleValue, 
-      highestTrackableValue, 
+      lowestDiscernibleValue,
+      highestTrackableValue,
       numberOfSignificantValueDigits
     );
     this.totalCount = 0;
@@ -42,14 +41,17 @@ class Int32Histogram extends AbstractHistogram {
   addToCountAtIndex(index: number, value: number) {
     const currentCount = this.counts[index];
     const newCount = currentCount + value;
-    if ((newCount < Number.MIN_SAFE_INTEGER) || (newCount > Number.MAX_SAFE_INTEGER)) {
+    if (
+      newCount < Number.MIN_SAFE_INTEGER ||
+      newCount > Number.MAX_SAFE_INTEGER
+    ) {
       throw newCount + " would overflow integer count";
     }
     this.counts[index] = newCount;
   }
 
   setCountAtIndex(index: number, value: number) {
-    if ((value < Number.MIN_SAFE_INTEGER) || (value > Number.MAX_SAFE_INTEGER)) {
+    if (value < Number.MIN_SAFE_INTEGER || value > Number.MAX_SAFE_INTEGER) {
       throw value + " would overflow integer count";
     }
     this.counts[index] = value;
@@ -62,8 +64,7 @@ class Int32Histogram extends AbstractHistogram {
     this.counts = newCounts;
   }
 
-  setNormalizingIndexOffset(normalizingIndexOffset: number) {
-  }
+  setNormalizingIndexOffset(normalizingIndexOffset: number) {}
 
   incrementTotalCount() {
     this.totalCount++;
@@ -81,25 +82,28 @@ class Int32Histogram extends AbstractHistogram {
     return this.totalCount;
   }
 
-  getCountAtIndex(index: number)  {
+  getCountAtIndex(index: number) {
     return this.counts[index];
   }
 
   protected _getEstimatedFootprintInBytes() {
-    return (512 + (4 * this.counts.length));
+    return 512 + 4 * this.counts.length;
   }
 
-  copyCorrectedForCoordinatedOmission(expectedIntervalBetweenValueSamples: number) {
-    const copy 
-      = new Int32Histogram(
-        this.lowestDiscernibleValue, 
-        this.highestTrackableValue, 
-        this.numberOfSignificantValueDigits
-      );
-    copy.addWhileCorrectingForCoordinatedOmission(this, expectedIntervalBetweenValueSamples);
+  copyCorrectedForCoordinatedOmission(
+    expectedIntervalBetweenValueSamples: number
+  ) {
+    const copy = new Int32Histogram(
+      this.lowestDiscernibleValue,
+      this.highestTrackableValue,
+      this.numberOfSignificantValueDigits
+    );
+    copy.addWhileCorrectingForCoordinatedOmission(
+      this,
+      expectedIntervalBetweenValueSamples
+    );
     return copy;
   }
-
 }
 
-export default Int32Histogram; 
+export default Int32Histogram;

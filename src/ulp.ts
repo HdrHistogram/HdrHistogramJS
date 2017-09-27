@@ -6,9 +6,6 @@
  * http://creativecommons.org/publicdomain/zero/1.0/
  */
 
-const ulp = (x: number) => (
- Math.pow(2, Math.floor(Math.log2(x)) - 52)
-); 
+const ulp = (x: number) => Math.pow(2, Math.floor(Math.log2(x)) - 52);
 
 export default ulp;
-

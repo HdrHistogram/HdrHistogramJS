@@ -35,8 +35,6 @@ const TWO_POW_56 = pow(2, 56);
  * "standard" LEB128 formats (e.g. Google Protocol Buffers).
  */
 class ZigZagEncoding {
-
-
   /**
    * Writes a long value to the given buffer in LEB128 ZigZag encoded format
    * (negative numbers not supported)
@@ -49,11 +47,11 @@ class ZigZagEncoding {
     } else {
       value = -value * 2 - 1;
     }
-    
+
     if (value < TWO_POW_7) {
       buffer.put(value);
     } else {
-      buffer.put((value %  0x80) + 0x80);
+      buffer.put(value % 0x80 + 0x80);
       if (value < TWO_POW_14) {
         buffer.put(floor(value / TWO_POW_7));
       } else {
@@ -82,8 +80,8 @@ class ZigZagEncoding {
                     buffer.put(floor(value / TWO_POW_49));
                   } else {
                     buffer.put(floor(value / TWO_POW_49) + 0x80);
-                    buffer.put(floor(value / TWO_POW_56)); 
-                  }    
+                    buffer.put(floor(value / TWO_POW_56));
+                  }
                 }
               }
             }
@@ -93,7 +91,6 @@ class ZigZagEncoding {
     }
   }
 
-
   /**
    * Read an LEB128-64b9B ZigZag encoded long value from the given buffer
    * (negative numbers not supported)
@@ -102,31 +99,31 @@ class ZigZagEncoding {
    */
   static decode(buffer: ByteBuffer): number {
     let v = buffer.get();
-    let value = v & 0x7F;
+    let value = v & 0x7f;
     if ((v & 0x80) != 0) {
       v = buffer.get();
-      value += (v & 0x7F) * TWO_POW_7;
+      value += (v & 0x7f) * TWO_POW_7;
       if ((v & 0x80) != 0) {
         v = buffer.get();
-        value += (v & 0x7F) * TWO_POW_14;
+        value += (v & 0x7f) * TWO_POW_14;
         if ((v & 0x80) != 0) {
           v = buffer.get();
-          value += (v & 0x7F) * TWO_POW_21;
+          value += (v & 0x7f) * TWO_POW_21;
           if ((v & 0x80) != 0) {
             v = buffer.get();
-            value += (v & 0x7F) * TWO_POW_28;
+            value += (v & 0x7f) * TWO_POW_28;
             if ((v & 0x80) != 0) {
               v = buffer.get();
-              value += (v & 0x7F) * TWO_POW_35;
+              value += (v & 0x7f) * TWO_POW_35;
               if ((v & 0x80) != 0) {
                 v = buffer.get();
-                value += (v & 0x7F) * TWO_POW_42;
+                value += (v & 0x7f) * TWO_POW_42;
                 if ((v & 0x80) != 0) {
                   v = buffer.get();
-                  value += (v & 0x7F) * TWO_POW_49;
+                  value += (v & 0x7f) * TWO_POW_49;
                   if ((v & 0x80) != 0) {
                     v = buffer.get();
-                    value += (v & 0x7F) * TWO_POW_56;
+                    value += (v & 0x7f) * TWO_POW_56;
                   }
                 }
               }
@@ -140,10 +137,9 @@ class ZigZagEncoding {
     } else {
       value = -(value + 1) / 2;
     }
-    
+
     return value;
   }
-
 }
 
 export default ZigZagEncoding;

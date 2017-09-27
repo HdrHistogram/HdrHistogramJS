@@ -1,14 +1,13 @@
-import "core-js"
+import "core-js";
 import { expect } from "chai";
-import { integerFormatter, floatFormatter } from "./formatters" 
+import { integerFormatter, floatFormatter } from "./formatters";
 
-describe('Integer formatter', () => {
-  
+describe("Integer formatter", () => {
   it("should format integer as a string", () => {
     // given
     const formatter = integerFormatter(3);
     // when
-    const result = formatter(123); 
+    const result = formatter(123);
     // then
     expect(result).to.be.equal("123");
   });
@@ -17,21 +16,18 @@ describe('Integer formatter', () => {
     // given
     const formatter = integerFormatter(5);
     // when
-    const result = formatter(123); 
+    const result = formatter(123);
     // then
     expect(result).to.be.equal("  123");
   });
-
 });
 
-
-describe('Float formatter', () => {
-  
+describe("Float formatter", () => {
   it("should format float as a string", () => {
     // given
     const formatter = floatFormatter(5, 2);
     // when
-    const result = formatter(12.34); 
+    const result = formatter(12.34);
     // then
     expect(result).to.be.equal("12.34");
   });
@@ -40,7 +36,7 @@ describe('Float formatter', () => {
     // given
     const formatter = floatFormatter(5, 2);
     // when
-    const result = formatter(12.342); 
+    const result = formatter(12.342);
     // then
     expect(result).to.be.equal("12.34");
   });
@@ -49,7 +45,7 @@ describe('Float formatter', () => {
     // given
     const formatter = floatFormatter(5, 2);
     // when
-    const result = formatter(12.3); 
+    const result = formatter(12.3);
     // then
     expect(result).to.be.equal("12.30");
   });
@@ -58,7 +54,7 @@ describe('Float formatter', () => {
     // given
     const formatter = floatFormatter(5, 2);
     // when
-    const result = formatter(12456789.34); 
+    const result = formatter(12456789.34);
     // then
     expect(result).to.be.equal("12456789.34");
   });
@@ -67,9 +63,8 @@ describe('Float formatter', () => {
     // given
     const formatter = floatFormatter(5, 2);
     // when
-    const result = formatter(9.34); 
+    const result = formatter(9.34);
     // then
     expect(result).to.be.equal(" 9.34");
   });
-
 });

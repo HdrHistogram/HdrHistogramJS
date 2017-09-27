@@ -1,4 +1,3 @@
-
 const { pow, floor } = Math;
 const TWO_POW_32 = pow(2, 32);
 
@@ -6,7 +5,6 @@ const TWO_POW_32 = pow(2, 32);
  * Mimic Java's ByteBufffer with big endian order
  */
 class ByteBuffer {
-
   position: number;
 
   data: Uint8Array;
@@ -36,7 +34,7 @@ class ByteBuffer {
   }
 
   putInt32(value: number) {
-    if ((this.data.length - this.position) < 4) {
+    if (this.data.length - this.position < 4) {
       const oldArray = this.data;
       this.data = new Uint8Array(this.data.length * 2 + 4);
       this.data.set(oldArray);
@@ -47,12 +45,12 @@ class ByteBuffer {
   }
 
   putInt64(value: number) {
-    this.putInt32(floor(value / TWO_POW_32))
+    this.putInt32(floor(value / TWO_POW_32));
     this.putInt32(value);
   }
 
   putArray(array: Uint8Array) {
-    if ((this.data.length - this.position) < array.byteLength) {
+    if (this.data.length - this.position < array.byteLength) {
       const oldArray = this.data;
       this.data = new Uint8Array(this.position + array.byteLength);
       this.data.set(oldArray);
@@ -68,7 +66,9 @@ class ByteBuffer {
   }
 
   getInt32(): number {
-    this.int8ArrayForConvert.set(this.data.slice(this.position, this.position + 4).reverse())
+    this.int8ArrayForConvert.set(
+      this.data.slice(this.position, this.position + 4).reverse()
+    );
     const value = this.int32ArrayForConvert[0];
     this.position += 4;
     return value;
@@ -83,7 +83,6 @@ class ByteBuffer {
   resetPosition() {
     this.position = 0;
   }
+}
 
-} 
-
-export default ByteBuffer
+export default ByteBuffer;

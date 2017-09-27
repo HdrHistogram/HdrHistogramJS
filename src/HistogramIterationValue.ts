@@ -32,7 +32,6 @@
  * </ul>
  */
 class HistogramIterationValue {
-
   valueIteratedTo: number;
   valueIteratedFrom: number;
   countAtValueIteratedTo: number;
@@ -56,7 +55,6 @@ class HistogramIterationValue {
     this.percentile = 0.0;
     this.percentileLevelIteratedTo = 0.0;
   }
-
 }
 
 export default HistogramIterationValue;

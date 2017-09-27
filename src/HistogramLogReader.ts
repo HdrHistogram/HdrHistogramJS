@@ -54,7 +54,6 @@ const TAG_PREFIX_LENGTH = "Tag=".length;
  * timestamp (e.g. since the epoch) for each interval.
  */
 class HistogramLogReader {
-
   startTimeSec: number;
   baseTimeSec: number;
 
@@ -73,8 +72,10 @@ class HistogramLogReader {
    * from the file, this method will return a null.
    * @return a DecodedInterval, or a null if no appropriate interval found
    */
-  public nextIntervalHistogram(rangeStartTimeSec = 0, rangeEndTimeSec = Number.MAX_VALUE): AbstractHistogram | null {
-    
+  public nextIntervalHistogram(
+    rangeStartTimeSec = 0,
+    rangeEndTimeSec = Number.MAX_VALUE
+  ): AbstractHistogram | null {
     while (this.currentLineIndex < this.lines.length) {
       const currentLine = this.lines[this.currentLineIndex];
       this.currentLineIndex++;
@@ -82,12 +83,14 @@ class HistogramLogReader {
         this.parseStartTimeFromLine(currentLine);
       } else if (currentLine.startsWith("#[BaseTime:")) {
         this.parseBaseTimeFromLine(currentLine);
-      } else if (currentLine.startsWith("#") || currentLine.startsWith('"StartTimestamp"')) {
+      } else if (
+        currentLine.startsWith("#") ||
+        currentLine.startsWith('"StartTimestamp"')
+      ) {
         // skip legend & meta data for now
       } else if (currentLine.includes(",")) {
- 
         const tokens = currentLine.split(",");
-        const [firstToken, ] = tokens;
+        const [firstToken] = tokens;
         let tag: string;
         if (firstToken.startsWith(TAG_PREFIX)) {
           tag = firstToken.substring(TAG_PREFIX_LENGTH);
@@ -96,12 +99,17 @@ class HistogramLogReader {
           tag = NO_TAG;
         }
 
-        const [rawLogTimeStampInSec, rawIntervalLengthSec, , base64Histogram] = tokens;
+        const [
+          rawLogTimeStampInSec,
+          rawIntervalLengthSec,
+          ,
+          base64Histogram
+        ] = tokens;
         const logTimeStampInSec = Number.parseFloat(rawLogTimeStampInSec);
-        
+
         if (!this.baseTimeSec) {
           // No explicit base time noted. Deduce from 1st observed time (compared to start time):
-          if (logTimeStampInSec < this.startTimeSec - (365 * 24 * 3600.0)) {
+          if (logTimeStampInSec < this.startTimeSec - 365 * 24 * 3600.0) {
             // Criteria Note: if log timestamp is more than a year in the past (compared to
             // StartTime), we assume that timestamps in the log are not absolute
             this.baseTimeSec = this.startTimeSec;
@@ -118,12 +126,14 @@ class HistogramLogReader {
           continue;
         }
         const histogram = decodeFromCompressedBase64(base64Histogram);
-        histogram.startTimeStampMsec = (this.baseTimeSec + logTimeStampInSec) * 1000;
+        histogram.startTimeStampMsec =
+          (this.baseTimeSec + logTimeStampInSec) * 1000;
         const intervalLengthSec = Number.parseFloat(rawIntervalLengthSec);
-        histogram.endTimeStampMsec = (this.baseTimeSec + logTimeStampInSec + intervalLengthSec) * 1000;
-        
+        histogram.endTimeStampMsec =
+          (this.baseTimeSec + logTimeStampInSec + intervalLengthSec) * 1000;
+
         histogram.tag = tag;
-  
+
         return histogram;
       }
     }
@@ -137,33 +147,30 @@ class HistogramLogReader {
   private parseBaseTimeFromLine(line: string) {
     this.baseTimeSec = Number.parseFloat(line.split(" ")[1]);
   }
-
 }
 
 const splitLines = (logContent: string) => logContent.split(/\r\n|\r|\n/g);
 
-
-const shouldIncludeNoTag = (lines: string[]) => (
-  lines
-    .find(line => (
-      !line.startsWith("#") 
-      && !line.startsWith("\"")
-      && !line.startsWith(TAG_PREFIX)
-      && line.includes(","))
-    )
-)
+const shouldIncludeNoTag = (lines: string[]) =>
+  lines.find(
+    line =>
+      !line.startsWith("#") &&
+      !line.startsWith('"') &&
+      !line.startsWith(TAG_PREFIX) &&
+      line.includes(",")
+  );
 
 export const listTags = (content: string) => {
   const lines = splitLines(content);
   const tags = lines
     .filter(line => line.includes(",") && line.startsWith(TAG_PREFIX))
-    .map(line => line.substring(TAG_PREFIX_LENGTH, line.indexOf(",")))
+    .map(line => line.substring(TAG_PREFIX_LENGTH, line.indexOf(",")));
   const tagsWithoutDuplicates = new Set(tags);
-  const result = Array.from(tagsWithoutDuplicates); 
+  const result = Array.from(tagsWithoutDuplicates);
   if (shouldIncludeNoTag(lines)) {
     result.unshift("NO TAG");
   }
   return result;
-}
+};
 
 export default HistogramLogReader;

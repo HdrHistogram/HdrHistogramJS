@@ -1,14 +1,13 @@
-import "core-js"
+import "core-js";
 import { expect } from "chai";
 import RecordedValuesIterator from "./RecordedValuesIterator";
-import Histogram from "./Int32Histogram" ;
+import Histogram from "./Int32Histogram";
 
-describe('Recorded Values Iterator', () => {
-  
+describe("Recorded Values Iterator", () => {
   it("should iterate to recorded value", () => {
     // given
     const histogram = new Histogram(1, Number.MAX_SAFE_INTEGER, 5);
-    histogram.recordValue(12345); 
+    histogram.recordValue(12345);
     const iterator = new RecordedValuesIterator(histogram);
     // when
     const iterationValue = iterator.next();
@@ -36,6 +35,4 @@ describe('Recorded Values Iterator', () => {
     expect(values[1]).satisfies((value: number) => value >= 300);
     expect(values[2]).satisfies((value: number) => value >= 3000);
   });
-
-
 });

@@ -24,7 +24,15 @@ const V2maxWordSizeInBytes = 9; // LEB128-64b9B + ZigZag require up to 9 bytes p
 const encodingCookie = V2EncodingCookieBase | 0x10; // LSBit of wordsize byte indicates TLZE Encoding
 const compressedEncodingCookie = V2CompressedEncodingCookieBase | 0x10; // LSBit of wordsize byte indicates TLZE Encoding
 
-abstract class AbstractHistogram extends AbstractHistogramBase {
+export interface HistogramConstructor {
+  new (
+    lowestDiscernibleValue: number,
+    highestTrackableValue: number,
+    numberOfSignificantValueDigits: number
+  ): AbstractHistogram;
+}
+
+export default abstract class AbstractHistogram extends AbstractHistogramBase {
   // "Hot" accessed fields (used in the the value recording code path) are bunched here, such
   // that they will have a good chance of ending up in the same cache line as the totalCounts and
   // counts array reference fields that subclass implementations will typically add.
@@ -1145,7 +1153,7 @@ abstract class AbstractHistogram extends AbstractHistogramBase {
 
   static decodeFromByteBuffer(
     buffer: ByteBuffer,
-    histogramConstr: typeof AbstractHistogram,
+    histogramConstr: HistogramConstructor,
     minBarForHighestTrackableValue: number
   ): AbstractHistogram {
     const cookie = buffer.getInt32();
@@ -1174,8 +1182,7 @@ abstract class AbstractHistogram extends AbstractHistogramBase {
       minBarForHighestTrackableValue
     );
 
-    const constructor = histogramConstr as any;
-    const histogram: AbstractHistogram = new constructor(
+    const histogram: AbstractHistogram = new histogramConstr(
       lowestTrackableUnitValue,
       highestTrackableValue,
       numberOfSignificantValueDigits
@@ -1194,7 +1201,7 @@ abstract class AbstractHistogram extends AbstractHistogramBase {
 
   static decodeFromCompressedByteBuffer(
     buffer: ByteBuffer,
-    histogramConstr: typeof AbstractHistogram,
+    histogramConstr: HistogramConstructor,
     minBarForHighestTrackableValue: number
   ): AbstractHistogram {
     const initialTargetPosition = buffer.position;
@@ -1264,5 +1271,3 @@ abstract class AbstractHistogram extends AbstractHistogramBase {
     this.minNonZeroValue = Number.MAX_SAFE_INTEGER;
   }
 }
-
-export default AbstractHistogram;

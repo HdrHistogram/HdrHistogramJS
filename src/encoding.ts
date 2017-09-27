@@ -6,14 +6,14 @@
  * http://creativecommons.org/publicdomain/zero/1.0/
  */
 import ByteBuffer from "./ByteBuffer";
-import AbstractHistogram from "./AbstractHistogram";
+import AbstractHistogram, { HistogramConstructor } from "./AbstractHistogram";
 import Int32Histogram from "./Int32Histogram";
 
 const base64 = require("base64-js");
 
 const decodeFromCompressedBase64 = (
   base64String: string,
-  histogramConstr: typeof AbstractHistogram = Int32Histogram,
+  histogramConstr: HistogramConstructor = Int32Histogram,
   minBarForHighestTrackableValue: number = 0
 ): AbstractHistogram => {
   const buffer = new ByteBuffer(base64.toByteArray(base64String));

@@ -4,6 +4,7 @@ node_js:
   - "node"
 before_script:
   - npm install -g typescript
+  - npm run prettier
 script:
   - npm run test:coverage
 

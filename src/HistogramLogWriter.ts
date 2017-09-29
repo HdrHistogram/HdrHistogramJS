@@ -1,4 +1,5 @@
 import AbstractHistogram from "./AbstractHistogram";
+import { NO_TAG } from "./AbstractHistogramBase";
 import { encodeIntoBase64String } from "./encoding";
 import { floatFormatter } from "./formatters";
 
@@ -37,7 +38,7 @@ class HistogramLogWriter {
     maxValueUnitRatio = 1000000
   ) {
     const base64 = encodeIntoBase64String(histogram);
-    if (histogram.tag) {
+    if (histogram.tag && histogram.tag !== NO_TAG) {
       this.log(
         `Tag=${histogram.tag},${startTimeStampSec},${endTimeStampSec -
           startTimeStampSec},${histogram.maxValue /
@@ -78,7 +79,7 @@ class HistogramLogWriter {
      */
   outputLegend() {
     this.log(
-      '"StartTimestamp","Interval_Length","Interval_Max","Interval_Compressed_Histogram"'
+      '"StartTimestamp","Interval_Length","Interval_Max","Interval_Compressed_Histogram"\n'
     );
   }
 

@@ -91,6 +91,7 @@ export {
   Int16Histogram,
   Int32Histogram,
   Float64Histogram,
+  AbstractHistogram,
   AbstractHistogram as Histogram,
   HistogramLogReader,
   listTags,

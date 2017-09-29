@@ -20,7 +20,7 @@ describe("Histogram Log Writer", () => {
     // when
     writer.outputIntervalHistogram(histogram, 1000, 1042);
     // then
-    expect(buffer).to.contain("1000,42,123,HISTFAA");
+    expect(buffer).to.match(/^1000,42,123,HISTFAA/);
   });
 
   it("should write a line starting with histogram tag", () => {

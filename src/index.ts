@@ -14,6 +14,7 @@ import AbstractHistogram from "./AbstractHistogram";
 import HistogramLogReader, { listTags } from "./HistogramLogReader";
 import HistogramLogWriter from "./HistogramLogWriter";
 import { decodeFromCompressedBase64, encodeIntoBase64String } from "./encoding";
+import Recorder from "./Recorder";
 
 declare function require(name: string): any;
 
@@ -100,5 +101,6 @@ export {
   ByteBuffer,
   decodeFromCompressedBase64,
   encodeIntoBase64String,
-  HistogramLogWriter
+  HistogramLogWriter,
+  Recorder
 };

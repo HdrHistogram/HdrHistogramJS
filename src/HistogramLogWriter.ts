@@ -35,7 +35,7 @@ class HistogramLogWriter {
     histogram: AbstractHistogram,
     startTimeStampSec = (histogram.startTimeStampMsec - this.baseTime) / 1000,
     endTimeStampSec = (histogram.endTimeStampMsec - this.baseTime) / 1000,
-    maxValueUnitRatio = 1000000
+    maxValueUnitRatio = 1000
   ) {
     const base64 = encodeIntoBase64String(histogram);
     if (histogram.tag && histogram.tag !== NO_TAG) {

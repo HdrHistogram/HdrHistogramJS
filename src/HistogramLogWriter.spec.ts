@@ -16,7 +16,7 @@ describe("Histogram Log Writer", () => {
 
   it("should write a line with start time, duration, max value, and a base64 encoded histogram", () => {
     // given
-    histogram.recordValue(123000000);
+    histogram.recordValue(123000);
     // when
     writer.outputIntervalHistogram(histogram, 1000, 1042);
     // then
@@ -26,7 +26,7 @@ describe("Histogram Log Writer", () => {
   it("should write a line starting with histogram tag", () => {
     // given
     histogram.tag = "TAG";
-    histogram.recordValue(123000000);
+    histogram.recordValue(123000);
     // when
     writer.outputIntervalHistogram(histogram, 1000, 1042);
     // then

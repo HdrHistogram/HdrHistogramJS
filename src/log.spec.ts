@@ -21,7 +21,6 @@ describe("Logs", () => {
     inputHistogram.recordValue(1789);
     // when
     writer.outputIntervalHistogram(inputHistogram, 12345042, 1234056, 1);
-    console.log(buffer);
     const reader = new HistogramLogReader(buffer);
     const outputHistogram = reader.nextIntervalHistogram();
     // then

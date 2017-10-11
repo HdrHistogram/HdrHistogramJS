@@ -10,7 +10,7 @@ import Int8Histogram from "./Int8Histogram";
 import Int16Histogram from "./Int16Histogram";
 import Int32Histogram from "./Int32Histogram";
 import Float64Histogram from "./Float64Histogram";
-import AbstractHistogram from "./AbstractHistogram";
+import AbstractHistogram, { HistogramConstructor } from "./AbstractHistogram";
 import HistogramLogReader, { listTags } from "./HistogramLogReader";
 import HistogramLogWriter from "./HistogramLogWriter";
 import { decodeFromCompressedBase64, encodeIntoBase64String } from "./encoding";
@@ -62,7 +62,7 @@ const defaultRequest: BuildRequest = {
 
 const build = (request = defaultRequest) => {
   const parameters = Object.assign({}, defaultRequest, request);
-  let histogramConstr: typeof AbstractHistogram;
+  let histogramConstr: HistogramConstructor;
   switch (parameters.bitBucketSize) {
     case 8:
       histogramConstr = Int8Histogram;
@@ -77,11 +77,10 @@ const build = (request = defaultRequest) => {
       histogramConstr = Float64Histogram;
   }
 
-  const constructor = histogramConstr as any;
-  const histogram: AbstractHistogram = new constructor(
-    parameters.lowestDiscernibleValue,
-    parameters.highestTrackableValue,
-    parameters.numberOfSignificantValueDigits
+  const histogram: AbstractHistogram = new histogramConstr(
+    parameters.lowestDiscernibleValue as number,
+    parameters.highestTrackableValue as number,
+    parameters.numberOfSignificantValueDigits as number
   );
   histogram.autoResize = parameters.autoResize as boolean;
   return histogram;

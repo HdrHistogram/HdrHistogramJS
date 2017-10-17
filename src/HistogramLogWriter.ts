@@ -8,6 +8,7 @@ export interface Writable {
 }
 
 const HISTOGRAM_LOG_FORMAT_VERSION = "1.3";
+const timeFormatter = floatFormatter(5, 3);
 
 class HistogramLogWriter {
   /**
@@ -38,18 +39,14 @@ class HistogramLogWriter {
     maxValueUnitRatio = 1000
   ) {
     const base64 = encodeIntoBase64String(histogram);
+    const start = timeFormatter(startTimeStampSec);
+    const duration = timeFormatter(endTimeStampSec - startTimeStampSec);
+    const max = timeFormatter(histogram.maxValue / maxValueUnitRatio);
+    const lineContent = `${start},${duration},${max},${base64}\n`;
     if (histogram.tag && histogram.tag !== NO_TAG) {
-      this.log(
-        `Tag=${histogram.tag},${startTimeStampSec},${endTimeStampSec -
-          startTimeStampSec},${histogram.maxValue /
-          maxValueUnitRatio},${base64}\n`
-      );
+      this.log(`Tag=${histogram.tag},${lineContent}`);
     } else {
-      this.log(
-        `${startTimeStampSec},${endTimeStampSec -
-          startTimeStampSec},${histogram.maxValue /
-          maxValueUnitRatio},${base64}\n`
-      );
+      this.log(lineContent);
     }
   }
 

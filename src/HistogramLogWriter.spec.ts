@@ -20,7 +20,16 @@ describe("Histogram Log Writer", () => {
     // when
     writer.outputIntervalHistogram(histogram, 1000, 1042);
     // then
-    expect(buffer).to.match(/^1000,42,123,HISTFAA/);
+    expect(buffer).to.match(/^1000.000,42.000,123.000,HISTFAA/);
+  });
+
+  it("should write start time, duration and  max value using 3 digits", () => {
+    // given
+    histogram.recordValue(123001);
+    // when
+    writer.outputIntervalHistogram(histogram, 1000.0120001, 1042.013001);
+    // then
+    expect(buffer).to.match(/^1000.012,42.001,123.001,HISTFAA/);
   });
 
   it("should write a line starting with histogram tag", () => {
@@ -30,19 +39,19 @@ describe("Histogram Log Writer", () => {
     // when
     writer.outputIntervalHistogram(histogram, 1000, 1042);
     // then
-    expect(buffer).to.contain("Tag=TAG,1000,42,123,HISTFAA");
+    expect(buffer).to.contain("Tag=TAG,1000.000,42.000,123.000,HISTFAA");
   });
 
-  it("should write a histogram's start/end times in ms using basetime", () => {
+  it("should write a histogram's start time in sec using basetime", () => {
     // given
-    histogram.startTimeStampMsec = 1234000;
-    histogram.endTimeStampMsec = 1235000;
+    histogram.startTimeStampMsec = 1234001;
+    histogram.endTimeStampMsec = 1235001;
     writer.baseTime = 1000000;
     histogram.recordValue(1);
     // when
     writer.outputIntervalHistogram(histogram);
     // then
-    expect(buffer).to.contain("234,1");
+    expect(buffer).to.contain("234.001");
   });
 
   it("should write start time in seconds", () => {

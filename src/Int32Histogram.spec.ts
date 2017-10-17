@@ -34,7 +34,9 @@ describe("Int32 histogram", () => {
     // when
     const percentileValue = histogram.getValueAtPercentile(99.9);
     // then
-    expect(percentileValue).satisfies((result: number) => Math.abs(result - 123456) < 1000);
+    expect(percentileValue).satisfies(
+      (result: number) => Math.abs(result - 123456) < 1000
+    );
     // TODO the value is 123519 > max, ask Gil if it is a bug
   });
 
@@ -48,7 +50,9 @@ describe("Int32 histogram", () => {
     histogram.recordValue(420000);
     // then
     const medianValue = histogram.getValueAtPercentile(50);
-    expect(medianValue).satisfies((result: number) => Math.abs(result - 127000) < 1000);
+    expect(medianValue).satisfies(
+      (result: number) => Math.abs(result - 127000) < 1000
+    );
   });
 
   it("should compute proper value at percentile even with rounding issues", () => {

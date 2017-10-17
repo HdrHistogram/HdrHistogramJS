@@ -34,7 +34,9 @@ describe("Float64 histogram", () => {
     // when
     const percentileValue = histogram.getValueAtPercentile(99.9);
     // then
-    expect(percentileValue).satisfies((result: number) => Math.abs(result - 123456) < 1000);
+    expect(percentileValue).satisfies(
+      (result: number) => Math.abs(result - 123456) < 1000
+    );
   });
 
   it("should add to count big numbers", () => {

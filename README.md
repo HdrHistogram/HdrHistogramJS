@@ -158,8 +158,28 @@ You can check out [this demo](https://hdrhistogram.github.io/HdrHistogramJSDemo/
 *Be aware that only latest V2 encoding has been implemented, let me know if this is an issue for you*
 
 ## Histogram logs
-The HistogramLogWriter class has not been implemented yet, however you can now use the HistogramLogReader class on V2 encoded files. 
-As you can see below, the API is quite similar to the Java version:
+HistogramLogWriter and HistogramLogReader classes have been migratedand the API isquite similar to the one you might have used with the Java version. 
+Below a simple usage example of the HistogramLogWriter, where the log contents are appended to a string variable:
+```
+let buffer: string;
+const writer = new HistogramLogWriter(content => {
+  buffer += content;
+});
+const histogram = new Int32Histogram(1, Number.MAX_SAFE_INTEGER, 3);
+histogram.startTimeStampMsec = 1234001;
+histogram.endTimeStampMsec   = 1235123;
+
+...
+
+histogram.recordValue(123000);
+
+writer.outputLogFormatVersion();
+writer.outputLegend();
+writer.outputIntervalHistogram(histogram);
+
+```
+
+As for the reading part, if you know a little bit the Java version, the following code fragment will sound familiar:
 ```
 const reader = new HistogramLogReader(fileContent);
 let histogram;
@@ -192,9 +212,7 @@ converted to good old arithmetic expressions in the process
 of converting the Java code to TypeScript. 
 
 # Backlog
-- benchmarks with alternatives (native-hdr-histogram & node-hdr-histogram)
-- web worker experiment
-- Recorder class
-- Log writer
+- refactor the code in order to allow tree shaking
+- publish benchmarks with alternatives (native-hdr-histogram & node-hdr-histogram)
 - logarithmic iterator
 - ... let me know what's on your mind :-)

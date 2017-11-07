@@ -18,20 +18,27 @@ describe("Histogram Log Reader", () => {
   let fileContentWithBaseTime: string;
   let fileContentWithoutHeader: string;
   before(() => {
+    
+    // when using mutation testing tool stryker, source code 
+    // is copied in a sandbox directory without the test_files
+    // directory...
+    const runFromStryker = __dirname.includes("stryker");
+    const prefix = runFromStryker ? "../.." : ".";
+
     fileContent = fs.readFileSync(
-      "test_files/jHiccup-2.0.7S.logV2.hlog",
+      `${prefix}/test_files/jHiccup-2.0.7S.logV2.hlog`,
       "UTF-8"
     );
     fileContentWithBaseTime = fs.readFileSync(
-      "test_files/jHiccup-with-basetime-2.0.7S.logV2.hlog",
+      `${prefix}/test_files/jHiccup-with-basetime-2.0.7S.logV2.hlog`,
       "UTF-8"
     );
     fileContentWithoutHeader = fs.readFileSync(
-      "test_files/jHiccup-no-header-2.0.7S.logV2.hlog",
+      `${prefix}/test_files/jHiccup-no-header-2.0.7S.logV2.hlog`,
       "UTF-8"
     );
     tagFileContent = fs.readFileSync(
-      "test_files/tagged-Log.logV2.hlog",
+      `${prefix}/test_files/tagged-Log.logV2.hlog`,
       "UTF-8"
     );
   });

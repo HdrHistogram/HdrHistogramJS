@@ -18,8 +18,7 @@ describe("Histogram Log Reader", () => {
   let fileContentWithBaseTime: string;
   let fileContentWithoutHeader: string;
   before(() => {
-    
-    // when using mutation testing tool stryker, source code 
+    // when using mutation testing tool stryker, source code
     // is copied in a sandbox directory without the test_files
     // directory...
     const runFromStryker = __dirname.includes("stryker");

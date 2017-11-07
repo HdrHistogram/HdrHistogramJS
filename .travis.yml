@@ -7,4 +7,5 @@ before_script:
   - npm run prettier
 script:
   - npm run test:coverage
+  - npm run test:stryker
 

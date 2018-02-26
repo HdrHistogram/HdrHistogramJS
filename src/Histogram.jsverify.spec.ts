@@ -10,29 +10,35 @@ import * as jsc from "jsverify";
 import * as hdr from "./index";
 
 describe("Histogram percentile computation", () => {
+
+  const runFromStryker = __dirname.includes("stryker");  
+  
   const checkOptions = {
     rngState: "0559a70d12fe8436cb",
-    tests: 10000
+    tests: runFromStryker ? 100 : 10000
   };
 
   it("should be accurate according to its significant figures", () => {
     const numberOfSignificantValueDigits = 3;
-    const histogram = hdr.build({ numberOfSignificantValueDigits });
-
-    const property = jsc.check(
-      jsc.forall(arbData(100), numbers => {
-        histogram.reset();
-        numbers.forEach(n => histogram.recordValue(n));
-        const actual = quantile(numbers, 90);
-        const got = histogram.getValueAtPercentile(90);
-        const relativeError = 1 - got / actual;
-        const variation = Math.pow(10, -numberOfSignificantValueDigits);
-        return relativeError < variation;
-      }),
-      checkOptions
-    );
-    expect(property).to.be.true;
+    type BucketSize = 8 | 16 | 32 | 64;
+    [8, 16, 32, 64].forEach((bitBucketSize: BucketSize) => {
+        const histogram = hdr.build({ bitBucketSize, numberOfSignificantValueDigits });
+        const property = jsc.check(
+          jsc.forall(arbData(100), numbers => {
+            histogram.reset();
+            numbers.forEach(n => histogram.recordValue(n));
+            const actual = quantile(numbers, 90);
+            const got = histogram.getValueAtPercentile(90);
+            const relativeError = 1 - got / actual;
+            const variation = Math.pow(10, -numberOfSignificantValueDigits);
+            return relativeError < variation;
+          }),
+          checkOptions
+        );
+        expect(property).to.be.true;    
+    });
   });
+  
 
   const arbData = (size: number): jsc.Arbitrary<number[]> => {
     const replicate = (

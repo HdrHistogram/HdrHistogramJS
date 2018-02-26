@@ -5,7 +5,6 @@
  * and released to the public domain, as explained at
  * http://creativecommons.org/publicdomain/zero/1.0/
  */
-import "core-js";
 import { expect } from "chai";
 import * as hdr from "./index";
 

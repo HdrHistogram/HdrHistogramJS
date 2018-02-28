@@ -79,7 +79,7 @@ class ZigZagEncoding {
                   if (value < TWO_POW_56) {
                     buffer.put(floor(value / TWO_POW_49));
                   } else {
-                    // should not happen                 
+                    // should not happen
                     buffer.put(floor(value / TWO_POW_49) + 0x80);
                     buffer.put(floor(value / TWO_POW_56));
                   }

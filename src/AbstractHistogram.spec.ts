@@ -361,7 +361,7 @@ describe("Histogram encoding", () => {
     );
     expect(decodedHistogram.getValueAtPercentile(50)).to.be.equal(
       histogram.getValueAtPercentile(50)
-    ); 
+    );
   });
 });
 

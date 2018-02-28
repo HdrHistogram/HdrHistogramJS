@@ -67,13 +67,13 @@ describe("Zig Zag Encoding", () => {
   it("should decode int using multiple bytes", () => {
     // given
     const buffer = ByteBuffer.allocate(8);
-    ZigZagEncoding.encode(buffer, 1515);
+    ZigZagEncoding.encode(buffer, 70000);
     ZigZagEncoding.encode(buffer, 56);
     buffer.resetPosition();
     // when
     const value = ZigZagEncoding.decode(buffer);
     // then
-    expect(value).to.equals(1515);
+    expect(value).to.equals(70000);
   });
 
   it("should decode negative int using multiple bytes", () => {

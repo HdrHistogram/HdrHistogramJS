@@ -1,6 +1,5 @@
 --require ts-node/register
 --reporter dot
--G
 --watch-extensions ts
 --timeout 10000
 src/**/*.spec.ts

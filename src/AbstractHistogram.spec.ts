@@ -347,10 +347,8 @@ describe("Histogram encoding", () => {
 
   it("should encode and compress an histogram", () => {
     // given
-    const histogram = new Int32Histogram(1, Number.MAX_SAFE_INTEGER, 2);
-    histogram.recordValue(42);
-    histogram.recordValue(7);
-    histogram.recordValue(77);
+    const histogram = new Int32Histogram(1, Number.MAX_SAFE_INTEGER, 3);
+    histogram.recordValue(32415482);
     // when
     const buffer = ByteBuffer.allocate();
     histogram.encodeIntoCompressedByteBuffer(buffer);
@@ -361,9 +359,9 @@ describe("Histogram encoding", () => {
       Int32Histogram,
       0
     );
-    expect(decodedHistogram.outputPercentileDistribution()).to.be.equal(
-      histogram.outputPercentileDistribution()
-    );
+    expect(decodedHistogram.getValueAtPercentile(50)).to.be.equal(
+      histogram.getValueAtPercentile(50)
+    ); 
   });
 });
 

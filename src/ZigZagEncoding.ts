@@ -51,34 +51,35 @@ class ZigZagEncoding {
     if (value < TWO_POW_7) {
       buffer.put(value);
     } else {
-      buffer.put(value % 0x80 + 0x80);
+      buffer.put(value | 0x80);
       if (value < TWO_POW_14) {
         buffer.put(floor(value / TWO_POW_7));
       } else {
-        buffer.put(floor(value / TWO_POW_7) + 0x80);
+        buffer.put(floor(value / TWO_POW_7) | 0x80);
         if (value < TWO_POW_21) {
           buffer.put(floor(value / TWO_POW_14));
         } else {
-          buffer.put(floor(value / TWO_POW_14) + 0x80);
+          buffer.put(floor(value / TWO_POW_14) | 0x80);
           if (value < TWO_POW_28) {
             buffer.put(floor(value / TWO_POW_21));
           } else {
-            buffer.put(floor(value / TWO_POW_21) + 0x80);
+            buffer.put(floor(value / TWO_POW_21) | 0x80);
             if (value < TWO_POW_35) {
               buffer.put(floor(value / TWO_POW_28));
             } else {
-              buffer.put(floor(value / TWO_POW_28) + 0x80);
+              buffer.put(floor(value / TWO_POW_28) | 0x80);
               if (value < TWO_POW_42) {
                 buffer.put(floor(value / TWO_POW_35));
               } else {
-                buffer.put(floor(value / TWO_POW_35) + 0x80);
+                buffer.put(floor(value / TWO_POW_35) | 0x80);
                 if (value < TWO_POW_49) {
                   buffer.put(floor(value / TWO_POW_42));
                 } else {
-                  buffer.put(floor(value / TWO_POW_42) + 0x80);
+                  buffer.put(floor(value / TWO_POW_42) | 0x80);
                   if (value < TWO_POW_56) {
                     buffer.put(floor(value / TWO_POW_49));
                   } else {
+                    // should not happen                 
                     buffer.put(floor(value / TWO_POW_49) + 0x80);
                     buffer.put(floor(value / TWO_POW_56));
                   }

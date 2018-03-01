@@ -96,13 +96,13 @@ abstract class AbstractHistogramIterator /* implements Iterator<HistogramIterati
         if (
           this.histogram.getTotalCount() !== this.savedHistogramTotalRawCount
         ) {
-          throw "Concurrent Modification Exception";
+          throw new Error("Concurrent Modification Exception");
         }
         return this.currentIterationValue;
       }
       this.incrementSubBucket();
     }
-    throw "Index Out Of Bounds Exception";
+    throw new Error("Index Out Of Bounds Exception");
   }
 
   abstract incrementIterationLevel(): void;

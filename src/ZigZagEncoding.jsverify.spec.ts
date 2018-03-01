@@ -4,16 +4,11 @@ import * as jsc from "jsverify";
 import ByteBuffer from "./ByteBuffer";
 import ZigZagEncoding from "./ZigZagEncoding";
 
-/*
+
 const runFromStryker = __dirname.includes("stryker");  
 
 const checkOptions = {
   tests: runFromStryker ? 100 : 1000
-};
-*/
-
-const checkOptions = {
-  tests: 100000
 };
 
 describe("Zig Zag Encoding", () => {

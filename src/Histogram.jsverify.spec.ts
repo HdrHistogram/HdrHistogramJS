@@ -13,7 +13,7 @@ const runFromStryker = __dirname.includes("stryker");
 
 const checkOptions = {
   rngState: "0559a70d12fe8436cb",
-  tests: runFromStryker ? 100 : 1000
+  tests: runFromStryker ? 10 : 1000
 };
 
 describe("Histogram percentile computation", () => {

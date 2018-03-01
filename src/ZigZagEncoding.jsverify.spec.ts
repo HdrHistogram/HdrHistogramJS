@@ -7,7 +7,7 @@ import ZigZagEncoding from "./ZigZagEncoding";
 const runFromStryker = __dirname.includes("stryker");
 
 const checkOptions = {
-  tests: runFromStryker ? 100 : 1000
+  tests: runFromStryker ? 10 : 1000
 };
 
 describe("Zig Zag Encoding", () => {

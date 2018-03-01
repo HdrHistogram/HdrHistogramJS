@@ -6,6 +6,5 @@ before_script:
   - npm install -g typescript
   - npm run prettier
 script:
-  - npm run test:coverage
   - npm run test:stryker
 

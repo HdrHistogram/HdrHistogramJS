@@ -4,8 +4,7 @@ import * as jsc from "jsverify";
 import ByteBuffer from "./ByteBuffer";
 import ZigZagEncoding from "./ZigZagEncoding";
 
-
-const runFromStryker = __dirname.includes("stryker");  
+const runFromStryker = __dirname.includes("stryker");
 
 const checkOptions = {
   tests: runFromStryker ? 100 : 1000

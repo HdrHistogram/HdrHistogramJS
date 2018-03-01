@@ -313,7 +313,9 @@ export default abstract class AbstractHistogram extends AbstractHistogramBase {
 
   handleRecordException(count: number, value: number) {
     if (!this.autoResize) {
-      throw new Error("Value " + value + " is outside of histogram covered range");
+      throw new Error(
+        "Value " + value + " is outside of histogram covered range"
+      );
     }
     this.resize(value);
     var countsIndex: number = this.countsArrayIndex(value);
@@ -885,7 +887,9 @@ export default abstract class AbstractHistogram extends AbstractHistogramBase {
 
     if (highestRecordableValue < otherHistogram.maxValue) {
       if (!this.autoResize) {
-        throw new Error("The other histogram includes values that do not fit in this histogram's range.");
+        throw new Error(
+          "The other histogram includes values that do not fit in this histogram's range."
+        );
       }
       this.resize(otherHistogram.maxValue);
     }
@@ -969,7 +973,9 @@ export default abstract class AbstractHistogram extends AbstractHistogramBase {
     );
     if (highestRecordableValue < otherHistogram.maxValue) {
       if (!this.autoResize) {
-        throw new Error("The other histogram includes values that do not fit in this histogram's range.");
+        throw new Error(
+          "The other histogram includes values that do not fit in this histogram's range."
+        );
       }
       this.resize(otherHistogram.maxValue);
     }
@@ -993,13 +999,15 @@ export default abstract class AbstractHistogram extends AbstractHistogramBase {
         if (otherCount > 0) {
           const otherValue = otherHistogram.valueFromIndex(i);
           if (this.getCountAtValue(otherValue) < otherCount) {
-            throw new Error("otherHistogram count (" +
-              otherCount +
-              ") at value " +
-              otherValue +
-              " is larger than this one's (" +
-              this.getCountAtValue(otherValue) +
-              ")");
+            throw new Error(
+              "otherHistogram count (" +
+                otherCount +
+                ") at value " +
+                otherValue +
+                " is larger than this one's (" +
+                this.getCountAtValue(otherValue) +
+                ")"
+            );
           }
           this.recordCountAtValue(-otherCount, otherValue);
         }
@@ -1023,15 +1031,17 @@ export default abstract class AbstractHistogram extends AbstractHistogramBase {
       // while negative values indicate a repeat zero counts.
       const count = this.getCountAtIndex(srcIndex++);
       if (count < 0) {
-        throw new Error("Cannot encode histogram containing negative counts (" +
-          count +
-          ") at index " +
-          srcIndex +
-          ", corresponding the value range [" +
-          this.lowestEquivalentValue(this.valueFromIndex(srcIndex)) +
-          "," +
-          this.nextNonEquivalentValue(this.valueFromIndex(srcIndex)) +
-          ")");
+        throw new Error(
+          "Cannot encode histogram containing negative counts (" +
+            count +
+            ") at index " +
+            srcIndex +
+            ", corresponding the value range [" +
+            this.lowestEquivalentValue(this.valueFromIndex(srcIndex)) +
+            "," +
+            this.nextNonEquivalentValue(this.valueFromIndex(srcIndex)) +
+            ")"
+        );
       }
       // Count trailing 0s (which follow this count):
       let zerosCount = 0;
@@ -1088,9 +1098,11 @@ export default abstract class AbstractHistogram extends AbstractHistogramBase {
       wordSizeInBytes != 8 &&
       wordSizeInBytes != V2maxWordSizeInBytes
     ) {
-      throw new Error("word size must be 2, 4, 8, or V2maxWordSizeInBytes (" +
-        V2maxWordSizeInBytes +
-        ") bytes");
+      throw new Error(
+        "word size must be 2, 4, 8, or V2maxWordSizeInBytes (" +
+          V2maxWordSizeInBytes +
+          ") bytes"
+      );
     }
     let dstIndex = 0;
     const endPosition = sourceBuffer.position + lengthInBytes;
@@ -1165,7 +1177,9 @@ export default abstract class AbstractHistogram extends AbstractHistogramBase {
 
     if (this.getCookieBase(cookie) === V2EncodingCookieBase) {
       if (this.getWordSizeInBytesFromCookie(cookie) != V2maxWordSizeInBytes) {
-        throw new Error("The buffer does not contain a Histogram (no valid cookie found)");
+        throw new Error(
+          "The buffer does not contain a Histogram (no valid cookie found)"
+        );
       }
       payloadLengthInBytes = buffer.getInt32();
       buffer.getInt32(); // normalizingIndexOffset not used
@@ -1174,7 +1188,9 @@ export default abstract class AbstractHistogram extends AbstractHistogramBase {
       highestTrackableValue = buffer.getInt64();
       buffer.getInt64(); // integerToDoubleValueConversionRatio not used
     } else {
-      throw new Error("The buffer does not contain a Histogram (no valid V2 encoding cookie found)");
+      throw new Error(
+        "The buffer does not contain a Histogram (no valid V2 encoding cookie found)"
+      );
     }
 
     highestTrackableValue = max(

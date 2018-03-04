@@ -6,23 +6,13 @@
  * http://creativecommons.org/publicdomain/zero/1.0/
  */
 import { AbstractHistogramBase, NO_TAG } from "./AbstractHistogramBase";
-import ByteBuffer from "./ByteBuffer";
 import RecordedValuesIterator from "./RecordedValuesIterator";
 import PercentileIterator from "./PercentileIterator";
 import HistogramIterationValue from "./HistogramIterationValue";
 import { integerFormatter, floatFormatter } from "./formatters";
-import ZigZagEncoding from "./ZigZagEncoding";
 import ulp from "./ulp";
 
-declare function require(name: string): any;
-
 const { pow, floor, ceil, log2, max, min } = Math;
-
-const V2EncodingCookieBase = 0x1c849303;
-const V2CompressedEncodingCookieBase = 0x1c849304;
-const V2maxWordSizeInBytes = 9; // LEB128-64b9B + ZigZag require up to 9 bytes per word
-const encodingCookie = V2EncodingCookieBase | 0x10; // LSBit of wordsize byte indicates TLZE Encoding
-const compressedEncodingCookie = V2CompressedEncodingCookieBase | 0x10; // LSBit of wordsize byte indicates TLZE Encoding
 
 export interface HistogramConstructor {
   new (
@@ -32,7 +22,7 @@ export interface HistogramConstructor {
   ): AbstractHistogram;
 }
 
-export default abstract class AbstractHistogram extends AbstractHistogramBase {
+export abstract class AbstractHistogram extends AbstractHistogramBase {
   // "Hot" accessed fields (used in the the value recording code path) are bunched here, such
   // that they will have a good chance of ending up in the same cache line as the totalCounts and
   // counts array reference fields that subclass implementations will typically add.
@@ -1022,104 +1012,7 @@ export default abstract class AbstractHistogram extends AbstractHistogramBase {
     }
   }
 
-  fillBufferFromCountsArray(buffer: ByteBuffer) {
-    const countsLimit = this.countsArrayIndex(this.maxValue) + 1;
-    let srcIndex = 0;
-
-    while (srcIndex < countsLimit) {
-      // V2 encoding format uses a ZigZag LEB128-64b9B encoded long. Positive values are counts,
-      // while negative values indicate a repeat zero counts.
-      const count = this.getCountAtIndex(srcIndex++);
-      if (count < 0) {
-        throw new Error(
-          "Cannot encode histogram containing negative counts (" +
-            count +
-            ") at index " +
-            srcIndex +
-            ", corresponding the value range [" +
-            this.lowestEquivalentValue(this.valueFromIndex(srcIndex)) +
-            "," +
-            this.nextNonEquivalentValue(this.valueFromIndex(srcIndex)) +
-            ")"
-        );
-      }
-      // Count trailing 0s (which follow this count):
-      let zerosCount = 0;
-      if (count == 0) {
-        zerosCount = 1;
-        while (srcIndex < countsLimit && this.getCountAtIndex(srcIndex) == 0) {
-          zerosCount++;
-          srcIndex++;
-        }
-      }
-      if (zerosCount > 1) {
-        ZigZagEncoding.encode(buffer, -zerosCount);
-      } else {
-        ZigZagEncoding.encode(buffer, count);
-      }
-    }
-  }
-
-  /**
-   * Encode this histogram into a ByteBuffer
-   * @param buffer The buffer to encode into
-   * @return The number of bytes written to the buffer
-   */
-  encodeIntoByteBuffer(buffer: ByteBuffer) {
-    const initialPosition = buffer.position;
-    buffer.putInt32(encodingCookie);
-    buffer.putInt32(0); // Placeholder for payload length in bytes.
-    buffer.putInt32(1);
-    buffer.putInt32(this.numberOfSignificantValueDigits);
-    buffer.putInt64(this.lowestDiscernibleValue);
-    buffer.putInt64(this.highestTrackableValue);
-    buffer.putInt64(1);
-
-    const payloadStartPosition = buffer.position;
-    this.fillBufferFromCountsArray(buffer);
-
-    const backupIndex = buffer.position;
-    buffer.position = initialPosition + 4;
-    buffer.putInt32(backupIndex - payloadStartPosition); // Record the payload length
-
-    buffer.position = backupIndex;
-
-    return backupIndex - initialPosition;
-  }
-
-  private fillCountsArrayFromSourceBuffer(
-    sourceBuffer: ByteBuffer,
-    lengthInBytes: number,
-    wordSizeInBytes: number
-  ) {
-    if (
-      wordSizeInBytes != 2 &&
-      wordSizeInBytes != 4 &&
-      wordSizeInBytes != 8 &&
-      wordSizeInBytes != V2maxWordSizeInBytes
-    ) {
-      throw new Error(
-        "word size must be 2, 4, 8, or V2maxWordSizeInBytes (" +
-          V2maxWordSizeInBytes +
-          ") bytes"
-      );
-    }
-    let dstIndex = 0;
-    const endPosition = sourceBuffer.position + lengthInBytes;
-    while (sourceBuffer.position < endPosition) {
-      let zerosCount = 0;
-      let count = ZigZagEncoding.decode(sourceBuffer);
-      if (count < 0) {
-        zerosCount = -count;
-        dstIndex += zerosCount; // No need to set zeros in array. Just skip them.
-      } else {
-        this.setCountAtIndex(dstIndex++, count);
-      }
-    }
-    return dstIndex; // this is the destination length
-  }
-
-  private establishInternalTackingValues(
+  establishInternalTackingValues(
     lengthToCover = this.countsArrayLength
   ) {
     this.maxValue = 0;
@@ -1148,135 +1041,6 @@ export default abstract class AbstractHistogram extends AbstractHistogramBase {
     this.setTotalCount(observedTotalCount);
   }
 
-  private static getCookieBase(cookie: number): number {
-    return cookie & ~0xf0;
-  }
-
-  private static getWordSizeInBytesFromCookie(cookie: number): number {
-    if (
-      this.getCookieBase(cookie) == V2EncodingCookieBase ||
-      this.getCookieBase(cookie) == V2CompressedEncodingCookieBase
-    ) {
-      return V2maxWordSizeInBytes;
-    }
-    const sizeByte = (cookie & 0xf0) >> 4;
-    return sizeByte & 0xe;
-  }
-
-  static decodeFromByteBuffer(
-    buffer: ByteBuffer,
-    histogramConstr: HistogramConstructor,
-    minBarForHighestTrackableValue: number
-  ): AbstractHistogram {
-    const cookie = buffer.getInt32();
-
-    let payloadLengthInBytes: number;
-    let numberOfSignificantValueDigits: number;
-    let lowestTrackableUnitValue: number;
-    let highestTrackableValue: number;
-
-    if (this.getCookieBase(cookie) === V2EncodingCookieBase) {
-      if (this.getWordSizeInBytesFromCookie(cookie) != V2maxWordSizeInBytes) {
-        throw new Error(
-          "The buffer does not contain a Histogram (no valid cookie found)"
-        );
-      }
-      payloadLengthInBytes = buffer.getInt32();
-      buffer.getInt32(); // normalizingIndexOffset not used
-      numberOfSignificantValueDigits = buffer.getInt32();
-      lowestTrackableUnitValue = buffer.getInt64();
-      highestTrackableValue = buffer.getInt64();
-      buffer.getInt64(); // integerToDoubleValueConversionRatio not used
-    } else {
-      throw new Error(
-        "The buffer does not contain a Histogram (no valid V2 encoding cookie found)"
-      );
-    }
-
-    highestTrackableValue = max(
-      highestTrackableValue,
-      minBarForHighestTrackableValue
-    );
-
-    const histogram: AbstractHistogram = new histogramConstr(
-      lowestTrackableUnitValue,
-      highestTrackableValue,
-      numberOfSignificantValueDigits
-    );
-
-    const filledLength = histogram.fillCountsArrayFromSourceBuffer(
-      buffer,
-      payloadLengthInBytes,
-      V2maxWordSizeInBytes
-    );
-
-    histogram.establishInternalTackingValues(filledLength);
-
-    return histogram;
-  }
-
-  static decodeFromCompressedByteBuffer(
-    buffer: ByteBuffer,
-    histogramConstr: HistogramConstructor,
-    minBarForHighestTrackableValue: number
-  ): AbstractHistogram {
-    const initialTargetPosition = buffer.position;
-
-    const cookie = buffer.getInt32();
-
-    if ((cookie & ~0xf0) !== V2CompressedEncodingCookieBase) {
-      throw new Error("Encoding not supported, only V2 is supported");
-    }
-
-    const lengthOfCompressedContents = buffer.getInt32();
-
-    const pako = require("pako/lib/inflate");
-
-    const uncompressedBuffer: Uint8Array = pako.inflate(
-      buffer.data.slice(
-        initialTargetPosition + 8,
-        initialTargetPosition + 8 + lengthOfCompressedContents
-      )
-    );
-
-    return this.decodeFromByteBuffer(
-      new ByteBuffer(uncompressedBuffer),
-      histogramConstr,
-      minBarForHighestTrackableValue
-    );
-  }
-
-  /**
-   * Encode this histogram in compressed form into a byte array
-   * @param targetBuffer The buffer to encode into
-   * @return The number of bytes written to the array
-   */
-  encodeIntoCompressedByteBuffer(
-    targetBuffer: ByteBuffer,
-    compressionLevel?: number
-  ) {
-    const intermediateUncompressedByteBuffer = ByteBuffer.allocate();
-
-    const uncompressedLength = this.encodeIntoByteBuffer(
-      intermediateUncompressedByteBuffer
-    );
-    targetBuffer.putInt32(compressedEncodingCookie);
-
-    const pako = require("pako/lib/deflate");
-    const compressionOptions = compressionLevel
-      ? { level: compressionLevel }
-      : {};
-    const compressedArray: Uint8Array = pako.deflate(
-      intermediateUncompressedByteBuffer.data.slice(0, uncompressedLength),
-      compressionOptions
-    );
-
-    targetBuffer.putInt32(compressedArray.byteLength);
-    targetBuffer.putArray(compressedArray);
-
-    return targetBuffer.position;
-  }
-
   reset() {
     this.clearCounts();
     this.setTotalCount(0);
@@ -1286,4 +1050,8 @@ export default abstract class AbstractHistogram extends AbstractHistogramBase {
     this.maxValue = 0;
     this.minNonZeroValue = Number.MAX_SAFE_INTEGER;
   }
+}
+
+export {
+  AbstractHistogram as default
 }

@@ -19,7 +19,6 @@ describe("Zig Zag Encoding", () => {
         ZigZagEncoding.encode(buffer, number);
         buffer.resetPosition();
         const result = ZigZagEncoding.decode(buffer);
-        //console.log(number);
         return number === result;
       }),
       checkOptions

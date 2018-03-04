@@ -16,9 +16,9 @@ class PercentileIterator extends AbstractHistogramIterator {
   reachedLastRecordedValue: boolean;
 
   /**
-     * @param histogram The histogram this iterator will operate on
-     * @param percentileTicksPerHalfDistance The number of equal-sized iteration steps per half-distance to 100%.
-     */
+   * @param histogram The histogram this iterator will operate on
+   * @param percentileTicksPerHalfDistance The number of equal-sized iteration steps per half-distance to 100%.
+   */
   public constructor(
     histogram: AbstractHistogram,
     percentileTicksPerHalfDistance: number
@@ -32,10 +32,10 @@ class PercentileIterator extends AbstractHistogramIterator {
   }
 
   /**
-     * Reset iterator for re-use in a fresh iteration over the same histogram data set.
-     * 
-     * @param percentileTicksPerHalfDistance The number of iteration steps per half-distance to 100%.
-     */
+   * Reset iterator for re-use in a fresh iteration over the same histogram data set.
+   *
+   * @param percentileTicksPerHalfDistance The number of iteration steps per half-distance to 100%.
+   */
   reset(percentileTicksPerHalfDistance: number) {
     this.doReset(this.histogram, percentileTicksPerHalfDistance);
   }

@@ -20,7 +20,10 @@ const V2maxWordSizeInBytes = 9; // LEB128-64b9B + ZigZag require up to 9 bytes p
 const encodingCookie = V2EncodingCookieBase | 0x10; // LSBit of wordsize byte indicates TLZE Encoding
 const compressedEncodingCookie = V2CompressedEncodingCookieBase | 0x10; // LSBit of wordsize byte indicates TLZE Encoding
 
-function fillBufferFromCountsArray(self: AbstractHistogram, buffer: ByteBuffer) {
+function fillBufferFromCountsArray(
+  self: AbstractHistogram,
+  buffer: ByteBuffer
+) {
   const countsLimit = self.countsArrayIndex(self.maxValue) + 1;
   let srcIndex = 0;
 
@@ -118,7 +121,6 @@ function fillCountsArrayFromSourceBuffer(
   }
   return dstIndex; // this is the destination length
 }
-
 
 function getCookieBase(cookie: number): number {
   return cookie & ~0xf0;
@@ -251,7 +253,7 @@ export function encodeIntoCompressedByteBuffer(
   return targetBuffer.position;
 }
 
-declare module './AbstractHistogram' {
+declare module "./AbstractHistogram" {
   namespace AbstractHistogram {
     export let decodeFromByteBuffer: typeof doDecodeFromByteBuffer;
     export let decodeFromCompressedByteBuffer: typeof doDecodeFromCompressedByteBuffer;
@@ -261,7 +263,7 @@ declare module './AbstractHistogram' {
 AbstractHistogram.decodeFromByteBuffer = doDecodeFromByteBuffer;
 AbstractHistogram.decodeFromCompressedByteBuffer = doDecodeFromCompressedByteBuffer;
 
-declare module './AbstractHistogram' {
+declare module "./AbstractHistogram" {
   interface AbstractHistogram {
     encodeIntoByteBuffer: typeof encodeIntoByteBuffer;
     encodeIntoCompressedByteBuffer: typeof encodeIntoCompressedByteBuffer;
@@ -270,7 +272,6 @@ declare module './AbstractHistogram' {
 
 AbstractHistogram.prototype.encodeIntoByteBuffer = encodeIntoByteBuffer;
 AbstractHistogram.prototype.encodeIntoCompressedByteBuffer = encodeIntoCompressedByteBuffer;
-
 
 const decodeFromCompressedBase64 = (
   base64String: string,

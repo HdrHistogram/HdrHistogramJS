@@ -47,7 +47,7 @@ abstract class AbstractHistogramIterator /* implements Iterator<HistogramIterati
   /**
    * Returns true if the iteration has more elements. (In other words, returns true if next would return an
    * element rather than throwing an exception.)
-   * 
+   *
    * @return true if the iterator has more elements.
    */
   public hasNext(): boolean {
@@ -59,7 +59,7 @@ abstract class AbstractHistogramIterator /* implements Iterator<HistogramIterati
 
   /**
    * Returns the next element in the iteration.
-   * 
+   *
    * @return the {@link HistogramIterationValue} associated with the next element in the iteration.
    */
   public next(): HistogramIterationValue {

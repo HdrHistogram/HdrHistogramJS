@@ -386,7 +386,7 @@ export abstract class AbstractHistogram extends AbstractHistogramBase {
    * <p>
    * Note that two values are "equivalent" in this statement if
    * {@link org.HdrHistogram.AbstractHistogram#valuesAreEquivalent} would return true.
-   * 
+   *
    * @param percentile  The percentile for which to return the associated value
    * @return The value that the given percentage of the overall recorded value entries in the
    * histogram are either smaller than or equivalent to. When the percentile is 0.0, returns the
@@ -441,7 +441,7 @@ export abstract class AbstractHistogram extends AbstractHistogramBase {
    * Get the lowest value that is equivalent to the given value within the histogram's resolution.
    * Where "equivalent" means that value samples recorded for any two
    * equivalent values are counted in a common total count.
-   * 
+   *
    * @param value The given value
    * @return The lowest value that is equivalent to the given value within the histogram's resolution.
    */
@@ -459,7 +459,7 @@ export abstract class AbstractHistogram extends AbstractHistogramBase {
    * Get the highest value that is equivalent to the given value within the histogram's resolution.
    * Where "equivalent" means that value samples recorded for any two
    * equivalent values are counted in a common total count.
-   * 
+   *
    * @param value The given value
    * @return The highest value that is equivalent to the given value within the histogram's resolution.
    */
@@ -471,7 +471,7 @@ export abstract class AbstractHistogram extends AbstractHistogramBase {
    * Get the next value that is not equivalent to the given value within the histogram's resolution.
    * Where "equivalent" means that value samples recorded for any two
    * equivalent values are counted in a common total count.
-   * 
+   *
    * @param value The given value
    * @return The next value that is not equivalent to the given value within the histogram's resolution.
    */
@@ -485,7 +485,7 @@ export abstract class AbstractHistogram extends AbstractHistogramBase {
    * Get the size (in value units) of the range of values that are equivalent to the given value within the
    * histogram's resolution. Where "equivalent" means that value samples recorded for any two
    * equivalent values are counted in a common total count.
-   * 
+   *
    * @param value The given value
    * @return The size of the range of values equivalent to the given value.
    */
@@ -1012,9 +1012,7 @@ export abstract class AbstractHistogram extends AbstractHistogramBase {
     }
   }
 
-  establishInternalTackingValues(
-    lengthToCover = this.countsArrayLength
-  ) {
+  establishInternalTackingValues(lengthToCover = this.countsArrayLength) {
     this.maxValue = 0;
     this.minNonZeroValue = Number.MAX_VALUE;
     let maxIndex = -1;
@@ -1052,6 +1050,4 @@ export abstract class AbstractHistogram extends AbstractHistogramBase {
   }
 }
 
-export {
-  AbstractHistogram as default
-}
+export { AbstractHistogram as default };

@@ -7,7 +7,7 @@ import {
 } from ".";
 
 describe("Logs", () => {
-  it("should give same result after been written the read", () => {
+  it("should give same result after been written then read", () => {
     // given
     let buffer = "";
     const writer = new HistogramLogWriter(content => {

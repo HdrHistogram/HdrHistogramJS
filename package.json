@@ -2,14 +2,14 @@
   "name": "hdr-histogram-js",
   "version": "1.0.0",
   "description": "TypeScript port of HdrHistogram",
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
+  "main": "./index.js",
+  "types": "./index.d.ts",
   "scripts": {
     "tsc": "tsc --outDir dist",
     "test": "mocha --opts mocha.opts --watch",
     "test:coverage": "nyc mocha --opts mocha.opts",
     "test:stryker": "stryker run",
-    "prepublish": "tsc --outDir dist --declaration true --sourceMap true && webpack --debug && webpack -p",
+    "prepublish": "tsc --outDir . --declaration true --sourceMap true && webpack --debug && webpack -p",
     "prettier": "prettier --parser typescript -l src/**/*.ts",
     "prettier:fix": "prettier --write --parser typescript -l src/**/*.ts"
   },

@@ -6,4 +6,4 @@ cp -R src dist/src
 cp *.json dist/
 cp webpack.config.js dist/webpack.config.js
 cd dist
-yarn prepublish
+yarn prepare-publish

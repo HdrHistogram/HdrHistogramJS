@@ -3,7 +3,7 @@ language: node_js
 node_js:
   - "node"
 before_script:
-  - npm run prettier
+  - yarn run prettier
 script:
-  - npm run test:stryker
+  - yarn run test:stryker
 

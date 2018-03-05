@@ -28,7 +28,7 @@ Note for TypeScript developers: since HdrHistogramJS has been written in TypeScr
 The library is packaged as a UMD module, hence you can also directly use it from your browser. 
 To do so, simply include a js file from github's release page:
 ```
-<script src="https://github.com/HdrHistogram/HdrHistogramJS/releases/download/v1.0.0/hdrhistogram.min.js" />
+<script src="https://github.com/HdrHistogram/HdrHistogramJS/releases/download/v1.1.0/hdrhistogram.min.js" />
 ```
 Then you will have access to classes and functions of the APIs using "hdr" prefix.
 
@@ -63,7 +63,7 @@ import * as hdr from "hdr-histogram-js"
 const histogram 
   = hdr.build(
     { 
-      bitBucketSize: 64,                // may be 8, 16, 32 or 64
+      bitBucketSize: 32,                // may be 8, 16, 32 or 64
       autoResize: true,                 // default value is true
       lowestDiscernibleValue: 1,        // default value is also 1
       highestTrackableValue: 2,         // can increase up to Number.MAX_SAFE_INTEGER
@@ -72,6 +72,17 @@ const histogram
   );
 
 ```
+
+The above example use a convenient 'barrel' index file. If you need to optimize the size of your package, you can import HdrHistogram modules in a way that is compatible with tree shaking. Below an example that is equivalent to the previous code fragment:
+
+```
+import Int32Histogram from "hdr-histogram-js/Int32Histogram"
+
+const histogram = new Int32Histogram(1, 2, 3);
+histogram.autoResize = true;
+
+```
+
 ## Record values
 Once you have an histogram instance, you just need 
 to call recordValue(), as with the Java version, to record 
@@ -138,18 +149,18 @@ const output = histogram.outputPercentileDistribution();
 ## Encode & decode
 You can encode and decode base64 compressed histograms:
 ```
-import * as hdr from "hdr-histogram-js"
+import { decodeFromCompressedBase64 } from "hdr-histogram-js/encoding"
 
 // only V2 encoding supported 
 const encodedHistogram = "HISTFAAAAB542pNpmSzMwMDAxAABzFCaEUoz2X+AMIKZAEARAtM=";
 
-const histogram = hdr.decodeFromCompressedBase64(base64String);
+const histogram = decodeFromCompressedBase64(encodedHistogram);
 
 // get an histogram with a single recorded value, which is 42
 
 ```
 
-If you want to use this feature you need to add external dependency 
+If you want to use this feature along with the UMD package, you need to add external dependency 
 "pako". "pako" is used for zlib compression. Using npm you should get
 it as a transitive dependency, otherwise you need to add it in 
 your html page.
@@ -161,6 +172,9 @@ You can check out [this demo](https://hdrhistogram.github.io/HdrHistogramJSDemo/
 HistogramLogWriter and HistogramLogReader classes have been migratedand the API isquite similar to the one you might have used with the Java version. 
 Below a simple usage example of the HistogramLogWriter, where the log contents are appended to a string variable:
 ```
+import HistogramLogWriter from "hdr-histogram-js/HistogramLogWriter";
+import Int32Histogram from "hdr-histogram-js/Int32Histogram";
+
 let buffer: string;
 const writer = new HistogramLogWriter(content => {
   buffer += content;
@@ -190,6 +204,8 @@ while ((histogram = reader.nextIntervalHistogram()) != null) {
 }
 ```
 
+# Tree shaking
+
 # Design & Limitations
 The code is almost a direct port of the Java version.
 Optimisation based on inheritance to avoid false sharing 
@@ -212,7 +228,6 @@ converted to good old arithmetic expressions in the process
 of converting the Java code to TypeScript. 
 
 # Backlog
-- refactor the code in order to allow tree shaking
 - publish benchmarks with alternatives (native-hdr-histogram & node-hdr-histogram)
 - logarithmic iterator
 - ... let me know what's on your mind :-)

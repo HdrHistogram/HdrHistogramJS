@@ -73,7 +73,7 @@ const histogram
 
 ```
 
-The above example use a convenient 'barrel' index file. If you need to optimize the size of your package, you can import HdrHistogram modules in a way that is compatible with tree shaking. Below an example that is equivalent to the previous code fragment:
+The above example use a convenient 'barrel' index file. Using this barrel, you cannot leverage on the tree shaking features of your favorite bundler, hence the size of your JavaScript bundle may increase significantly. If you need to optimize the size of your bundle, you can import HdrHistogram modules as shown in code fragment below:
 
 ```
 import Int32Histogram from "hdr-histogram-js/Int32Histogram"
@@ -112,6 +112,8 @@ const correctedHistogram
 ## Retrieve metrics
 You can get min, max, median values and of course percentiles values as shown below:
 ```
+import * as hdr from "hdr-histogram-js"
+
 const h = hdr.build();
 h.recordValue(123);
 h.recordValue(122);
@@ -126,6 +128,8 @@ console.log(h.getValueAtPercentile(90));  // 1244 as well
 As with the original Java version, you can also generate a textual
 representation of an histogram:
 ```
+import * as hdr from "hdr-histogram-js"
+
 const histogram = hdr.build();
 histogram.recordValue(25);
 histogram.recordValue(50);
@@ -203,8 +207,6 @@ while ((histogram = reader.nextIntervalHistogram()) != null) {
 
 }
 ```
-
-# Tree shaking
 
 # Design & Limitations
 The code is almost a direct port of the Java version.

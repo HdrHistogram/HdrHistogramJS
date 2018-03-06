@@ -10,6 +10,7 @@ module.exports = function(config) {
       transpilers: [ "typescript" ],
       reporter: ["clear-text", "progress", "html"],
       tsconfigFile: 'tsconfig.json',
-      coverageAnalysis: "off"
+      coverageAnalysis: "all",
+      maxConcurrentTestRunners: 3,
     });
   };

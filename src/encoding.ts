@@ -12,7 +12,6 @@ import "./AbstractHistogram.encoding";
 
 const base64 = require("base64-js");
 
-
 const decodeFromCompressedBase64 = (
   base64String: string,
   histogramConstr: HistogramConstructor = Int32Histogram,

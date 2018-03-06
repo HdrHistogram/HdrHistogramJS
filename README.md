@@ -3,7 +3,7 @@
 # HdrHistogramJS
 Browser port of HdrHistogram entirely written in TypeScript!  
 See HdrHistogramJS live in action in your browser with this [simple demo](https://hdrhistogram.github.io/HdrHistogramJSDemo/ping-demo.html) or [this one](https://hdrhistogram.github.io/HdrHistogramJSDemo/decoding-demo.html)   
-These demos are coded in good old JavaScript. This may sound obvious but you can use HdrHistogramJS whatever the JS flavor you are into ;)
+These demos are coded in good old JavaScript. This may sound obvious but you can use HdrHistogramJS whatever the JS flavor you are into ;)  
 Obviously, due to JavaScript limitations, performances will not be as good as with the original version. A few micro seconds might be needed to record a value, but you 
 should [check this out for yourself](https://hdrhistogram.github.io/HdrHistogramJSDemo/hdr-on-hdr.html)    
 This is a work in progress so do not hesitate to give feedback, using github issues or twitter (DM @Alex_Victoor)
@@ -23,6 +23,11 @@ Using npm you can get this lib with the following command:
 ```
   npm i hdr-histogram-js
 ```
+Or if you like yarn better:
+```
+  yarn add hdr-histogram-js
+```
+
 Note for TypeScript developers: since HdrHistogramJS has been written in TypeScript, definition files are embedded, no additional task is needed to get them. 
 
 The library is packaged as a UMD module, hence you can also directly use it from your browser. 
@@ -70,16 +75,6 @@ const histogram
       numberOfSignificantValueDigits: 3 // Number between 1 and 5 (inclusive)
     }
   );
-
-```
-
-The above example use a convenient 'barrel' index file. Using this barrel, you cannot leverage on the tree shaking features of your favorite bundler, hence the size of your JavaScript bundle may increase significantly. If you need to optimize the size of your bundle, you can import HdrHistogram modules as shown in code fragment below:
-
-```
-import Int32Histogram from "hdr-histogram-js/Int32Histogram"
-
-const histogram = new Int32Histogram(1, 2, 3);
-histogram.autoResize = true;
 
 ```
 
@@ -151,18 +146,26 @@ const output = histogram.outputPercentileDistribution();
 ```
 
 ## Encode & decode
-You can encode and decode base64 compressed histograms:
+You can encode and decode base64 compressed histograms. Hence you can decode base64 compressed histograms produced by other implementations of HdrHistogram (Java, C#, Rust, ...).  
+The code fragment below shows how to encode an histogram:
 ```
-import { decodeFromCompressedBase64 } from "hdr-histogram-js/encoding"
+import * as hdr from "hdr-histogram-js"
 
-// only V2 encoding supported 
-const encodedHistogram = "HISTFAAAAB542pNpmSzMwMDAxAABzFCaEUoz2X+AMIKZAEARAtM=";
+const histogram = hdr.build();
+histogram.recordvalue(42);
+const encodedString = hdr.encodeIntoBase64String(histogram); 
+// gives something that looks like "HISTFAAAAB542pNpmSzMwMDAxAABzFCaEUoz2X+AMIKZAEARAtM="
+``` 
 
-const histogram = decodeFromCompressedBase64(encodedHistogram);
-
-// get an histogram with a single recorded value, which is 42
-
+Then to decode an histogram you can use this chunk of code:
 ```
+import * as hdr from "hdr-histogram-js"
+
+const encodedString = "HISTFAAAAB542pNpmSzMwMDAxAABzFCaEUoz2X+AMIKZAEARAtM=";
+const histogram = hdr.decodeFromCompressedBase64(encodedString);
+```
+
+Note: right now only HdrHistogram V2 format is supported (the latest one). If you need support for older formats, do not hesitate to raise a github issue. 
 
 If you want to use this feature along with the UMD package, you need to add external dependency 
 "pako". "pako" is used for zlib compression. Using npm you should get
@@ -176,14 +179,13 @@ You can check out [this demo](https://hdrhistogram.github.io/HdrHistogramJSDemo/
 HistogramLogWriter and HistogramLogReader classes have been migratedand the API isquite similar to the one you might have used with the Java version. 
 Below a simple usage example of the HistogramLogWriter, where the log contents are appended to a string variable:
 ```
-import HistogramLogWriter from "hdr-histogram-js/HistogramLogWriter";
-import Int32Histogram from "hdr-histogram-js/Int32Histogram";
+import * as hdr from "hdr-histogram-js"
 
 let buffer: string;
-const writer = new HistogramLogWriter(content => {
+const writer = new hdr.HistogramLogWriter(content => {
   buffer += content;
 });
-const histogram = new Int32Histogram(1, Number.MAX_SAFE_INTEGER, 3);
+const histogram = hdr.build();
 histogram.startTimeStampMsec = 1234001;
 histogram.endTimeStampMsec   = 1235123;
 
@@ -194,18 +196,30 @@ histogram.recordValue(123000);
 writer.outputLogFormatVersion();
 writer.outputLegend();
 writer.outputIntervalHistogram(histogram);
-
 ```
 
 As for the reading part, if you know a little bit the Java version, the following code fragment will sound familiar:
 ```
-const reader = new HistogramLogReader(fileContent);
+const reader = new hdr.HistogramLogReader(fileContent);
 let histogram;
 while ((histogram = reader.nextIntervalHistogram()) != null) {
   // iterate on all histogram log lines 
   ...
 
 }
+```
+
+# Tree Shaking
+The above examples use a convenient 'barrel' index file. Using this barrel, you cannot leverage on the tree shaking features of your favorite bundler. Hence the size of your JavaScript bundle may increase significantly, mostly because of code related to encoding/decoding. If you do use any encoding/decoding features and you need to optimize the size of your bundle, you can import HdrHistogram modules as shown in code fragment below:
+
+```
+import Int32Histogram from "hdr-histogram-js/Int32Histogram"
+
+const histogram = new Int32Histogram(1, 2, 3);
+histogram.autoResize = true;
+
+histogram.recordValue(...);
+
 ```
 
 # Design & Limitations

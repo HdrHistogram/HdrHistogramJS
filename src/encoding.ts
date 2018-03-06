@@ -66,7 +66,7 @@ function fillBufferFromCountsArray(
  * @param buffer The buffer to encode into
  * @return The number of bytes written to the buffer
  */
-export function encodeIntoByteBuffer(buffer: ByteBuffer) {
+function encodeIntoByteBuffer(buffer: ByteBuffer) {
   const self = this as AbstractHistogram;
   const initialPosition = buffer.position;
   buffer.putInt32(encodingCookie);
@@ -137,7 +137,7 @@ function getWordSizeInBytesFromCookie(cookie: number): number {
   return sizeByte & 0xe;
 }
 
-export function doDecodeFromByteBuffer(
+function doDecodeFromByteBuffer(
   buffer: ByteBuffer,
   histogramConstr: HistogramConstructor,
   minBarForHighestTrackableValue: number
@@ -190,7 +190,7 @@ export function doDecodeFromByteBuffer(
   return histogram;
 }
 
-export function doDecodeFromCompressedByteBuffer(
+function doDecodeFromCompressedByteBuffer(
   buffer: ByteBuffer,
   histogramConstr: HistogramConstructor,
   minBarForHighestTrackableValue: number
@@ -226,7 +226,7 @@ export function doDecodeFromCompressedByteBuffer(
  * @param targetBuffer The buffer to encode into
  * @return The number of bytes written to the array
  */
-export function encodeIntoCompressedByteBuffer(
+function encodeIntoCompressedByteBuffer(
   targetBuffer: ByteBuffer,
   compressionLevel?: number
 ) {

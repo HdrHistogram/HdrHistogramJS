@@ -6,14 +6,13 @@
  * http://creativecommons.org/publicdomain/zero/1.0/
  */
 import { expect } from "chai";
-import * as jsc from "jsverify";
+import * as fc from "fast-check";
 import * as hdr from "./index";
 
 const runFromStryker = __dirname.includes("stryker");
 
-const checkOptions = {
-  rngState: "0559a70d12fe8436cb",
-  tests: runFromStryker ? 10 : 1000
+const runnerOptions = {
+  numRuns: runFromStryker ? 10 : 1000
 };
 
 describe("Histogram percentile computation", () => {
@@ -25,8 +24,9 @@ describe("Histogram percentile computation", () => {
         bitBucketSize,
         numberOfSignificantValueDigits
       });
-      const property = jsc.check(
-        jsc.forall(arbData(100), numbers => {
+      fc.assert(fc.property(
+        arbData(100),
+        numbers => {
           histogram.reset();
           numbers.forEach(n => histogram.recordValue(n));
           const actual = quantile(numbers, 90);
@@ -34,10 +34,8 @@ describe("Histogram percentile computation", () => {
           const relativeError = 1 - got / actual;
           const variation = Math.pow(10, -numberOfSignificantValueDigits);
           return relativeError < variation;
-        }),
-        checkOptions
-      );
-      expect(property).to.be.true;
+        }
+      ), runnerOptions);
     });
   });
 });
@@ -47,8 +45,9 @@ describe("Histogram encoding/decoding", () => {
     const numberOfSignificantValueDigits = 3;
     type BucketSize = 8 | 16 | 32 | 64;
     [8, 16, 32, 64].forEach((bitBucketSize: BucketSize) => {
-      const property = jsc.check(
-        jsc.forall(arbData(1), arbPercentiles(), (numbers, percentiles) => {
+      fc.assert(fc.property(
+        arbData(1), fc.double(50, 100),
+        (numbers, percentile) => {
           const histogram = hdr.build({
             bitBucketSize,
             numberOfSignificantValueDigits
@@ -58,38 +57,16 @@ describe("Histogram encoding/decoding", () => {
           const decodedHistogram = hdr.decodeFromCompressedBase64(
             encodedHistogram
           );
-          return percentiles.every(percentile => {
-            const actual = histogram.getValueAtPercentile(percentile);
-            const got = decodedHistogram.getValueAtPercentile(percentile);
-            return actual === got;
-          });
-        }),
-        checkOptions
-      );
-      expect(property).to.be.true;
+          const actual = histogram.getValueAtPercentile(percentile);
+          const got = decodedHistogram.getValueAtPercentile(percentile);
+          return actual === got;
+        }
+      ), runnerOptions);
     });
   });
 });
 
-const arbData = (size: number): jsc.Arbitrary<number[]> => {
-  const replicate = (
-    n: number,
-    g: jsc.Arbitrary<number>
-  ): jsc.Arbitrary<number[]> => jsc.tuple(new Array(n).fill(g));
-
-  return (jsc as any).nonshrink(
-    replicate(
-      size,
-      jsc.oneof([
-        // we want values with a high range
-        jsc.integer(1, 100),
-        jsc.integer(100000, Number.MAX_SAFE_INTEGER)
-      ])
-    )
-  );
-};
-
-const arbPercentiles = () => jsc.array(jsc.number(50, 99.999));
+const arbData = (size: number) => fc.array(fc.integer(1, Number.MAX_SAFE_INTEGER), size, size);
 
 // reference implementation
 const quantile = (inputData: number[], percentile: number) => {

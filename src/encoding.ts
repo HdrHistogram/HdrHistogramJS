@@ -17,7 +17,7 @@ const decodeFromCompressedBase64 = (
   histogramConstr: HistogramConstructor = Int32Histogram,
   minBarForHighestTrackableValue: number = 0
 ): AbstractHistogram => {
-  const buffer = new ByteBuffer(base64.toByteArray(base64String));
+  const buffer = new ByteBuffer(base64.toByteArray(base64String.trim()));
   return AbstractHistogram.decodeFromCompressedByteBuffer(
     buffer,
     histogramConstr,

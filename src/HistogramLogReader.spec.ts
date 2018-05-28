@@ -17,6 +17,7 @@ describe("Histogram Log Reader", () => {
   let tagFileContent: string;
   let fileContentWithBaseTime: string;
   let fileContentWithoutHeader: string;
+  let fileContentWithTrailingWhitespace: string;
   before(() => {
     // when using mutation testing tool stryker, source code
     // is copied in a sandbox directory without the test_files
@@ -38,6 +39,10 @@ describe("Histogram Log Reader", () => {
     );
     tagFileContent = fs.readFileSync(
       `${prefix}/test_files/tagged-Log.logV2.hlog`,
+      "UTF-8"
+    );
+    fileContentWithTrailingWhitespace = fs.readFileSync(
+      `${prefix}/test_files/bug-whitespace.hlog`,
       "UTF-8"
     );
   });
@@ -102,6 +107,15 @@ describe("Histogram Log Reader", () => {
     const histogram = reader.nextIntervalHistogram(62, 63);
     // then
     expect(histogram).to.be.null;
+  });
+
+  it("should parse histogram even if there are trailing whitespaces", () => {
+    // given
+    const reader = new HistogramLogReader(fileContentWithTrailingWhitespace);
+    // when
+    const histogram = reader.nextIntervalHistogram();
+    // then
+    // no error
   });
 
   it("should return histograms within specified time range", () => {

@@ -13,9 +13,8 @@ const runnerOptions = {
 describe("Zig Zag Encoding", () => {
   it("should get the same number after an encoding & decoding", () => {
     const buffer = ByteBuffer.allocate(8);
-    fc.assert(fc.property(
-      fc.nat(Number.MAX_SAFE_INTEGER),
-      number => {
+    fc.assert(
+      fc.property(fc.nat(Number.MAX_SAFE_INTEGER), number => {
         buffer.resetPosition();
         ZigZagEncoding.encode(buffer, number);
         buffer.resetPosition();

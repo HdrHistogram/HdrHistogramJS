@@ -566,10 +566,6 @@ core-js@^2.4.0, core-js@^2.4.1:
   version "2.5.3"
   resolved "https://registry.yarnpkg.com/core-js/-/core-js-2.5.3.tgz#8acc38345824f16d8365b7c9b4259168e8ed603e"
 
-core-js@^2.5.5:
-  version "2.5.6"
-  resolved "https://registry.yarnpkg.com/core-js/-/core-js-2.5.6.tgz#0fe6d45bf3cac3ac364a9d72de7576f4eb221b9d"
-
 core-util-is@1.0.2, core-util-is@~1.0.0:
   version "1.0.2"
   resolved "https://registry.yarnpkg.com/core-util-is/-/core-util-is-1.0.2.tgz#b5fd54220aa2bc5ab57aab7140c940754503c1a7"
@@ -850,12 +846,11 @@ extsprintf@^1.2.0:
   resolved "https://registry.yarnpkg.com/extsprintf/-/extsprintf-1.4.0.tgz#e2689f8f356fad62cca65a3a91c5df5f9551692f"
 
 fast-check@^1.1.1:
-  version "1.1.1"
-  resolved "https://registry.yarnpkg.com/fast-check/-/fast-check-1.1.1.tgz#971e500f2006fe640afe44efbc321cb699039df8"
+  version "1.7.1"
+  resolved "https://registry.yarnpkg.com/fast-check/-/fast-check-1.7.1.tgz#081bc2e133db0b004ba0b1933542dc83124624e3"
   dependencies:
-    core-js "^2.5.5"
-    lorem-ipsum "^1.0.4"
-    pure-rand "^1.1.0"
+    lorem-ipsum "~1.0.6"
+    pure-rand "^1.5.0"
 
 fast-levenshtein@~2.0.4:
   version "2.0.6"
@@ -1572,11 +1567,11 @@ loose-envify@^1.0.0:
   dependencies:
     js-tokens "^3.0.0"
 
-lorem-ipsum@^1.0.4:
-  version "1.0.4"
-  resolved "https://registry.yarnpkg.com/lorem-ipsum/-/lorem-ipsum-1.0.4.tgz#30b72a3b1e191f55062af8c7dfab291ae4fbd912"
+lorem-ipsum@~1.0.6:
+  version "1.0.6"
+  resolved "https://registry.yarnpkg.com/lorem-ipsum/-/lorem-ipsum-1.0.6.tgz#69e9ab02bbb0991915d71b5559fe016d526f013f"
   dependencies:
-    optimist "~0.3.5"
+    minimist "~1.2.0"
 
 lru-cache@^4.0.1:
   version "4.1.1"
@@ -1687,7 +1682,7 @@ minimist@0.0.8:
   version "0.0.8"
   resolved "https://registry.yarnpkg.com/minimist/-/minimist-0.0.8.tgz#857fcabfc3397d2625b8228262e86aa7a011b05d"
 
-minimist@^1.2.0:
+minimist@^1.2.0, minimist@~1.2.0:
   version "1.2.0"
   resolved "https://registry.yarnpkg.com/minimist/-/minimist-1.2.0.tgz#a35008b20f41383eec1fb914f4cd5df79a264284"
 
@@ -1924,12 +1919,6 @@ optimist@^0.6.1, optimist@~0.6.0:
     minimist "~0.0.1"
     wordwrap "~0.0.2"
 
-optimist@~0.3.5:
-  version "0.3.7"
-  resolved "https://registry.yarnpkg.com/optimist/-/optimist-0.3.7.tgz#c90941ad59e4273328923074d2cf2e7cbc6ec0d9"
-  dependencies:
-    wordwrap "~0.0.2"
-
 optionator@^0.8.1:
   version "0.8.2"
   resolved "https://registry.yarnpkg.com/optionator/-/optionator-0.8.2.tgz#364c5e409d3f4d6301d6c0b4c05bba50180aeb64"
@@ -2091,9 +2080,9 @@ punycode@^1.2.4, punycode@^1.4.1:
   version "1.4.1"
   resolved "https://registry.yarnpkg.com/punycode/-/punycode-1.4.1.tgz#c0d5a63b2718800ad8e1eb0fa5269c84dd41845e"
 
-pure-rand@^1.1.0:
-  version "1.1.0"
-  resolved "https://registry.yarnpkg.com/pure-rand/-/pure-rand-1.1.0.tgz#56fc7597fa22aa0752e609bfd166edef94bb4999"
+pure-rand@^1.5.0:
+  version "1.5.0"
+  resolved "https://registry.yarnpkg.com/pure-rand/-/pure-rand-1.5.0.tgz#4deaa72034e67fbe4e7e53ebeceb161030999857"
 
 qs@~6.4.0:
   version "6.4.0"

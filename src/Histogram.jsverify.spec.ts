@@ -12,7 +12,8 @@ import * as hdr from "./index";
 const runFromStryker = __dirname.includes("stryker");
 
 const runnerOptions = {
-  numRuns: runFromStryker ? 10 : 1000
+  numRuns: runFromStryker ? 10 : 1000,
+  verbose: true
 };
 
 describe("Histogram percentile computation", () => {

@@ -41,7 +41,7 @@ Then you will have access to classes and functions of the APIs using "hdr" prefi
 All the features from HdrHistogram have not been (yet) ported to 
 JavaScript, still the most important ones are already there:
 - record latency using different bucket sizes
-- resize historams
+- resize histograms
 - correct coordinated omissions, at and after recording time
 - generate histograms outputs, in plain text or csv
 - add and substract histograms
@@ -244,6 +244,6 @@ converted to good old arithmetic expressions in the process
 of converting the Java code to TypeScript. 
 
 # Backlog
-- publish benchmarks with alternatives (native-hdr-histogram & node-hdr-histogram)
-- logarithmic iterator
-- ... let me know what's on your mind :-)
+- BigInt histograms
+- zlib NodeJS native module when available
+- let me know what's on your mind :-)

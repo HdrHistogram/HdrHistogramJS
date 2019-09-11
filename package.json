@@ -9,6 +9,7 @@
     "test": "mocha --opts mocha.opts --watch",
     "test:coverage": "nyc mocha --opts mocha.opts",
     "test:stryker": "stryker run",
+    "build": "yarn tsc && webpack --debug",
     "prepare-publish": "tsc --outDir . --declaration true --sourceMap true && webpack --debug && webpack -p",
     "prettier": "prettier --parser typescript -l src/**/*.ts",
     "prettier:fix": "prettier --write --parser typescript -l src/**/*.ts"

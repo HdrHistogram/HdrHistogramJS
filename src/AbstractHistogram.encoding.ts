@@ -187,6 +187,26 @@ export function doDecodeFromByteBuffer(
   return histogram;
 }
 
+function findDeflateFunction() {
+  try {
+    return require("zlib").deflateSync;
+  } catch (error) {
+    const pako: any = require("pako/lib/deflate");
+    return pako.deflate;
+  }
+}
+function findInflateFunction() {
+  try {
+    return require("zlib").inflateSync;
+  } catch (error) {
+    const pako: any = require("pako/lib/inflate");
+    return pako.deflate;
+  }
+}
+
+const deflate = findDeflateFunction();
+const inflate = findInflateFunction();
+
 export function doDecodeFromCompressedByteBuffer(
   buffer: ByteBuffer,
   histogramConstr: HistogramConstructor,
@@ -202,9 +222,7 @@ export function doDecodeFromCompressedByteBuffer(
 
   const lengthOfCompressedContents = buffer.getInt32();
 
-  const pako: any = require("pako/lib/inflate");
-
-  const uncompressedBuffer: Uint8Array = pako.inflate(
+  const uncompressedBuffer: Uint8Array = inflate(
     buffer.data.slice(
       initialTargetPosition + 8,
       initialTargetPosition + 8 + lengthOfCompressedContents
@@ -235,11 +253,10 @@ export function encodeIntoCompressedByteBuffer(
   );
   targetBuffer.putInt32(compressedEncodingCookie);
 
-  const pako: any = require("pako/lib/deflate");
   const compressionOptions = compressionLevel
     ? { level: compressionLevel }
     : {};
-  const compressedArray: Uint8Array = pako.deflate(
+  const compressedArray: Uint8Array = deflate(
     intermediateUncompressedByteBuffer.data.slice(0, uncompressedLength),
     compressionOptions
   );

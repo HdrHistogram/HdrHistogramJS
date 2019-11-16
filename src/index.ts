@@ -16,7 +16,7 @@ import HistogramLogWriter from "./HistogramLogWriter";
 import { decodeFromCompressedBase64, encodeIntoBase64String } from "./encoding";
 import Recorder from "./Recorder";
 
-const BigIntHistogram = require('./BigIntHistogram').default;
+const BigIntHistogram = require("./BigIntHistogram").default;
 
 declare function require(name: string): any;
 
@@ -64,10 +64,10 @@ const defaultRequest: BuildRequest = {
 
 const bigIntAvailable = (() => {
   try {
-    eval('123n');
+    eval("123n");
     return true;
-  } catch (e) { 
-    return false; 
+  } catch (e) {
+    return false;
   }
 })();
 

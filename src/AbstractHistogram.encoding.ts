@@ -189,7 +189,7 @@ export function doDecodeFromByteBuffer(
 
 function findDeflateFunction() {
   try {
-    return require("zlib").deflateSync;
+    return eval('require("zlib").deflateSync');
   } catch (error) {
     const pako: any = require("pako/lib/deflate");
     return pako.deflate;
@@ -197,10 +197,10 @@ function findDeflateFunction() {
 }
 function findInflateFunction() {
   try {
-    return require("zlib").inflateSync;
+    return eval('require("zlib").inflateSync');
   } catch (error) {
     const pako: any = require("pako/lib/inflate");
-    return pako.deflate;
+    return pako.inflate;
   }
 }
 

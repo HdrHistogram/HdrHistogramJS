@@ -352,8 +352,8 @@ describe("Histogram add & substract", () => {
 
   it("should be equal when another histogram is added then subtracted with same characteristics", () => {
     // given
-    const histogram = new Int32Histogram(1, Number.MAX_SAFE_INTEGER, 5);
-    const histogram2 = new Int32Histogram(1, Number.MAX_SAFE_INTEGER, 5);
+    const histogram = new Int32Histogram(1, Number.MAX_SAFE_INTEGER, 3);
+    const histogram2 = new Int32Histogram(1, Number.MAX_SAFE_INTEGER, 3);
     histogram.autoResize = true;
     histogram.recordValue(1000);
     histogram2.recordValue(42000);

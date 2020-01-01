@@ -6,7 +6,7 @@
   "types": "./index.d.ts",
   "scripts": {
     "tsc": "tsc --outDir dist",
-    "test": "mocha --opts mocha.opts --watch",
+    "test": "mocha --opts mocha.opts",
     "test:coverage": "nyc mocha --opts mocha.opts",
     "test:stryker": "stryker run",
     "build": "yarn tsc && webpack --debug",

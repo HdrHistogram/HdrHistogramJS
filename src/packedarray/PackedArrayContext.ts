@@ -231,6 +231,42 @@ export class PackedArrayContext {
   }
 
   /**
+   * Consolidate entry with previous entry verison if one exists
+   *
+   * @param entryIndex The shortIndex of the entry to be consolidated
+   * @param previousVersionIndex the index of the previous version of the entry
+   */
+  private consolidateEntry(entryIndex: number, previousVersionIndex: number) {
+    const previousVersionPackedSlotsIndicators = this.getPackedSlotIndicators(
+      previousVersionIndex
+    );
+    // Previous version exists, needs consolidation
+
+    const packedSlotsIndicators = this.getPackedSlotIndicators(entryIndex);
+
+    const insertedSlotMask =
+      packedSlotsIndicators ^ previousVersionPackedSlotsIndicators; // the only bit that differs
+    const slotsBelowBitNumber = packedSlotsIndicators & (insertedSlotMask - 1);
+    const insertedSlotIndex = bitCount(slotsBelowBitNumber);
+    const numberOfSlotsInEntry = bitCount(packedSlotsIndicators);
+
+    // Copy the entry slots from previous version, skipping the newly inserted slot in the target:
+    let sourceSlot = 0;
+    for (let targetSlot = 0; targetSlot < numberOfSlotsInEntry; targetSlot++) {
+      if (targetSlot !== insertedSlotIndex) {
+        const indexAtSlot = this.getIndexAtEntrySlot(
+          previousVersionIndex,
+          sourceSlot
+        );
+        if (indexAtSlot !== 0) {
+          this.setIndexAtEntrySlot(entryIndex, targetSlot, indexAtSlot);
+        }
+        sourceSlot++;
+      }
+    }
+  }
+
+  /**
    * Expand entry as indicated.
    *
    * @param existingEntryIndex the index of the entry
@@ -293,6 +329,7 @@ export class PackedArrayContext {
 
     // Set the pointer to the updated entry index. If CAS fails, discard by throwing retry expecption.
     this.setAtShortIndex(entryPointerIndex, expandedEntryIndex);
+    this.consolidateEntry(expandedEntryIndex, existingEntryIndex);
 
     return expandedEntryIndex;
   }
@@ -364,11 +401,11 @@ export class PackedArrayContext {
       // Target is a packedSlotIndicators entry
       const packedSlotIndicators = this.getPackedSlotIndicators(entryIndex);
       const slotBitNumber = (virtualIndex / pow(2, indexShift)) & 0xf; //(virtualIndex >>> indexShift) & 0xf;
-      const slotMask = pow(2, slotBitNumber);
-      const slotsBelowBitNumber = packedSlotIndicators % slotMask; //packedSlotIndicators & (slotMask - 1);
+      const slotMask = 1 << slotBitNumber;
+      const slotsBelowBitNumber = packedSlotIndicators & (slotMask - 1);
       const slotNumber = bitCount(slotsBelowBitNumber);
 
-      if ((packedSlotIndicators & slotMask) == 0) {
+      if ((packedSlotIndicators & slotMask) === 0) {
         // The entryIndex slot does not have the contents we want
         if (!insertAsNeeded) {
           return -1; // Index does not currently exist in packed array;
@@ -523,4 +560,102 @@ export class PackedArrayContext {
       }
     }
   }
+
+  //
+  //   ########  #######           ######  ######## ########  #### ##    ##  ######
+  //      ##    ##     ##         ##    ##    ##    ##     ##  ##  ###   ## ##    ##
+  //      ##    ##     ##         ##          ##    ##     ##  ##  ####  ## ##
+  //      ##    ##     ## #######  ######     ##    ########   ##  ## ## ## ##   ####
+  //      ##    ##     ##               ##    ##    ##   ##    ##  ##  #### ##    ##
+  //      ##    ##     ##         ##    ##    ##    ##    ##   ##  ##   ### ##    ##
+  //      ##     #######           ######     ##    ##     ## #### ##    ##  ######
+  //
+
+  private nonLeafEntryToString(
+    entryIndex: number,
+    indexShift: number,
+    indentLevel: number
+  ) {
+    let output = "";
+    for (let i = 0; i < indentLevel; i++) {
+      output += "  ";
+    }
+    try {
+      const packedSlotIndicators = this.getPackedSlotIndicators(entryIndex);
+      output += `slotIndiators: 0x${toHex(
+        packedSlotIndicators
+      )}, prevVersionIndex: 0: [ `;
+
+      const numberOfslotsInEntry = bitCount(packedSlotIndicators);
+      for (let i = 0; i < numberOfslotsInEntry; i++) {
+        output += this.getIndexAtEntrySlot(entryIndex, i);
+        if (i < numberOfslotsInEntry - 1) {
+          output += ", ";
+        }
+      }
+      output += ` ] (indexShift = ${indexShift})\n`;
+      const nextLevelIsLeaf = indexShift == LEAF_LEVEL_SHIFT;
+      for (let i = 0; i < numberOfslotsInEntry; i++) {
+        const nextLevelEntryIndex = this.getIndexAtEntrySlot(entryIndex, i);
+        if (nextLevelIsLeaf) {
+          output += this.leafEntryToString(
+            nextLevelEntryIndex,
+            indentLevel + 4
+          );
+        } else {
+          output += this.nonLeafEntryToString(
+            nextLevelEntryIndex,
+            indexShift - 4,
+            indentLevel + 4
+          );
+        }
+      }
+    } catch (ex) {
+      output += `Exception thrown at nonLeafEnty at index ${entryIndex} with indexShift ${indexShift}\n`;
+    }
+    return output;
+  }
+
+  private leafEntryToString(entryIndex: number, indentLevel: number) {
+    let output = "";
+    for (let i = 0; i < indentLevel; i++) {
+      output += "  ";
+    }
+    try {
+      output += "Leaf bytes : ";
+      for (let i = 0; i < 8; i++) {
+        output += `0x${toHex(this.byteArray[entryIndex * 8 + i])} `;
+      }
+      output += "\n";
+    } catch (ex) {
+      output += `Exception thrown at leafEnty at index ${entryIndex}\n`;
+    }
+    return output;
+  }
+
+  public toString() {
+    let output = "PackedArrayContext:\n";
+    if (!this.isPacked) {
+      return output + "Context is unpacked:\n"; // TODO + unpackedToString();
+    }
+    for (let setNumber = 0; setNumber < NUMBER_OF_SETS; setNumber++) {
+      try {
+        const entryPointerIndex = SET_0_START_INDEX + setNumber;
+        const entryIndex = this.getIndexAtShortIndex(entryPointerIndex);
+        output += `Set ${setNumber}: root = ${entryIndex} \n`;
+        if (entryIndex == 0) continue;
+        output += this.nonLeafEntryToString(entryIndex, this.topLevelShift, 4);
+      } catch (ex) {
+        output += `Exception thrown in set ${setNumber}%d\n`;
+      }
+    }
+    //output += recordedValuesToString();
+    return output;
+  }
 }
+
+const toHex = (n: number) => {
+  return Number(n)
+    .toString(16)
+    .padStart(2, "0");
+};

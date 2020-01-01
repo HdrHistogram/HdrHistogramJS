@@ -20,31 +20,32 @@ describe("Packed array", () => {
 
   it("Should retrieve data stored in array", () => {
     // given
-    const array = new PackedArray(4024, 16);
+    const array = new PackedArray(1024, 16);
 
     // when
-    array.set(122, 42);
+    array.set(16, 1);
+    array.set(12, 42);
 
     // then
-    const storedData = array.get(122);
-    expect(storedData).to.be.equal(42);
+    expect(array.get(12)).to.be.equal(42);
+    expect(array.get(16)).to.be.equal(1);
   });
 
   it("Should resize array when storing data", () => {
     // given
-    const array = new PackedArray(4024, 16);
+    const array = new PackedArray(1024, 16);
 
     // when
-    array.set(12, 360);
+    array.set(12, 361);
 
     // then
     const storedData = array.get(12);
-    expect(storedData).to.be.equal(360);
+    expect(storedData).to.be.equal(361);
   });
 
   it("Should retrieve big numbers stored in array", () => {
     // given
-    const array = new PackedArray(4024, 16);
+    const array = new PackedArray(1024, 16);
 
     // when
     array.set(12, Math.pow(2, 16) + 1);

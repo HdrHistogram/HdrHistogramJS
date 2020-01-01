@@ -33,11 +33,9 @@ export class PackedArray {
 
   resizeStorageArray(newPhysicalLengthInLongs: number) {
     const oldArrayContext = this.arrayContext;
-    console.log("couocu", this.get(12));
     this.arrayContext = oldArrayContext.copyAndIncreaseSize(
       newPhysicalLengthInLongs
     );
-    console.log("couocu", this.get(12));
     /*for (IterationValue v : oldArrayContext.nonZeroValues()) {
         set(v.getIndex(), v.getValue());
     }*/
@@ -55,6 +53,7 @@ export class PackedArray {
 
       // Deal with unpacked context:
       if (!this.arrayContext.isPacked) {
+        throw "not implemented";
         // TODO return this.arrayContext.getAtUnpackedIndex(index);
       }
       // Context is packed:
@@ -88,6 +87,7 @@ export class PackedArray {
 
           // Deal with unpacked context:
           if (!this.arrayContext.isPacked) {
+            throw "not implemented";
             // TODO this.arrayContext.setAtUnpackedIndex(index, value);
           }
           // Context is packed:
@@ -119,14 +119,12 @@ export class PackedArray {
             // adders. So dobn't actually write the byte if has been written before.
             continue;
           }
-          // this.arrayContext.setAtByteIndex(packedIndex, byteToWrite);
           this.arrayContext.setAtByteIndex(packedIndex, byteToWrite);
           bytesAlreadySet++;
         }
         return;
       } catch (ex) {
         if (ex instanceof ResizeError) {
-          console.log("eee");
           this.resizeStorageArray(ex.newSize); // Resize outside of critical section
         } else {
           throw ex;
@@ -149,5 +147,11 @@ export class PackedArray {
    */
   length() {
     return this.arrayContext.getVirtualLength();
+  }
+
+  public toString() {
+    let output = "PackedArray:\n";
+    output += this.arrayContext.toString();
+    return output;
   }
 }

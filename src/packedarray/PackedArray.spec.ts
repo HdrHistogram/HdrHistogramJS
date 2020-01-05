@@ -3,6 +3,8 @@ import { expect } from "chai";
 import { PackedArrayContext } from "./PackedArrayContext";
 import { PackedArray } from "./PackedArray";
 
+const { pow } = Math;
+
 describe("Packed array context", () => {
   it("Should initialize array", () => {
     const ctx = new PackedArrayContext(1024, 128);
@@ -64,5 +66,29 @@ describe("Packed array", () => {
     for (let value = 256; value <= 272; value++) {
       expect(array.get(value)).to.be.equal(value);
     }
+  });
+
+  it("Should increment data stored in array", () => {
+    // given
+    const array = new PackedArray(1024, 16);
+    array.set(16, 1);
+
+    // when
+    array.add(16, 41);
+
+    // then
+    expect(array.get(16)).to.be.equal(42);
+  });
+
+  it("Should increment data stored in array with big numbers", () => {
+    // given
+    const array = new PackedArray(1024, 16);
+    array.set(16, 42);
+
+    // when
+    array.add(16, pow(2, 33));
+
+    // then
+    expect(array.get(16)).to.be.equal(pow(2, 33) + 42);
   });
 });

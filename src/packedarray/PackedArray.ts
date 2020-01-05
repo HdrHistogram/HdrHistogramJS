@@ -73,6 +73,64 @@ export class PackedArray {
   }
 
   /**
+   * Add to a value at a virtual index in the array
+   * @param index the virtual index of the value to be added to
+   * @param value the value to add
+   */
+  add(index: number, value: number) {
+    let bytesAlreadySet = 0;
+    do {
+      let remainingValueToAdd = value;
+      try {
+        for (
+          let byteNum = 0, byteShift = 0, byteMask = 0xff;
+          byteNum < NUMBER_OF_SETS;
+          byteNum++, byteShift += 8, byteMask <<= 8
+        ) {
+          // Deal with unpacked context:
+          if (!this.arrayContext.isPacked) {
+            throw "not implemented";
+            // TODO this.arrayContext.setAtUnpackedIndex(index, value);
+          }
+          // Context is packed:
+          const packedIndex = this.arrayContext.getPackedIndex(
+            byteNum,
+            index,
+            true
+          );
+
+          const byteToAdd = remainingValueToAdd & 0xff;
+
+          const afterAddByteValue = this.arrayContext.addAtByteIndex(
+            packedIndex,
+            byteToAdd
+          );
+
+          // Reduce remaining value to add by amount just added:
+          remainingValueToAdd -= byteToAdd;
+
+          // Account for carry:
+          const carryAmount = afterAddByteValue & 0x100;
+          remainingValueToAdd += carryAmount;
+
+          remainingValueToAdd = remainingValueToAdd / pow(2, 8);
+
+          if (remainingValueToAdd == 0) {
+            return; // nothing to add to higher magnitudes
+          }
+        }
+        return;
+      } catch (ex) {
+        if (ex instanceof ResizeError) {
+          this.resizeStorageArray(ex.newSize);
+        } else {
+          throw ex;
+        }
+      }
+    } while (true);
+  }
+
+  /**
    * Set the value at a virtual index in the array
    * @param index the virtual index of the value to set
    * @param value the value to set

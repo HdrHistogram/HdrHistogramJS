@@ -116,6 +116,18 @@ export class PackedArrayContext {
     return this.byteArray[byteIndex];
   }
 
+  /**
+   * add a byte value to a current byte value in the array
+   * @param byteIndex index of byte value to add to
+   * @param valueToAdd byte value to add
+   * @return the afterAddValue. ((afterAddValue & 0x100) != 0) indicates a carry.
+   */
+  public addAtByteIndex(byteIndex: number, valueToAdd: number) {
+    const newValue = this.byteArray[byteIndex] + valueToAdd;
+    this.byteArray[byteIndex] = newValue;
+    return newValue;
+  }
+
   setPopulatedLongLength(newPopulatedLongLength: number) {
     this.populatedShortLength = newPopulatedLongLength << 2;
   }

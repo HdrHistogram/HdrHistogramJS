@@ -488,9 +488,8 @@ export class PackedArrayContext {
       const otherEntryIndex = other.getAtShortIndex(SET_0_START_INDEX + i);
       if (otherEntryIndex == 0) continue; // No tree to duplicate
       let entryIndexPointer = SET_0_START_INDEX + i;
-      for (i = this.topLevelShift; i > other.topLevelShift; i -= 4) {
+      for (let i = this.topLevelShift; i > other.topLevelShift; i -= 4) {
         // for each inserted level:
-
         // Allocate entry in other:
         const sizeOfEntry = NON_LEAF_ENTRY_HEADER_SIZE_IN_SHORTS + 1;
         const newEntryIndex = this.newEntry(sizeOfEntry);

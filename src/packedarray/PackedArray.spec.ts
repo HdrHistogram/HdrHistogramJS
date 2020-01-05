@@ -54,4 +54,15 @@ describe("Packed array", () => {
     const storedData = array.get(12);
     expect(storedData).to.be.equal(Math.pow(2, 16) + 1);
   });
+
+  it("Should copy data when resizing array", () => {
+    const array = new PackedArray(1024);
+    for (let value = 1; value <= 272; value++) {
+      array.set(value, value);
+    }
+
+    for (let value = 256; value <= 272; value++) {
+      expect(array.get(value)).to.be.equal(value);
+    }
+  });
 });

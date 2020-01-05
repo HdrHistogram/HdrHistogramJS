@@ -125,7 +125,7 @@ export class PackedArray {
         return;
       } catch (ex) {
         if (ex instanceof ResizeError) {
-          this.resizeStorageArray(ex.newSize); // Resize outside of critical section
+          this.resizeStorageArray(ex.newSize);
         } else {
           throw ex;
         }

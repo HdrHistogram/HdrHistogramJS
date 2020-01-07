@@ -1,3 +1,10 @@
+/*
+ * This is a TypeScript port of the original Java version, which was written by
+ * Gil Tene as described in
+ * https://github.com/HdrHistogram/HdrHistogram
+ * and released to the public domain, as explained at
+ * http://creativecommons.org/publicdomain/zero/1.0/
+ */
 import { ResizeError } from "./ResizeError";
 
 /**
@@ -451,7 +458,7 @@ export class PackedArrayContext {
 
   // setAtByteIndex(packedIndex, byteToWrite)
 
-  private determineTopLevelShiftForVirtualLength(virtualLength: number) {
+  determineTopLevelShiftForVirtualLength(virtualLength: number) {
     const sizeMagnitude = ceil(log2(virtualLength));
     const eightsSizeMagnitude = sizeMagnitude - 3;
     let multipleOfFourSizeMagnitude = ceil(eightsSizeMagnitude / 4) * 4;
@@ -460,7 +467,7 @@ export class PackedArrayContext {
     return topLevelShiftNeeded;
   }
 
-  private setVirtualLength(virtualLength: number) {
+  setVirtualLength(virtualLength: number) {
     if (!this.isPacked) {
       throw new Error(
         "Should never be adjusting the virtual size of a non-packed context"
@@ -470,6 +477,10 @@ export class PackedArrayContext {
       virtualLength
     );
     this.virtualLength = virtualLength;
+  }
+
+  getTopLevelShift() {
+    return this.topLevelShift;
   }
 
   //
@@ -489,11 +500,12 @@ export class PackedArrayContext {
     this.initArrayViews(this.array);
   }
 
+  // TODO rename method
   private populateEquivalentEntriesWithZerosFromOther(
     other: PackedArrayContext
   ) {
     if (this.virtualLength < other.getVirtualLength()) {
-      throw new Error("Cannot populate array of smaller virtrual length");
+      throw new Error("Cannot populate array of smaller virtual length");
     }
 
     for (let i = 0; i < NUMBER_OF_SETS; i++) {

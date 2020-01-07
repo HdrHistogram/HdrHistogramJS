@@ -1,3 +1,10 @@
+/*
+ * This is a TypeScript port of the original Java version, which was written by
+ * Gil Tene as described in
+ * https://github.com/HdrHistogram/HdrHistogram
+ * and released to the public domain, as explained at
+ * http://creativecommons.org/publicdomain/zero/1.0/
+ */
 import {
   PackedArrayContext,
   MINIMUM_INITIAL_PACKED_ARRAY_CAPACITY
@@ -41,6 +48,31 @@ export class PackedArray {
     }*/
   }
 
+  public setVirtualLength(newVirtualArrayLength: number) {
+    if (newVirtualArrayLength < this.length()) {
+      throw new Error(
+        "Cannot set virtual length, as requested length " +
+          newVirtualArrayLength +
+          " is smaller than the current virtual length " +
+          this.length()
+      );
+    }
+    const currentArrayContext = this.arrayContext;
+    if (
+      currentArrayContext.isPacked &&
+      currentArrayContext.determineTopLevelShiftForVirtualLength(
+        newVirtualArrayLength
+      ) == currentArrayContext.getTopLevelShift()
+    ) {
+      // No changes to the array context contents is needed. Just change the virtual length.
+      currentArrayContext.setVirtualLength(newVirtualArrayLength);
+      return;
+    }
+    this.arrayContext = currentArrayContext.copyAndIncreaseSize(
+      this.getPhysicalLength()
+    );
+  }
+
   /**
    * Get value at virtual index in the array
    * @param index the virtual array index
@@ -73,11 +105,19 @@ export class PackedArray {
   }
 
   /**
+   * Increment value at a virrual index in the array
+   * @param index virtual index of value to increment
+   */
+  public increment(index: number) {
+    this.add(index, 1);
+  }
+
+  /**
    * Add to a value at a virtual index in the array
    * @param index the virtual index of the value to be added to
    * @param value the value to add
    */
-  add(index: number, value: number) {
+  public add(index: number, value: number) {
     let bytesAlreadySet = 0;
     do {
       let remainingValueToAdd = value;
@@ -115,6 +155,7 @@ export class PackedArray {
 
           remainingValueToAdd = remainingValueToAdd / pow(2, 8);
 
+          console.log("coucou", this.arrayContext.toString());
           if (remainingValueToAdd == 0) {
             return; // nothing to add to higher magnitudes
           }

@@ -10,6 +10,8 @@ import Int8Histogram from "./Int8Histogram";
 import Int16Histogram from "./Int16Histogram";
 import Int32Histogram from "./Int32Histogram";
 import Float64Histogram from "./Float64Histogram";
+import PackedHistogram from "./PackedHistogram";
+import SparseArrayHistogram from "./SparseArrayHistogram";
 import AbstractHistogram, { HistogramConstructor } from "./AbstractHistogram";
 import HistogramLogReader, { listTags } from "./HistogramLogReader";
 import HistogramLogWriter from "./HistogramLogWriter";
@@ -25,7 +27,7 @@ interface BuildRequest {
    * The size in bit of each count bucket
    * Default value is 32
    */
-  bitBucketSize?: 8 | 16 | 32 | 64;
+  bitBucketSize?: 8 | 16 | 32 | 64 | "packed" | "sparse_array";
   /**
    * Control whether or not the histogram can auto-resize and auto-adjust it's
    * highestTrackableValue
@@ -84,6 +86,12 @@ const build = (request = defaultRequest) => {
     case 32:
       histogramConstr = Int32Histogram;
       break;
+    case "sparse_array":
+      histogramConstr = SparseArrayHistogram;
+      break;
+    case "packed":
+      histogramConstr = PackedHistogram;
+      break;
     default:
       histogramConstr = bigIntAvailable ? BigIntHistogram : Float64Histogram;
   }
@@ -102,6 +110,8 @@ export {
   Int16Histogram,
   Int32Histogram,
   Float64Histogram,
+  PackedHistogram,
+  SparseArrayHistogram,
   AbstractHistogram,
   AbstractHistogram as Histogram,
   HistogramLogReader,

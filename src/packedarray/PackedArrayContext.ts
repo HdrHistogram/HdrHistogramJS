@@ -398,9 +398,7 @@ export class PackedArrayContext {
   ) {
     if (virtualIndex >= this.virtualLength) {
       throw new Error(
-        `Attempting access at index ${virtualIndex}, beyond virtualLength ${
-          this.virtualLength
-        }`
+        `Attempting access at index ${virtualIndex}, beyond virtualLength ${this.virtualLength}`
       );
     }
 

@@ -25,7 +25,6 @@ describe("Sparse Array histogram", () => {
     // when
     const percentileValue = histogram.getValueAtPercentile(99.9);
     // then
-    console.log(histogram.getEstimatedFootprintInBytes());
     expect(percentileValue).satisfies(
       (result: number) => Math.abs(result - 123456) < 1000
     );

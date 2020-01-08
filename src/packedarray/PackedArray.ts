@@ -155,7 +155,6 @@ export class PackedArray {
 
           remainingValueToAdd = remainingValueToAdd / pow(2, 8);
 
-          console.log("coucou", this.arrayContext.toString());
           if (remainingValueToAdd == 0) {
             return; // nothing to add to higher magnitudes
           }

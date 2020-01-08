@@ -37,7 +37,7 @@
     "stryker-typescript": "^0.9.1",
     "ts-loader": "^3.5.0",
     "ts-node": "^5.0.1",
-    "typescript": "^2.7.1",
+    "typescript": "^3.7.1",
     "webpack": "^1.13.3",
     "yargs": "^6.4.0"
   },

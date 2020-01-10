@@ -98,4 +98,42 @@ describe("Packed array", () => {
     // then
     expect(array.get(16)).to.be.equal(pow(2, 33) + 42);
   });
+
+  it("Should increment data stored in array with big numbers when a resize is needed", () => {
+    // given
+    const array = new PackedArray(10000, 16);
+    array.set(6144, 243);
+    array.set(60, 243);
+    array.set(1160, 243);
+
+    // when
+    array.add(6144, 25);
+
+    // then
+    expect(array.get(6144)).to.be.equal(268);
+  });
+
+  it("Should increment data stored in array with big numbers", () => {
+    // given
+    const array = new PackedArray(1024, 16);
+    array.set(16, 42);
+
+    // when
+    array.add(16, pow(2, 33));
+
+    // then
+    expect(array.get(16)).to.be.equal(pow(2, 33) + 42);
+  });
+
+  it("Should clear data stored in array", () => {
+    // given
+    const array = new PackedArray(1024, 16);
+    array.set(16, 42);
+
+    // when
+    array.clear();
+
+    // then
+    expect(array.get(16)).to.be.equal(0);
+  });
 });

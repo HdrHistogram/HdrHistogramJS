@@ -54,8 +54,8 @@ class PackedHistogram extends AbstractHistogram {
   }
 
   clearCounts() {
-    // TODO
-    //this.counts.fill(0);
+    this.packedCounts.clear();
+    this.totalCount = 0;
   }
 
   incrementCountAtIndex(index: number) {

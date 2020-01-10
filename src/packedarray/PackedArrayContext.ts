@@ -28,7 +28,7 @@ const SET_0_START_INDEX = 0;
 const NUMBER_OF_SETS = 8;
 const LEAF_LEVEL_SHIFT = 3;
 const NON_LEAF_ENTRY_SLOT_INDICATORS_OFFSET = 0;
-const NON_LEAF_ENTRY_HEADER_SIZE_IN_SHORTS = 2;
+const NON_LEAF_ENTRY_HEADER_SIZE_IN_SHORTS = 1;
 const PACKED_ARRAY_GROWTH_INCREMENT = 16;
 const PACKED_ARRAY_GROWTH_FRACTION_POW2 = 4;
 
@@ -94,6 +94,10 @@ export class PackedArrayContext {
     }
 
     this.setVirtualLength(virtualLength);
+  }
+
+  public clear() {
+    this.byteArray.fill(0);
   }
 
   public copyAndIncreaseSize(newPhysicalArrayLength: number) {

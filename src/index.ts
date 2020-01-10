@@ -18,9 +18,9 @@ import HistogramLogWriter from "./HistogramLogWriter";
 import { decodeFromCompressedBase64, encodeIntoBase64String } from "./encoding";
 import Recorder from "./Recorder";
 
-const BigIntHistogram = require("./BigIntHistogram").default;
+//const BigIntHistogram = require("./BigIntHistogram").default;
 
-declare function require(name: string): any;
+//declare function require(name: string): any;
 
 interface BuildRequest {
   /**
@@ -64,14 +64,14 @@ const defaultRequest: BuildRequest = {
   numberOfSignificantValueDigits: 3
 };
 
-const bigIntAvailable = (() => {
+/*const bigIntAvailable = (() => {
   try {
     eval("123n");
     return true;
   } catch (e) {
     return false;
   }
-})();
+})();*/
 
 const build = (request = defaultRequest) => {
   const parameters = Object.assign({}, defaultRequest, request);
@@ -93,7 +93,8 @@ const build = (request = defaultRequest) => {
       histogramConstr = PackedHistogram;
       break;
     default:
-      histogramConstr = bigIntAvailable ? BigIntHistogram : Float64Histogram;
+      //histogramConstr = bigIntAvailable ? BigIntHistogram : Float64Histogram;
+      histogramConstr = Float64Histogram;
   }
 
   const histogram: AbstractHistogram = new histogramConstr(

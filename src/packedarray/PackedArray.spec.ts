@@ -136,4 +136,16 @@ describe("Packed array", () => {
     // then
     expect(array.get(16)).to.be.equal(0);
   });
+
+  it("Should be unpacked when bigger than threshold", () => {
+    // given
+    const array = new PackedArray(pow(2, 32), pow(2, 27));
+
+    // when
+    array.set(16, 42);
+    array.set(16, 42);
+
+    // then
+    expect(array.get(16)).to.be.equal(42);
+  });
 });

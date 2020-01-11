@@ -85,8 +85,7 @@ export class PackedArray {
 
       // Deal with unpacked context:
       if (!this.arrayContext.isPacked) {
-        throw "not implemented";
-        // TODO return this.arrayContext.getAtUnpackedIndex(index);
+        return this.arrayContext.getAtUnpackedIndex(index);
       }
       // Context is packed:
       const packedIndex = this.arrayContext.getPackedIndex(
@@ -145,8 +144,7 @@ export class PackedArray {
     ) {
       // Deal with unpacked context:
       if (!this.arrayContext.isPacked) {
-        throw "not implemented";
-        // TODO this.arrayContext.setAtUnpackedIndex(index, value);
+        this.arrayContext.setAtUnpackedIndex(index, value);
       }
       // Context is packed:
       const packedIndex = this.safeGetPackedIndexgetPackedIndex(byteNum, index);
@@ -189,8 +187,8 @@ export class PackedArray {
 
           // Deal with unpacked context:
           if (!this.arrayContext.isPacked) {
-            throw "not implemented";
-            // TODO this.arrayContext.setAtUnpackedIndex(index, value);
+            this.arrayContext.setAtUnpackedIndex(index, value);
+            return;
           }
           // Context is packed:
           if (valueForNextLevels == 0) {

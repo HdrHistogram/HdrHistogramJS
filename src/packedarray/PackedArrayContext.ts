@@ -23,7 +23,7 @@ import { ResizeError } from "./ResizeError";
  *
  */
 export const MINIMUM_INITIAL_PACKED_ARRAY_CAPACITY = 16;
-const MAX_SUPPORTED_PACKED_COUNTS_ARRAY_LENGTH = Math.pow(2, 30); //(Short.MAX_VALUE / 4);  TODO ALEX why ???
+const MAX_SUPPORTED_PACKED_COUNTS_ARRAY_LENGTH = Math.pow(2, 13) - 1; //(Short.MAX_VALUE / 4);  TODO ALEX why ???
 const SET_0_START_INDEX = 0;
 const NUMBER_OF_SETS = 8;
 const LEAF_LEVEL_SHIFT = 3;
@@ -151,12 +151,6 @@ export class PackedArrayContext {
   }
 
   setAtShortIndex(shortIndex: number, value: number) {
-    /*
-    const longIndex = floor(shortIndex / 4); // shortIndex >> 2
-    const shortShift = (shortIndex % 4) * 16; // (shortIndex & 0x3) << 4;
-    const shortMask = 0xffff * pow(2, shortShift); // ((long) 0xffff) << shortShift
-    const shortValueAsLong = value & 0xffff;
-    this.setValuePart(longIndex, shortValueAsLong, shortMask, shortShift);*/
     this.shortArray[shortIndex] = value;
   }
 
@@ -584,6 +578,28 @@ export class PackedArrayContext {
         );
       }
     }
+  }
+
+  getAtUnpackedIndex(index: number) {
+    return this.longArray[index];
+  }
+
+  setAtUnpackedIndex(index: number, newValue: number) {
+    this.longArray[index] = newValue;
+  }
+
+  lazysetAtUnpackedIndex(index: number, newValue: number) {
+    this.longArray[index] = newValue;
+  }
+
+  incrementAndGetAtUnpackedIndex(index: number) {
+    this.longArray[index]++;
+    return this.longArray[index];
+  }
+
+  addAndGetAtUnpackedIndex(index: number, valueToAdd: number) {
+    this.longArray[index] += valueToAdd;
+    return this.longArray[index];
   }
 
   //

@@ -7,7 +7,8 @@
  */
 
 import Int32Histogram from "./Int32Histogram";
-import AbstractHistogram from "./AbstractHistogram";
+import AbstractHistogram, { HistogramConstructor } from "./AbstractHistogram";
+import PackedHistogram from "./PackedHistogram";
 
 interface HistogramWithId extends AbstractHistogram {
   containingInstanceId?: number;
@@ -30,6 +31,7 @@ class Recorder {
   static idGenerator = 0;
   private activeHistogram: HistogramWithId;
   private inactiveHistogram: HistogramWithId | null | undefined;
+  private histogramConstr: HistogramConstructor;
 
   /**
    * Construct an auto-resizing {@link Recorder} with a lowest discernible value of
@@ -38,13 +40,16 @@ class Recorder {
    * @param numberOfSignificantValueDigits Specifies the precision to use. This is the number of significant
    *                                       decimal digits to which the histogram will maintain value resolution
    *                                       and separation. Must be a non-negative integer between 0 and 5.
+   * @param packed Specifies whether the recorder will uses a packed internal representation or not.
    * @param clock (for testing purpose) an action that give current time in ms since 1970
    */
   constructor(
     private numberOfSignificantValueDigits = 3,
+    private packed = false,
     private clock = () => new Date().getTime()
   ) {
-    this.activeHistogram = new Int32Histogram(
+    this.histogramConstr = packed ? PackedHistogram : Int32Histogram;
+    this.activeHistogram = new this.histogramConstr(
       1,
       Number.MAX_SAFE_INTEGER,
       numberOfSignificantValueDigits
@@ -177,7 +182,7 @@ class Recorder {
 
   private performIntervalSample() {
     if (!this.inactiveHistogram) {
-      this.inactiveHistogram = new Int32Histogram(
+      this.inactiveHistogram = new this.histogramConstr(
         1,
         Number.MAX_SAFE_INTEGER,
         this.numberOfSignificantValueDigits

@@ -1,6 +1,7 @@
 import { expect } from "chai";
 import Recorder from "./Recorder";
 import Int32Histogram from "./Int32Histogram";
+import PackedHistogram from "./PackedHistogram";
 
 describe("Recorder", () => {
   it("should record value", () => {
@@ -11,6 +12,18 @@ describe("Recorder", () => {
     // then
     const histogram = recorder.getIntervalHistogram();
     expect(histogram.getTotalCount()).to.be.equal(1);
+  });
+
+  it("should record value in a packed histogram", () => {
+    // given
+    const recorder = new Recorder(5, true);
+    // when
+    recorder.recordValue(123);
+    // then
+    expect(recorder.getIntervalHistogram() instanceof PackedHistogram).to.be
+      .true;
+    expect(recorder.getIntervalHistogram() instanceof PackedHistogram).to.be
+      .true;
   });
 
   it("should record value with count", () => {
@@ -102,7 +115,7 @@ describe("Recorder", () => {
     // given
     let currentTime = 42;
     let clock = () => currentTime;
-    const recorder = new Recorder(3, clock);
+    const recorder = new Recorder(3, false, clock);
     // when
     currentTime = 123;
     const histogram = recorder.getIntervalHistogram();
@@ -115,7 +128,7 @@ describe("Recorder", () => {
     // given
     let currentTime = 42;
     let clock = () => currentTime;
-    const recorder = new Recorder(3, clock);
+    const recorder = new Recorder(3, false, clock);
     currentTime = 51;
     const firstHistogram = recorder.getIntervalHistogram();
     // when
@@ -130,7 +143,7 @@ describe("Recorder", () => {
     // given
     let currentTime = 42;
     let clock = () => currentTime;
-    const recorder = new Recorder(4, clock);
+    const recorder = new Recorder(4, false, clock);
     recorder.recordValue(123);
     // when
     const histogram = new Int32Histogram(1, Number.MAX_SAFE_INTEGER, 3);
@@ -146,7 +159,7 @@ describe("Recorder", () => {
     // given
     let currentTime = 42;
     let clock = () => currentTime;
-    const recorder = new Recorder(4, clock);
+    const recorder = new Recorder(4, false, clock);
     recorder.recordValue(123);
     // when
     currentTime = 55;

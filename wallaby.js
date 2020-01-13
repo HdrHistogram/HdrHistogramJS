@@ -12,7 +12,7 @@ module.exports = function(wallaby) {
     tests: [
       // Unit tests
       { pattern: "src/**/*spec.ts" },
-      { pattern: "src/**/*jsverify.spec.ts", ignore: true }
+      { pattern: "src/**/*.fc.spec.ts", ignore: true }
     ],
 
     env: { type: "node" },

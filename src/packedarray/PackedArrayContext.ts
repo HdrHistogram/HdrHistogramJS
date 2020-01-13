@@ -162,22 +162,7 @@ export class PackedArrayContext {
     return this.shortArray[shortIndex];
   }
 
-  /*
-  setValuePart(
-    longIndex: number,
-    valuePartAsLong: number,
-    valuePartMask: number,
-    valuePartShift: number
-  ) {
-    const currentLongValue = 0; //getAtLongIndex(longIndex);
-    const newLongValue =
-      (currentLongValue & ~valuePartMask) | (valuePartAsLong << valuePartShift);
-    //success = casAtLongIndex(longIndex, currentLongValue, newLongValue);
-  }*/
-
   getIndexAtShortIndex(shortIndex: number) {
-    //return (short) ((getAtLongIndex(shortIndex >> 2) >> ((shortIndex & 0x3) << 4)) & 0x7fff);
-    // TODO check
     return this.shortArray[shortIndex];
   }
 

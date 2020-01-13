@@ -43,9 +43,6 @@ export class PackedArray {
     this.arrayContext = oldArrayContext.copyAndIncreaseSize(
       newPhysicalLengthInLongs
     );
-    /*for (IterationValue v : oldArrayContext.nonZeroValues()) {
-        set(v.getIndex(), v.getValue());
-    }*/
   }
 
   public setVirtualLength(newVirtualArrayLength: number) {
@@ -134,7 +131,6 @@ export class PackedArray {
    * @param value the value to add
    */
   public add(index: number, value: number) {
-    let bytesAlreadySet = 0;
     let remainingValueToAdd = value;
 
     for (
@@ -159,17 +155,14 @@ export class PackedArray {
       // Reduce remaining value to add by amount just added:
       remainingValueToAdd -= byteToAdd;
 
-      // Account for carry:
-      const carryAmount = afterAddByteValue & 0x100;
-
       remainingValueToAdd = remainingValueToAdd / pow(2, 8);
+      // Account for carry:
       remainingValueToAdd += floor(afterAddByteValue / pow(2, 8));
 
       if (remainingValueToAdd == 0) {
         return; // nothing to add to higher magnitudes
       }
     }
-    return;
   }
 
   /**

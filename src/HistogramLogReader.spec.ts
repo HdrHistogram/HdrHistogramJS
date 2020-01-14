@@ -4,6 +4,7 @@ import { expect } from "chai";
 import HistogramLogReader, { listTags } from "./HistogramLogReader";
 import AbstractHistogram from "./AbstractHistogram";
 import Int32Histogram from "./Int32Histogram";
+import PackedHistogram from "./PackedHistogram";
 
 const { floor } = Math;
 
@@ -67,6 +68,19 @@ describe("Histogram Log Reader", () => {
     expect(floor((histogram as AbstractHistogram).getMean())).to.be.equal(
       301998
     );
+  });
+
+  it("should read encoded histogram and use provided constructor", () => {
+    // given
+    const reader = new HistogramLogReader(fileContent, {
+      histogramConstr: PackedHistogram
+    });
+    // when
+    const histogram = reader.nextIntervalHistogram();
+    // then
+    checkNotNull(histogram);
+    // if mean is good, strong probability everything else is good as well
+    expect(floor((histogram as PackedHistogram).getMean())).to.be.equal(301998);
   });
 
   it("should return null if no histogram in the logs", () => {
@@ -229,7 +243,7 @@ describe("Histogram Log Reader", () => {
     expect(tags).to.be.deep.equal(["NO TAG", "A"]);
   });
 
-  it("should list all the tags of alog filr where all histograms are tagged", () => {
+  it("should list all the tags of a log file where all histograms are tagged", () => {
     // given
     const content = `#[Fake log chunk]
 #[Histogram log format version 1.2]

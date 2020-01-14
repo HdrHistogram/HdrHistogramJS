@@ -6,7 +6,8 @@
  * http://creativecommons.org/publicdomain/zero/1.0/
  */
 import { NO_TAG } from "./AbstractHistogramBase";
-import AbstractHistogram from "./AbstractHistogram";
+import AbstractHistogram, { HistogramConstructor } from "./AbstractHistogram";
+import Int32Histogram from "./Int32Histogram";
 import { decodeFromCompressedBase64 } from "./encoding";
 
 const TAG_PREFIX = "Tag=";
@@ -59,10 +60,17 @@ class HistogramLogReader {
 
   lines: string[];
   currentLineIndex: number;
+  histogramConstr: HistogramConstructor;
 
-  constructor(logContent: string) {
+  constructor(
+    logContent: string,
+    options: { histogramConstr: HistogramConstructor } = {
+      histogramConstr: Int32Histogram
+    }
+  ) {
     this.lines = splitLines(logContent);
     this.currentLineIndex = 0;
+    this.histogramConstr = options.histogramConstr;
   }
 
   /**

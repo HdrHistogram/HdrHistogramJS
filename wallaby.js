@@ -6,6 +6,7 @@ module.exports = function(wallaby) {
       // Source code
       { pattern: "src/**/*.ts", load: false },
       { pattern: "src/**/*.js", load: false },
+      { pattern: "test_files/*.hlog", load: false },
       { pattern: "src/**/*spec.ts", ignore: true }
     ],
 

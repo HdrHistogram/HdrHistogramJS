@@ -64,13 +64,11 @@ class HistogramLogReader {
 
   constructor(
     logContent: string,
-    options: { histogramConstr: HistogramConstructor } = {
-      histogramConstr: Int32Histogram
-    }
+    options?: { histogramConstr: HistogramConstructor }
   ) {
     this.lines = splitLines(logContent);
     this.currentLineIndex = 0;
-    this.histogramConstr = options.histogramConstr;
+    this.histogramConstr = options?.histogramConstr || Int32Histogram;
   }
 
   /**
@@ -133,7 +131,10 @@ class HistogramLogReader {
         if (logTimeStampInSec < rangeStartTimeSec) {
           continue;
         }
-        const histogram = decodeFromCompressedBase64(base64Histogram);
+        const histogram = decodeFromCompressedBase64(
+          base64Histogram,
+          this.histogramConstr
+        );
         histogram.startTimeStampMsec =
           (this.baseTimeSec + logTimeStampInSec) * 1000;
         const intervalLengthSec = Number.parseFloat(rawIntervalLengthSec);

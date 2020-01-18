@@ -136,7 +136,7 @@ export abstract class AbstractHistogram extends AbstractHistogramBase {
     }
     if (highestTrackableValue < 2 * lowestDiscernibleValue) {
       throw new Error(
-        "highestTrackableValue must be >= 2 * lowestDiscernibleValue"
+        `highestTrackableValue must be >= 2 * lowestDiscernibleValue ( 2 * ${lowestDiscernibleValue} )`
       );
     }
     if (
@@ -172,10 +172,10 @@ export abstract class AbstractHistogram extends AbstractHistogramBase {
     }
 
     /*
-    * Given a 3 decimal point accuracy, the expectation is obviously for "+/- 1 unit at 1000". It also means that
-    * it's "ok to be +/- 2 units at 2000". The "tricky" thing is that it is NOT ok to be +/- 2 units at 1999. Only
-    * starting at 2000. So internally, we need to maintain single unit resolution to 2x 10^decimalPoints.
-    */
+     * Given a 3 decimal point accuracy, the expectation is obviously for "+/- 1 unit at 1000". It also means that
+     * it's "ok to be +/- 2 units at 2000". The "tricky" thing is that it is NOT ok to be +/- 2 units at 1999. Only
+     * starting at 2000. So internally, we need to maintain single unit resolution to 2x 10^decimalPoints.
+     */
     const largestValueWithSingleUnitResolution =
       2 * floor(pow(10, numberOfSignificantValueDigits));
 
@@ -401,7 +401,7 @@ export abstract class AbstractHistogram extends AbstractHistogramBase {
     // First, Compute fp value for count at the requested percentile. Note that fp result end up
     // being 1 ulp larger than the correct integer count for this percentile:
     const fpCountAtPercentile =
-      requestedPercentile / 100.0 * this.getTotalCount();
+      (requestedPercentile / 100.0) * this.getTotalCount();
     // Next, round up, but make sure to prevent <= 1 ulp inaccurancies in the above fp math from
     // making us skip a count:
     const countAtPercentile = max(
@@ -429,7 +429,7 @@ export abstract class AbstractHistogram extends AbstractHistogramBase {
   valueFromIndex(index: number) {
     let bucketIndex = floor(index / this.subBucketHalfCount) - 1;
     let subBucketIndex =
-      index % this.subBucketHalfCount + this.subBucketHalfCount;
+      (index % this.subBucketHalfCount) + this.subBucketHalfCount;
     if (bucketIndex < 0) {
       subBucketIndex -= this.subBucketHalfCount;
       bucketIndex = 0;
@@ -532,7 +532,7 @@ export abstract class AbstractHistogram extends AbstractHistogramBase {
         this.medianEquivalentValue(iterationValue.valueIteratedTo) *
         iterationValue.countAtValueIteratedTo;
     }
-    return totalValue * 1.0 / this.getTotalCount();
+    return (totalValue * 1.0) / this.getTotalCount();
   }
 
   /**

@@ -32,6 +32,7 @@ suite
     console.log({ result: this });
   })
   .run({
-    onCycle: () =>
-      (someInteger = Math.floor(Math.random() * Number.MAX_SAFE_INTEGER))
+    onCycle: () => {
+      console.log("eeeeee");
+    }
   });

@@ -29,4 +29,14 @@ describe("Packed histogram", () => {
       (result: number) => Math.abs(result - 123456) < 1000
     );
   });
+
+  it("should resize underlying packed array when recording an out of bound value", () => {
+    // given
+    const histogram = new Histogram(1, 2, 3);
+    histogram.autoResize = true;
+    // when
+    histogram.recordValue(123456);
+    // then
+    expect(histogram.totalCount).to.equal(1);
+  });
 });

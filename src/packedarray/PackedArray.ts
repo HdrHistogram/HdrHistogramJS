@@ -66,7 +66,8 @@ export class PackedArray {
       return;
     }
     this.arrayContext = currentArrayContext.copyAndIncreaseSize(
-      this.getPhysicalLength()
+      this.getPhysicalLength(),
+      newVirtualArrayLength
     );
   }
 

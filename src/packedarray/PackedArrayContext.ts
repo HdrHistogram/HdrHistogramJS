@@ -100,9 +100,12 @@ export class PackedArrayContext {
     this.byteArray.fill(0);
   }
 
-  public copyAndIncreaseSize(newPhysicalArrayLength: number) {
+  public copyAndIncreaseSize(
+    newPhysicalArrayLength: number,
+    newVirtualArrayLength = this.virtualLength
+  ) {
     const ctx = new PackedArrayContext(
-      this.virtualLength,
+      newVirtualArrayLength,
       newPhysicalArrayLength
     );
     if (this.isPacked) {

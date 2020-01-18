@@ -1,61 +1,36 @@
-import { Suite } from "benchmark";
-import AbstractHistogram from "../AbstractHistogram";
-import { build } from "..";
-const suite = new Suite("modulo");
+import b from "benny";
+import { build } from "../index";
 
-let histogram: AbstractHistogram;
-
-suite
-  .add(
-    "Int32Histogram",
-    () => {
+b.suite(
+  "Histogram data access",
+  b.add("Int32Histogram", () => {
+    const histogram = build({ bitBucketSize: 32 });
+    return () => {
       const someInteger = Math.floor(Math.random() * Number.MAX_SAFE_INTEGER);
       histogram.recordValue(someInteger);
-    },
-    {
-      setup: () => {
-        histogram = build({ bitBucketSize: 32 });
-      }
-    }
-  )
-  .add(
-    "Float64Histogram",
-    () => {
+    };
+  }),
+  b.add("PackedHistogram", () => {
+    const histogram = build({ bitBucketSize: "packed" });
+    return () => {
       const someInteger = Math.floor(Math.random() * Number.MAX_SAFE_INTEGER);
       histogram.recordValue(someInteger);
-    },
-    {
-      setup: () => {
-        histogram = build({ bitBucketSize: 64 });
-      }
-    }
-  )
-  .add(
-    "PackedHistogram",
-    () => {
+    };
+  }),
+  b.add("Float64Histogram", () => {
+    const histogram = build({ bitBucketSize: 64 });
+    return () => {
       const someInteger = Math.floor(Math.random() * Number.MAX_SAFE_INTEGER);
       histogram.recordValue(someInteger);
-    },
-    {
-      setup: () => {
-        histogram = build({ bitBucketSize: "packed" });
-      }
-    }
-  )
-  .add(
-    "SparseArrayHistogram",
-    () => {
+    };
+  }),
+  b.add("SparseArrayHistogram", () => {
+    const histogram = build({ bitBucketSize: "sparse_array" });
+    return () => {
       const someInteger = Math.floor(Math.random() * Number.MAX_SAFE_INTEGER);
       histogram.recordValue(someInteger);
-    },
-    {
-      setup: () => {
-        histogram = build({ bitBucketSize: "sparse_array" });
-      }
-    }
-  )
-  .on("complete", function() {
-    console.log("Fastest is " + this.filter("fastest").map("name"));
-    console.log({ result: this });
-  })
-  .run();
+    };
+  }),
+  b.complete(),
+  b.save({ file: "data-access", format: "chart.html" })
+);

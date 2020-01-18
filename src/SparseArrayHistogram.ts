@@ -57,7 +57,9 @@ class SparseArrayHistogram extends AbstractHistogram {
     this.counts[index] = value;
   }
 
-  resize(newHighestTrackableValue: number) {}
+  resize(newHighestTrackableValue: number) {
+    this.establishSize(newHighestTrackableValue);
+  }
 
   setNormalizingIndexOffset(normalizingIndexOffset: number) {}
 

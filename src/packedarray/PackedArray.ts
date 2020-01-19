@@ -38,13 +38,6 @@ export class PackedArray {
     );
   }
 
-  resizeStorageArray(newPhysicalLengthInLongs: number) {
-    const oldArrayContext = this.arrayContext;
-    this.arrayContext = oldArrayContext.copyAndIncreaseSize(
-      newPhysicalLengthInLongs
-    );
-  }
-
   public setVirtualLength(newVirtualArrayLength: number) {
     if (newVirtualArrayLength < this.length()) {
       throw new Error(
@@ -118,7 +111,7 @@ export class PackedArray {
         return this.arrayContext.getPackedIndex(setNumber, virtualIndex, true);
       } catch (ex) {
         if (ex instanceof ResizeError) {
-          this.resizeStorageArray(ex.newSize);
+          this.arrayContext.resizeArray(ex.newSize);
         } else {
           throw ex;
         }
@@ -219,7 +212,7 @@ export class PackedArray {
         return;
       } catch (ex) {
         if (ex instanceof ResizeError) {
-          this.resizeStorageArray(ex.newSize);
+          this.arrayContext.resizeArray(ex.newSize);
         } else {
           throw ex;
         }

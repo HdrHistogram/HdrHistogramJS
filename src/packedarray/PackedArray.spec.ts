@@ -148,4 +148,18 @@ describe("Packed array", () => {
     // then
     expect(array.get(16)).to.be.equal(42);
   });
+
+  it("Should resize array when virtual length change", () => {
+    // given
+    const array = new PackedArray(16, 16);
+    array.set(7, 42);
+
+    // when
+    array.setVirtualLength(pow(2, 20));
+    array.add(pow(2, 19), 42);
+
+    // then
+    expect(array.get(7)).to.be.equal(42);
+    expect(array.get(pow(2, 19))).to.be.equal(42);
+  });
 });

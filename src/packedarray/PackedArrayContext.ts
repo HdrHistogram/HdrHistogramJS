@@ -51,7 +51,7 @@ const bitCount32 = (n: number) => {
 
 export class PackedArrayContext {
   public readonly isPacked: boolean;
-  readonly physicalLength: number;
+  physicalLength: number;
 
   private array: ArrayBuffer;
   private byteArray: Uint8Array;
@@ -102,14 +102,14 @@ export class PackedArrayContext {
 
   public copyAndIncreaseSize(
     newPhysicalArrayLength: number,
-    newVirtualArrayLength = this.virtualLength
+    newVirtualArrayLength: number
   ) {
     const ctx = new PackedArrayContext(
       newVirtualArrayLength,
       newPhysicalArrayLength
     );
     if (this.isPacked) {
-      ctx.populateEquivalentEntriesWithZerosFromOther(this);
+      ctx.populateEquivalentEntriesWithEntriesFromOther(this);
     }
     return ctx;
   }
@@ -376,7 +376,6 @@ export class PackedArrayContext {
    * @param insertAsNeeded If true, will insert new set tree nodes as needed if they do not already exist
    * @return the byte-index corresponding to the given (set tree) value byte of the given virtual index
    */
-  // getPackedIndex(byteNum, index, true)
   getPackedIndex(
     setNumber: number,
     virtualIndex: number,
@@ -430,7 +429,9 @@ export class PackedArrayContext {
 
       entryIndex = this.getIndexAtShortIndex(entryPointerIndex);
       if (entryIndex == 0) {
-        throw new Error("Retry exeception TODO ???");
+        throw new Error(
+          `Retry exeception TODO ??? ${this.isPacked} ${indexShift} ${entryPointerIndex} ${this.shortArray.length}`
+        );
       }
     }
 
@@ -439,8 +440,6 @@ export class PackedArrayContext {
     const byteIndex = (entryIndex << 3) + (virtualIndex & 0x7); // Determine byte index offset within leaf entry
     return byteIndex;
   }
-
-  // setAtByteIndex(packedIndex, byteToWrite)
 
   determineTopLevelShiftForVirtualLength(virtualLength: number) {
     const sizeMagnitude = ceil(log2(virtualLength));
@@ -477,15 +476,16 @@ export class PackedArrayContext {
   //  ##     ##         ##         #######  ##         #######  ######## ##     ##    ##    ########
   //
 
-  private resizeArray(newLength: number) {
-    const tmp = new Uint8Array(newLength);
+  public resizeArray(newLength: number) {
+    const tmp = new Uint8Array(newLength * 8);
     tmp.set(this.byteArray);
     this.array = tmp.buffer;
     this.initArrayViews(this.array);
+    this.physicalLength = newLength;
   }
 
   // TODO rename method
-  private populateEquivalentEntriesWithZerosFromOther(
+  private populateEquivalentEntriesWithEntriesFromOther(
     other: PackedArrayContext
   ) {
     if (this.virtualLength < other.getVirtualLength()) {

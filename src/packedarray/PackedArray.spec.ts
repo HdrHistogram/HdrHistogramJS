@@ -137,18 +137,6 @@ describe("Packed array", () => {
     expect(array.get(16)).to.be.equal(0);
   });
 
-  it("Should be unpacked when bigger than threshold", () => {
-    // given
-    const array = new PackedArray(pow(2, 32), pow(2, 27));
-
-    // when
-    array.set(16, 42);
-    array.set(16, 42);
-
-    // then
-    expect(array.get(16)).to.be.equal(42);
-  });
-
   it("Should resize array when virtual length change", () => {
     // given
     const array = new PackedArray(16, 16);
@@ -161,5 +149,19 @@ describe("Packed array", () => {
     // then
     expect(array.get(7)).to.be.equal(42);
     expect(array.get(pow(2, 19))).to.be.equal(42);
+  });
+});
+
+describe("Unpacked array", () => {
+  it("Should increment data stored in array", () => {
+    // given
+    const array = new PackedArray(1024, pow(2, 20));
+    array.set(16, 1);
+
+    // when
+    array.add(16, 41);
+
+    // then
+    expect(array.get(16)).to.be.equal(42);
   });
 });

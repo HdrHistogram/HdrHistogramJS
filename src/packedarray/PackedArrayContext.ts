@@ -68,6 +68,9 @@ export class PackedArrayContext {
     );
     this.isPacked =
       this.physicalLength <= MAX_SUPPORTED_PACKED_COUNTS_ARRAY_LENGTH;
+    if (!this.isPacked) {
+      this.physicalLength = virtualLength;
+    }
     this.array = new ArrayBuffer(this.physicalLength * 8);
     this.initArrayViews(this.array);
     this.init(virtualLength);

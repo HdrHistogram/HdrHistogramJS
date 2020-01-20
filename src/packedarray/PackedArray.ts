@@ -134,7 +134,8 @@ export class PackedArray {
     ) {
       // Deal with unpacked context:
       if (!this.arrayContext.isPacked) {
-        this.arrayContext.setAtUnpackedIndex(index, value);
+        this.arrayContext.addAndGetAtUnpackedIndex(index, value);
+        return;
       }
       // Context is packed:
       const packedIndex = this.safeGetPackedIndexgetPackedIndex(byteNum, index);

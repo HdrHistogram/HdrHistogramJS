@@ -431,11 +431,6 @@ export class PackedArrayContext {
         entryIndex + NON_LEAF_ENTRY_HEADER_SIZE_IN_SHORTS + slotNumber;
 
       entryIndex = this.getIndexAtShortIndex(entryPointerIndex);
-      if (entryIndex == 0) {
-        throw new Error(
-          `Retry exeception TODO ??? ${this.isPacked} ${indexShift} ${entryPointerIndex} ${this.shortArray.length}`
-        );
-      }
     }
 
     // entryIndex is the long-index of a leaf entry that contains the value byte for the given set
@@ -487,7 +482,6 @@ export class PackedArrayContext {
     this.physicalLength = newLength;
   }
 
-  // TODO rename method
   private populateEquivalentEntriesWithEntriesFromOther(
     other: PackedArrayContext
   ) {
@@ -668,7 +662,7 @@ export class PackedArrayContext {
   public toString() {
     let output = "PackedArrayContext:\n";
     if (!this.isPacked) {
-      return output + "Context is unpacked:\n"; // TODO + unpackedToString();
+      return output + "Context is unpacked:\n"; // unpackedToString();
     }
     for (let setNumber = 0; setNumber < NUMBER_OF_SETS; setNumber++) {
       try {

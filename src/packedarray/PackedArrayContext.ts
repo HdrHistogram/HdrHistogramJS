@@ -328,14 +328,13 @@ export class PackedArrayContext {
     // populate the packed indicators word:
     this.setPackedSlotIndicators(expandedEntryIndex, packedSlotIndicators);
 
-    // Populate the inserted slot with the iundex of the new next level entry:
+    // Populate the inserted slot with the index of the new next level entry:
     this.setIndexAtEntrySlot(
       expandedEntryIndex,
       insertedSlotIndex,
       insertedSlotValue
     );
 
-    // Set the pointer to the updated entry index. If CAS fails, discard by throwing retry expecption.
     this.setAtShortIndex(entryPointerIndex, expandedEntryIndex);
     this.consolidateEntry(expandedEntryIndex, existingEntryIndex);
 

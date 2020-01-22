@@ -49,7 +49,7 @@ Then you will have access to classes and functions of the APIs using "hdr" prefi
 All the features from HdrHistogram have not been (yet) ported to
 JavaScript, still the most important ones are already there:
 
-- record latency using different bucket sizes or a very memory efficient packed implementation (since version 1.2)
+- record latency using different bucket sizes or a very **memory efficient packed implementation (since version 1.2)**
 - resize histograms
 - correct coordinated omissions, at and after recording time
 - generate histograms outputs, in plain text or csv

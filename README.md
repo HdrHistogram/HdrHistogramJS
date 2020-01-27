@@ -241,6 +241,14 @@ while ((histogram = reader.nextIntervalHistogram()) != null) {
 }
 ```
 
+# Performances and memory footprint
+
+HdrHistogram stores values in memry buckets. Memory footprint of an histogram heavily depends on:
+
+- the precision of the histogram (i.e. the number of significant value digits). You can have up to 5 value digits, 3 value digits should be enough for most use cases.
+- the allowed range of values. You can tunned this range with constructor/builder parameters _lowestDiscernibleValue_ and _highestTrackableValue_. If you are not sure of these values, a the vbest option is to keep flag _autoResize_ set to true.
+- the bucket size. A bucket can take 8, 16, 32 or 64 bits of memory. Since version 1.2.0 of HdrHistogramJS there is a special 'packed' bucket size that allows to leverage on a memory compression algorithm. When this mode is on, HdrHistogram is slower but memory footprint is very low!
+
 # Tree Shaking
 
 The above examples use a convenient 'barrel' index file. Using this barrel, you cannot leverage on the tree shaking features of your favorite bundler. Hence the size of your JavaScript bundle may increase significantly, mostly because of code related to encoding/decoding. If you do use any encoding/decoding features and you need to optimize the size of your bundle, you can import HdrHistogram modules as shown in code fragment below:
@@ -282,4 +290,5 @@ of converting the Java code to TypeScript.
 # Backlog
 
 - BigInt histograms
+- AssemblyScript experiments
 - let me know what's on your mind :-)

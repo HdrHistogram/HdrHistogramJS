@@ -32,7 +32,7 @@ const NON_LEAF_ENTRY_HEADER_SIZE_IN_SHORTS = 1;
 const PACKED_ARRAY_GROWTH_INCREMENT = 16;
 const PACKED_ARRAY_GROWTH_FRACTION_POW2 = 4;
 
-const { floor, pow, ceil, log2, max } = Math;
+const { pow, ceil, log2, max } = Math;
 
 const bitCount = (n: number) => {
   var bits = 0;

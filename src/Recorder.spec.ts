@@ -46,6 +46,16 @@ describe("Recorder", () => {
     expect(histogram.getTotalCount()).to.be.equal(2);
   });
 
+  it("should record value in a packed histogram", () => {
+    // given
+    const recorder = new Recorder(3, true);
+    recorder.recordValue(42);
+    // when
+    const histogram = recorder.getIntervalHistogram();
+    // then
+    expect(histogram instanceof PackedHistogram).to.be.true;
+  });
+
   it("should record value only on one interval histogram", () => {
     // given
     const recorder = new Recorder();

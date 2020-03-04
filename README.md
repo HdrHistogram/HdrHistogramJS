@@ -206,7 +206,7 @@ _Be aware that only latest V2 encoding has been implemented, let me know if this
 
 ## Histogram logs
 
-HistogramLogWriter and HistogramLogReader classes have been migratedand the API isquite similar to the one you might have used with the Java version.
+HistogramLogWriter and HistogramLogReader classes have been migrated and the API is quite similar to the one you might have used with the Java version.
 Below a simple usage example of the HistogramLogWriter, where the log contents are appended to a string variable:
 
 ```
@@ -243,10 +243,10 @@ while ((histogram = reader.nextIntervalHistogram()) != null) {
 
 # Performances and memory footprint
 
-HdrHistogram stores values in memry buckets. Memory footprint of an histogram heavily depends on:
+HdrHistogram stores values in memory buckets. Memory footprint of an histogram heavily depends on:
 
 - the precision of the histogram (i.e. the number of significant value digits). You can have up to 5 value digits, 3 value digits should be enough for most use cases.
-- the allowed range of values. You can tunned this range with constructor/builder parameters _lowestDiscernibleValue_ and _highestTrackableValue_. If you are not sure of these values, a the vbest option is to keep flag _autoResize_ set to true.
+- the allowed range of values. You can tunned this range with constructor/builder parameters _lowestDiscernibleValue_ and _highestTrackableValue_. If you are not sure of these values, the best option is to keep flag _autoResize_ set to true.
 - the bucket size. A bucket can take 8, 16, 32 or 64 bits of memory. Since version 1.2.0 of HdrHistogramJS there is a special 'packed' bucket size that allows to leverage on a memory compression algorithm. When this mode is on, HdrHistogram is slower but memory footprint is very low!
 
 # Tree Shaking

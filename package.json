@@ -12,7 +12,12 @@
     "build": "yarn tsc && webpack --debug && webpack -p",
     "prepare-publish": "tsc --outDir . --declaration true --sourceMap true && webpack --debug && webpack -p",
     "prettier": "prettier --parser typescript -l src/**/*.ts",
-    "prettier:fix": "prettier --write --parser typescript -l src/**/*.ts"
+    "prettier:fix": "prettier --write --parser typescript -l src/**/*.ts",
+    "astest": "asp --verbose",
+    "astest:ci": "asp --summary",
+    "asbuild:untouched": "asc assembly/index.ts -b build/untouched.wasm -t build/untouched.wat --validate --sourceMap --debug",
+    "asbuild:optimized": "asc assembly/index.ts -b build/optimized.wasm -t build/optimized.wat --validate --sourceMap --optimize",
+    "asbuild": "npm run asbuild:untouched && npm run asbuild:optimized"
   },
   "repository": {
     "type": "git",
@@ -21,10 +26,12 @@
   "author": "Alexandre Victoor",
   "license": "BSD",
   "devDependencies": {
+    "@as-pect/cli": "^3.1.4",
     "@types/benchmark": "^1.0.31",
     "@types/chai": "^3.4.34",
     "@types/mocha": "^5.2.0",
     "@types/node": "7.0.0",
+    "assemblyscript": "^0.9.4",
     "benchmark": "^2.1.4",
     "benny": "^3.6.14",
     "chai": "^3.5.0",
@@ -67,6 +74,7 @@
     "all": true
   },
   "dependencies": {
+    "@assemblyscript/loader": "^0.9.4",
     "base64-js": "^1.2.0",
     "pako": "^1.0.3"
   },

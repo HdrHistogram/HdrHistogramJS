@@ -501,13 +501,13 @@ export default class Histogram<T, U> extends AbstractHistogramBase<T, U> {
 
   incrementCountAtIndex(index: i32): void {
     // @ts-ignore
-    const currentCount = this.counts[index];
+    const currentCount = unchecked(this.counts[index]);
     const newCount = currentCount + 1;
     if (newCount < 0) {
       throw newCount + " would overflow short integer count";
     }
     // @ts-ignore
-    this.counts[index] = newCount;
+    unchecked((this.counts[index] = newCount));
   }
 
   addToCountAtIndex(index: i32, value: U): void {

@@ -6,7 +6,7 @@
     "noImplicitAny": true,
     "strictNullChecks": true,
     "module": "commonjs",
-    "target": "es5",
+    "target": "es6",
     "typeRoots": ["./node_modules/@types"],
     "lib": ["es2017"],
     "types": ["mocha", "chai", "node"]

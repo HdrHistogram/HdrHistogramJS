@@ -17,7 +17,8 @@
     "astest:ci": "asp --summary",
     "asbuild:untouched": "asc assembly/index.ts -b build/untouched.wasm -t build/untouched.wat --validate --sourceMap --debug",
     "asbuild:optimized": "asc assembly/index.ts -b build/optimized.wasm -t build/optimized.wat --validate --sourceMap --optimize",
-    "asbuild": "npm run asbuild:untouched && npm run asbuild:optimized"
+    "asbuild:base64": "echo \"/** @internal */\nexport const BINARY = \\\"$(node ./base64.js build/optimized.wasm)\\\";\" > src/generated-wasm.ts",
+    "asbuild": "npm run asbuild:untouched && npm run asbuild:optimized && npm run asbuild:base64"
   },
   "repository": {
     "type": "git",

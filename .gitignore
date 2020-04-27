@@ -25,7 +25,7 @@ coverage
 .lock-wscript
 
 # Compiled binary addons (http://nodejs.org/api/addons.html)
-build/Release
+build
 
 # Dependency directories
 node_modules
@@ -44,3 +44,6 @@ reports
 
 # benchmark result
 benchmark
+
+# generated wasm base64 module
+generated*.ts

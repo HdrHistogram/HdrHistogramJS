@@ -1,17 +1,4 @@
-// The entry file of your WebAssembly module.
 import Histogram from "./Histogram";
-
-export function add(a: i32, b: i32): i32 {
-  return a + b;
-}
-
-export class Toto {
-  constructor(public titi: f64) {}
-
-  do(): f64 {
-    return this.titi * this.titi;
-  }
-}
 
 class HistogramAdapter<T, U> {
   private _histogram: Histogram<T, U>;

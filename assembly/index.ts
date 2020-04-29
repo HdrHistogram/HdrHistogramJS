@@ -5,14 +5,15 @@ class HistogramAdapter<T, U> {
   constructor(
     lowestDiscernibleValue: f64,
     highestTrackableValue: f64,
-    numberOfSignificantValueDigits: f64
+    numberOfSignificantValueDigits: f64,
+    autoResize: boolean
   ) {
     this._histogram = new Histogram<T, U>(
       <u64>lowestDiscernibleValue,
       <u64>highestTrackableValue,
       <u8>numberOfSignificantValueDigits
     );
-    this._histogram.autoResize = true;
+    this._histogram.autoResize = autoResize;
   }
 
   recordValue(value: f64): void {
@@ -20,6 +21,10 @@ class HistogramAdapter<T, U> {
   }
   getValueAtPercentile(percentile: f64): f64 {
     return <f64>this._histogram.getValueAtPercentile(percentile);
+  }
+
+  outputPercentileDistribution(): string {
+    return this._histogram.outputPercentileDistribution();
   }
 }
 

@@ -1,10 +1,6 @@
 import b from "benny";
 import { build } from "../index";
-import { BINARY } from "../generated-wasm";
-const loader = require("@assemblyscript/loader");
-const base64 = require("base64-js");
-
-const wasm = loader.instantiateSync(base64.toByteArray(BINARY));
+import { WasmHistogram } from "../wasm";
 
 const randomInteger = () => Math.floor(Math.random() * Number.MAX_SAFE_INTEGER);
 const options = { initCount: 1000 };
@@ -56,7 +52,7 @@ b.suite(
     () => {
       const histogram = build({
         bitBucketSize: 32,
-        highestTrackableValue: Number.MAX_SAFE_INTEGER
+        highestTrackableValue: Number.MAX_SAFE_INTEGER,
       });
       return () => {
         histogram.recordValue(randomInteger());
@@ -67,7 +63,7 @@ b.suite(
   b.add(
     "WASM Int32Histogram",
     () => {
-      const histogram = new wasm.Histogram32(1, 2, 3);
+      const histogram = new WasmHistogram(1, 2, 3, 32);
       return () => {
         histogram.recordValue(randomInteger());
       };
@@ -79,7 +75,7 @@ b.suite(
     () => {
       const histogram = build({
         bitBucketSize: 64,
-        highestTrackableValue: Number.MAX_SAFE_INTEGER
+        highestTrackableValue: Number.MAX_SAFE_INTEGER,
       });
       return () => {
         histogram.recordValue(randomInteger());

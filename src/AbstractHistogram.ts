@@ -1048,6 +1048,10 @@ export abstract class AbstractHistogram extends AbstractHistogramBase {
     this.maxValue = 0;
     this.minNonZeroValue = Number.MAX_SAFE_INTEGER;
   }
+
+  destroy() {
+    // no op - not needed here
+  }
 }
 
 export { AbstractHistogram as default };

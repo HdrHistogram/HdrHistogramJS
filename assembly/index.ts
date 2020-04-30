@@ -19,12 +19,33 @@ class HistogramAdapter<T, U> {
   recordValue(value: f64): void {
     this._histogram.recordSingleValue(<u64>value);
   }
+
+  recordValueWithCount(value: f64, count: f64): void {
+    //this._histogram.recordValueWithCount(<u64>value);
+  }
+
   getValueAtPercentile(percentile: f64): f64 {
     return <f64>this._histogram.getValueAtPercentile(percentile);
   }
 
-  outputPercentileDistribution(): string {
-    return this._histogram.outputPercentileDistribution();
+  getStdDeviation(): f64 {
+    return this._histogram.getStdDeviation();
+  }
+  getMean(): f64 {
+    return this._histogram.getMean();
+  }
+  getTotalCount(): f64 {
+    return this._histogram.totalCount;
+  }
+
+  outputPercentileDistribution(
+    percentileTicksPerHalfDistance: f64,
+    outputValueUnitScalingRatio: f64
+  ): string {
+    return this._histogram.outputPercentileDistribution(
+      <i32>percentileTicksPerHalfDistance,
+      outputValueUnitScalingRatio
+    );
   }
 }
 

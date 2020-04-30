@@ -6,6 +6,7 @@
  * http://creativecommons.org/publicdomain/zero/1.0/
  */
 import ByteBuffer from "./ByteBuffer";
+import Histogram from "./Histogram";
 import Int8Histogram from "./Int8Histogram";
 import Int16Histogram from "./Int16Histogram";
 import Int32Histogram from "./Int32Histogram";
@@ -17,6 +18,7 @@ import HistogramLogReader, { listTags } from "./HistogramLogReader";
 import HistogramLogWriter from "./HistogramLogWriter";
 import { decodeFromCompressedBase64, encodeIntoBase64String } from "./encoding";
 import Recorder from "./Recorder";
+import { WasmHistogram } from "./wasm";
 
 //const BigIntHistogram = require("./BigIntHistogram").default;
 
@@ -54,6 +56,12 @@ interface BuildRequest {
    * Default value is 3
    */
   numberOfSignificantValueDigits?: 1 | 2 | 3 | 4 | 5;
+
+  /**
+   * Is WebAssembly used to speed up computations.
+   * Default value is false
+   */
+  webAssembly?: boolean;
 }
 
 const defaultRequest: BuildRequest = {
@@ -61,7 +69,8 @@ const defaultRequest: BuildRequest = {
   autoResize: true,
   lowestDiscernibleValue: 1,
   highestTrackableValue: 2,
-  numberOfSignificantValueDigits: 3
+  numberOfSignificantValueDigits: 3,
+  webAssembly: false,
 };
 
 /*const bigIntAvailable = (() => {
@@ -73,8 +82,17 @@ const defaultRequest: BuildRequest = {
   }
 })();*/
 
-const build = (request = defaultRequest) => {
+const build = (request = defaultRequest): Histogram => {
   const parameters = Object.assign({}, defaultRequest, request);
+  if (request.webAssembly) {
+    return new WasmHistogram(
+      request.lowestDiscernibleValue as number,
+      request.highestTrackableValue as number,
+      request.numberOfSignificantValueDigits as number,
+      request.bitBucketSize as any,
+      request.autoResize as boolean
+    );
+  }
   let histogramConstr: HistogramConstructor;
   switch (parameters.bitBucketSize) {
     case 8:
@@ -124,5 +142,6 @@ export {
   decodeFromCompressedBase64,
   encodeIntoBase64String,
   HistogramLogWriter,
-  Recorder
+  Recorder,
+  WasmHistogram,
 };

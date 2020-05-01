@@ -210,7 +210,7 @@ export default class Histogram<T, U> extends AbstractHistogramBase<T, U> {
     this.incrementTotalCount();
   }
 
-  handleRecordException(count: U, value: u64): void {
+  handleRecordException(count: u64, value: u64): void {
     if (!this.autoResize) {
       throw new Error(
         "Value " + value.toString() + " is outside of histogram covered range"
@@ -431,6 +431,86 @@ export default class Histogram<T, U> extends AbstractHistogramBase<T, U> {
     }
   }
 
+  recordCountAtValue(count: u64, value: u64): void {
+    const countsIndex = this.countsArrayIndex(value);
+    if (countsIndex >= this.countsArrayLength) {
+      this.handleRecordException(count, value);
+    } else {
+      this.addToCountAtIndex(countsIndex, count);
+    }
+    this.updateMinAndMax(value);
+    this.totalCount += count;
+  }
+
+  recordSingleValueWithExpectedInterval(
+    value: u64,
+    expectedIntervalBetweenValueSamples: u64
+  ): void {
+    this.recordSingleValue(value);
+    if (expectedIntervalBetweenValueSamples <= 0) {
+      return;
+    }
+    for (
+      let missingValue = value - expectedIntervalBetweenValueSamples;
+      missingValue >= expectedIntervalBetweenValueSamples;
+      missingValue -= expectedIntervalBetweenValueSamples
+    ) {
+      this.recordSingleValue(missingValue);
+    }
+  }
+
+  private recordValueWithCountAndExpectedInterval(
+    value: u64,
+    count: u64,
+    expectedIntervalBetweenValueSamples: u64
+  ): void {
+    this.recordCountAtValue(count, value);
+    if (value <= expectedIntervalBetweenValueSamples) {
+      return;
+    }
+
+    for (
+      let missingValue = value - expectedIntervalBetweenValueSamples;
+      missingValue >= expectedIntervalBetweenValueSamples;
+      missingValue -= expectedIntervalBetweenValueSamples
+    ) {
+      this.recordCountAtValue(count, missingValue);
+    }
+  }
+
+  addWhileCorrectingForCoordinatedOmission(
+    otherHistogram: Histogram<T, U>,
+    expectedIntervalBetweenValueSamples: u64
+  ): void {
+    const toHistogram = this;
+
+    const otherValues = new RecordedValuesIterator<T, U>(otherHistogram);
+
+    while (otherValues.hasNext()) {
+      const v = otherValues.next();
+      toHistogram.recordValueWithCountAndExpectedInterval(
+        v.valueIteratedTo,
+        v.countAtValueIteratedTo,
+        expectedIntervalBetweenValueSamples
+      );
+    }
+  }
+
+  copyCorrectedForCoordinatedOmission(
+    expectedIntervalBetweenValueSamples: u64
+  ): Histogram<T, U> {
+    const copy = new Histogram<T, U>(
+      this.lowestDiscernibleValue,
+      this.highestTrackableValue,
+      this.numberOfSignificantValueDigits
+    );
+    copy.addWhileCorrectingForCoordinatedOmission(
+      this,
+      expectedIntervalBetweenValueSamples
+    );
+    return copy;
+  }
+
   /**
    * Get the value at a given percentile.
    * When the given percentile is &gt; 0.0, the value returned is the value that the given
@@ -510,7 +590,7 @@ export default class Histogram<T, U> extends AbstractHistogramBase<T, U> {
     unchecked((this.counts[index] = newCount));
   }
 
-  addToCountAtIndex(index: i32, value: U): void {
+  addToCountAtIndex(index: i32, value: u64): void {
     // @ts-ignore
     const currentCount = this.counts[index];
     const newCount = currentCount + value;
@@ -518,7 +598,7 @@ export default class Histogram<T, U> extends AbstractHistogramBase<T, U> {
       throw newCount + " would overflow short integer count";
     }
     // @ts-ignore
-    this.counts[index] = newCount;
+    this.counts[index] = <U>newCount;
   }
 
   incrementTotalCount(): void {
@@ -536,6 +616,69 @@ export default class Histogram<T, U> extends AbstractHistogramBase<T, U> {
     // @ts-ignore
     newCounts.set(this.counts);
     this.counts = newCounts;
+  }
+
+  add(otherHistogram: Histogram<T, U>): void {
+    const highestRecordableValue = this.highestEquivalentValue(
+      this.valueFromIndex(this.countsArrayLength - 1)
+    );
+
+    if (highestRecordableValue < otherHistogram.maxValue) {
+      if (!this.autoResize) {
+        throw new Error(
+          "The other histogram includes values that do not fit in this histogram's range."
+        );
+      }
+      this.resize(otherHistogram.maxValue);
+    }
+
+    if (
+      this.bucketCount === otherHistogram.bucketCount &&
+      this.subBucketCount === otherHistogram.subBucketCount &&
+      this.unitMagnitude === otherHistogram.unitMagnitude
+    ) {
+      // Counts arrays are of the same length and meaning, so we can just iterate and add directly:
+      let observedOtherTotalCount = <u64>0;
+      for (let i = 0; i < otherHistogram.countsArrayLength; i++) {
+        const otherCount = otherHistogram.getCountAtIndex(i);
+        if (otherCount > 0) {
+          this.addToCountAtIndex(i, otherCount);
+          observedOtherTotalCount += otherCount;
+        }
+      }
+      this.totalCount += observedOtherTotalCount;
+      this.updatedMaxValue(max(this.maxValue, otherHistogram.maxValue));
+      this.updateMinNonZeroValue(
+        min(this.minNonZeroValue, otherHistogram.minNonZeroValue)
+      );
+    } else {
+      // Arrays are not a direct match (or the other could change on the fly in some valid way),
+      // so we can't just stream through and add them. Instead, go through the array and add each
+      // non-zero value found at it's proper value:
+
+      // Do max value first, to avoid max value updates on each iteration:
+      const otherMaxIndex = otherHistogram.countsArrayIndex(
+        otherHistogram.maxValue
+      );
+      let otherCount = otherHistogram.getCountAtIndex(otherMaxIndex);
+      this.recordCountAtValue(otherCount, otherHistogram.maxValue);
+
+      // Record the remaining values, up to but not including the max value:
+      for (let i = 0; i < otherMaxIndex; i++) {
+        otherCount = otherHistogram.getCountAtIndex(i);
+        if (otherCount > 0) {
+          this.recordCountAtValue(otherCount, otherHistogram.valueFromIndex(i));
+        }
+      }
+    }
+    this.startTimeStampMsec = min(
+      this.startTimeStampMsec,
+      otherHistogram.startTimeStampMsec
+    );
+    this.endTimeStampMsec = max(
+      this.endTimeStampMsec,
+      otherHistogram.endTimeStampMsec
+    );
   }
 
   /**

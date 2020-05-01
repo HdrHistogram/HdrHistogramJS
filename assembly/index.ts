@@ -21,7 +21,17 @@ class HistogramAdapter<T, U> {
   }
 
   recordValueWithCount(value: f64, count: f64): void {
-    //this._histogram.recordValueWithCount(<u64>value);
+    this._histogram.recordCountAtValue(<u64>count, <u64>value);
+  }
+
+  recordValueWithExpectedInterval(
+    value: f64,
+    expectedIntervalBetweenValueSamples: f64
+  ): void {
+    this._histogram.recordSingleValueWithExpectedInterval(
+      <u64>value,
+      <u64>expectedIntervalBetweenValueSamples
+    );
   }
 
   getValueAtPercentile(percentile: f64): f64 {
@@ -35,7 +45,7 @@ class HistogramAdapter<T, U> {
     return this._histogram.getMean();
   }
   getTotalCount(): f64 {
-    return this._histogram.totalCount;
+    return <f64>this._histogram.totalCount;
   }
 
   outputPercentileDistribution(
@@ -46,6 +56,25 @@ class HistogramAdapter<T, U> {
       <i32>percentileTicksPerHalfDistance,
       outputValueUnitScalingRatio
     );
+  }
+
+  copyCorrectedForCoordinatedOmission(
+    expectedIntervalBetweenValueSamples: f64
+  ): HistogramAdapter<T, U> {
+    const copy = new HistogramAdapter<T, U>(
+      <f64>this._histogram.lowestDiscernibleValue,
+      <f64>this._histogram.highestTrackableValue,
+      <f64>this._histogram.numberOfSignificantValueDigits,
+      this._histogram.autoResize
+    );
+    copy._histogram = this._histogram.copyCorrectedForCoordinatedOmission(
+      <u64>expectedIntervalBetweenValueSamples
+    );
+    return copy;
+  }
+
+  reset(): void {
+    this._histogram.reset();
   }
 }
 

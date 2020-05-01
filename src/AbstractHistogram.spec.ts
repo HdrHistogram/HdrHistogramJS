@@ -291,6 +291,21 @@ describe("Histogram correcting coordinated omissions", () => {
     expect(correctedHistogram.minNonZeroValue).to.be.equal(107);
     expect(correctedHistogram.maxValue).to.be.equal(207);
   });
+
+  it("should generate additional values when correcting after recording bis", () => {
+    // given
+    histogram.reset();
+    histogram.recordValue(207);
+    histogram.recordValue(207);
+    // when
+    const correctedHistogram = histogram.copyCorrectedForCoordinatedOmission(
+      1000
+    );
+    // then
+    expect(correctedHistogram.totalCount).to.be.equal(2);
+    expect(correctedHistogram.minNonZeroValue).to.be.equal(207);
+    expect(correctedHistogram.maxValue).to.be.equal(207);
+  });
 });
 
 describe("Histogram add & substract", () => {

@@ -186,6 +186,16 @@ describe("Histogram resize", () => {
     const medianValue = histogram.getValueAtPercentile(50);
     expect<f64>(Math.floor(<f64>medianValue / <f64>10000)).toBe(900);
   });
+
+  it("should update highest trackable value when resizing", () => {
+    // given
+    const histogram = new Histogram8(1, 4096, 3);
+    histogram.autoResize = true;
+    // when
+    histogram.recordValue(9000);
+    // then
+    expect(histogram.highestTrackableValue).toBeGreaterThan(4096);
+  });
 });
 
 describe("Histogram clearing support", () => {
@@ -206,5 +216,63 @@ describe("Histogram clearing support", () => {
     expect(histogram.maxValue).toBe(0);
     expect(histogram.minNonZeroValue).toBe(U64.MAX_VALUE);
     expect(histogram.getValueAtPercentile(99.999)).toBe(0);
+  });
+});
+
+describe("Histogram correcting coordinated omissions", () => {
+  it("should generate additional values when recording", () => {
+    // given
+    const histogram = buildHistogram();
+    // when
+    histogram.recordSingleValueWithExpectedInterval(207, 100);
+    // then
+    expect(histogram.totalCount).toBe(2);
+    expect(histogram.minNonZeroValue).toBe(107);
+    expect(histogram.maxValue).toBe(207);
+  });
+
+  it("should generate additional values when correcting after recording", () => {
+    // given
+    const histogram = buildHistogram();
+    histogram.recordValue(207);
+    histogram.recordValue(207);
+    // when
+    const correctedHistogram = histogram.copyCorrectedForCoordinatedOmission(
+      100
+    );
+    // then
+    expect(correctedHistogram.totalCount).toBe(4);
+    expect(correctedHistogram.minNonZeroValue).toBe(107);
+    expect(correctedHistogram.maxValue).toBe(207);
+  });
+
+  it("should generate additional values when correcting after recording bis", () => {
+    // given
+    const histogram = buildHistogram();
+    histogram.recordValue(207);
+    histogram.recordValue(207);
+    // when
+    const correctedHistogram = histogram.copyCorrectedForCoordinatedOmission(
+      1000
+    );
+    // then
+    expect(correctedHistogram.totalCount).toBe(2);
+    expect(correctedHistogram.minNonZeroValue).toBe(207);
+    expect(correctedHistogram.maxValue).toBe(207);
+  });
+});
+
+describe("Histogram add & substract", () => {
+  it("should add histograms of same size", () => {
+    // given
+    const histogram = buildHistogram();
+    const histogram2 = buildHistogram();
+    histogram.recordValue(42);
+    histogram2.recordValue(158);
+    // when
+    histogram.add(histogram2);
+    // then
+    expect(histogram.totalCount).toBe(2);
+    expect(histogram.getMean()).toBe(100);
   });
 });

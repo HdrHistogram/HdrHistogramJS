@@ -85,7 +85,7 @@ const defaultRequest: BuildRequest = {
 const build = (request = defaultRequest): Histogram => {
   const parameters = Object.assign({}, defaultRequest, request);
   if (request.webAssembly) {
-    return new WasmHistogram(
+    return WasmHistogram.create(
       request.lowestDiscernibleValue as number,
       request.highestTrackableValue as number,
       request.numberOfSignificantValueDigits as number,

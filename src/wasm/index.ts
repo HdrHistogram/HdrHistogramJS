@@ -5,19 +5,22 @@ const base64 = require("base64-js");
 const wasm = loader.instantiateSync(base64.toByteArray(BINARY));
 
 export class WasmHistogram {
-  private _wasmHistogram: any;
-  constructor(
+  constructor(private _wasmHistogram: any) {}
+
+  static create(
     lowestDiscernibleValue: number,
     highestTrackableValue: number,
     numberOfSignificantValueDigits: number,
     bitBucketSize: 8 | 16 | 32 | 64 | "packed",
     autoResize: boolean = true
   ) {
-    this._wasmHistogram = new wasm[`Histogram${bitBucketSize}`](
-      lowestDiscernibleValue,
-      highestTrackableValue,
-      numberOfSignificantValueDigits,
-      autoResize
+    return new WasmHistogram(
+      new wasm[`Histogram${bitBucketSize}`](
+        lowestDiscernibleValue,
+        highestTrackableValue,
+        numberOfSignificantValueDigits,
+        autoResize
+      )
     );
   }
 
@@ -71,13 +74,22 @@ export class WasmHistogram {
     otherHistogram: WasmHistogram,
     expectedIntervalBetweenValueSamples: number
   ): void {
-    throw "not implemented";
+    this._wasmHistogram.addWhileCorrectingForCoordinatedOmission(
+      otherHistogram,
+      expectedIntervalBetweenValueSamples
+    );
   }
 
   copyCorrectedForCoordinatedOmission(
     expectedIntervalBetweenValueSamples: number
   ): WasmHistogram {
-    throw "not implemented";
+    return new WasmHistogram(
+      wasm[`Histogram32`].wrap(
+        this._wasmHistogram.copyCorrectedForCoordinatedOmission(
+          expectedIntervalBetweenValueSamples
+        )
+      )
+    );
   }
 
   add(otherHistogram: WasmHistogram): void {
@@ -89,11 +101,12 @@ export class WasmHistogram {
   }
 
   reset(): void {
-    throw "not implemented";
+    this._wasmHistogram.reset();
   }
 
   destroy(): void {
-    throw "not implemented";
+    wasm.__release(this._wasmHistogram);
+    this._wasmHistogram = null;
   }
 
   getEstimatedFootprintInBytes(): number {

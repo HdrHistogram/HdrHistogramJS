@@ -86,6 +86,19 @@ class HistogramAdapter<T, U> {
     this._histogram.add(otherHistogram._histogram);
   }
 
+  subtractHistogram8(otherHistogram: Histogram8): void {
+    this._histogram.subtract(otherHistogram._histogram);
+  }
+  subtractHistogram16(otherHistogram: Histogram16): void {
+    this._histogram.subtract(otherHistogram._histogram);
+  }
+  subtractHistogram32(otherHistogram: Histogram32): void {
+    this._histogram.subtract(otherHistogram._histogram);
+  }
+  subtractHistogram64(otherHistogram: Histogram64): void {
+    this._histogram.subtract(otherHistogram._histogram);
+  }
+
   reset(): void {
     this._histogram.reset();
   }

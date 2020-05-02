@@ -275,4 +275,33 @@ describe("Histogram add & substract", () => {
     expect(histogram.totalCount).toBe(2);
     expect(histogram.getMean()).toBe(100);
   });
+
+  it("should add histograms of different sizes & precisions", () => {
+    // given
+    const histogram = buildHistogram();
+    const histogram2 = new Histogram16(1, 1024, 3);
+    histogram2.autoResize = true;
+    histogram.recordValue(42000);
+    histogram2.recordValue(1000);
+    // when
+    histogram.add<Uint16Array, u16>(histogram2);
+    // then
+    expect(histogram.totalCount).toBe(2);
+    expect(Math.floor(histogram.getMean() / 100)).toBe(215);
+  });
+
+  it("should be equal when another histogram is added then subtracted with same characteristics", () => {
+    // given
+    const histogram = buildHistogram();
+    const histogram2 = buildHistogram();
+    histogram.autoResize = true;
+    histogram.recordValue(1000);
+    histogram2.recordValue(42000);
+    const outputBefore = histogram.outputPercentileDistribution();
+    // when
+    histogram.add<Uint8Array, u8>(histogram2);
+    histogram.subtract<Uint8Array, u8>(histogram2);
+    // then
+    expect(histogram.outputPercentileDistribution()).toBe(outputBefore);
+  });
 });

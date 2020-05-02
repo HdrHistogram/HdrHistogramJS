@@ -103,7 +103,7 @@ export class WasmHistogram {
   }
 
   subtract(otherHistogram: WasmHistogram): void {
-    throw "not implemented";
+    this._wasmHistogram[`subtract${otherHistogram._remoteHistogramClass}`](otherHistogram._wasmHistogram);
   }
 
   reset(): void {

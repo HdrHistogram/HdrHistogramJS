@@ -682,6 +682,105 @@ export default class Histogram<T, U> extends AbstractHistogramBase<T, U> {
   }
 
   /**
+   * Get the count of recorded values at a specific value (to within the histogram resolution at the value level).
+   *
+   * @param value The value for which to provide the recorded count
+   * @return The total count of values recorded in the histogram within the value range that is
+   * {@literal >=} lowestEquivalentValue(<i>value</i>) and {@literal <=} highestEquivalentValue(<i>value</i>)
+   */
+  private getCountAtValue(value: u64): u64 {
+    const index = min(
+      max(0, this.countsArrayIndex(value)),
+      this.countsArrayLength - 1
+    );
+    return this.getCountAtIndex(index);
+  }
+
+  private establishInternalTackingValues(
+    lengthToCover: i32 = this.countsArrayLength
+  ): void {
+    this.maxValue = 0;
+    this.minNonZeroValue = u64.MAX_VALUE;
+    let maxIndex: i32 = -1;
+    let minNonZeroIndex = -1;
+    let observedTotalCount: u64 = 0;
+    for (let index: i32 = 0; index < lengthToCover; index++) {
+      const countAtIndex: u64 = this.getCountAtIndex(index);
+      if (countAtIndex > 0) {
+        observedTotalCount += countAtIndex;
+        maxIndex = index;
+        if (minNonZeroIndex == -1 && index != 0) {
+          minNonZeroIndex = index;
+        }
+      }
+    }
+    if (maxIndex >= 0) {
+      this.updatedMaxValue(
+        this.highestEquivalentValue(this.valueFromIndex(maxIndex))
+      );
+    }
+    if (minNonZeroIndex >= 0) {
+      this.updateMinNonZeroValue(this.valueFromIndex(minNonZeroIndex));
+    }
+    this.totalCount = observedTotalCount;
+  }
+
+  subtract<V, W>(otherHistogram: Histogram<V, W>): void {
+    const highestRecordableValue = this.valueFromIndex(
+      this.countsArrayLength - 1
+    );
+    if (highestRecordableValue < otherHistogram.maxValue) {
+      if (!this.autoResize) {
+        throw new Error(
+          "The other histogram includes values that do not fit in this histogram's range."
+        );
+      }
+      this.resize(otherHistogram.maxValue);
+    }
+
+    if (
+      this.bucketCount === otherHistogram.bucketCount &&
+      this.subBucketCount === otherHistogram.subBucketCount &&
+      this.unitMagnitude === otherHistogram.unitMagnitude
+    ) {
+      // optim
+      // Counts arrays are of the same length and meaning, so we can just iterate and add directly:
+      for (let i = 0; i < otherHistogram.countsArrayLength; i++) {
+        const otherCount = otherHistogram.getCountAtIndex(i);
+        if (otherCount > 0) {
+          this.addToCountAtIndex(i, -otherCount);
+        }
+      }
+    } else {
+      for (let i = 0; i < otherHistogram.countsArrayLength; i++) {
+        const otherCount = otherHistogram.getCountAtIndex(i);
+        if (otherCount > 0) {
+          const otherValue = otherHistogram.valueFromIndex(i);
+          if (this.getCountAtValue(otherValue) < otherCount) {
+            throw new Error(
+              "otherHistogram count (" +
+                otherCount.toString() +
+                ") at value " +
+                otherValue.toString() +
+                " is larger than this one's (" +
+                this.getCountAtValue(otherValue).toString() +
+                ")"
+            );
+          }
+          this.recordCountAtValue(-otherCount, otherValue);
+        }
+      }
+    }
+    // With subtraction, the max and minNonZero values could have changed:
+    if (
+      this.getCountAtValue(this.maxValue) <= 0 ||
+      this.getCountAtValue(this.minNonZeroValue) <= 0
+    ) {
+      this.establishInternalTackingValues();
+    }
+  }
+
+  /**
    * Produce textual representation of the value distribution of histogram data by percentile. The distribution is
    * output with exponentially increasing resolution, with each exponentially decreasing half-distance containing
    * <i>dumpTicksPerHalf</i> percentile reporting tick points.

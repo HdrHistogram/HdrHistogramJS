@@ -5,7 +5,10 @@ const base64 = require("base64-js");
 const wasm = loader.instantiateSync(base64.toByteArray(BINARY));
 
 export class WasmHistogram {
-  constructor(private _wasmHistogram: any) {}
+  constructor(
+    private _wasmHistogram: any,
+    private _remoteHistogramClass: string
+  ) {}
 
   static create(
     lowestDiscernibleValue: number,
@@ -14,13 +17,15 @@ export class WasmHistogram {
     bitBucketSize: 8 | 16 | 32 | 64 | "packed",
     autoResize: boolean = true
   ) {
+    const remoteHistogramClass = `Histogram${bitBucketSize}`;
     return new WasmHistogram(
-      new wasm[`Histogram${bitBucketSize}`](
+      new wasm[remoteHistogramClass](
         lowestDiscernibleValue,
         highestTrackableValue,
         numberOfSignificantValueDigits,
         autoResize
-      )
+      ),
+      remoteHistogramClass
     );
   }
 
@@ -84,16 +89,17 @@ export class WasmHistogram {
     expectedIntervalBetweenValueSamples: number
   ): WasmHistogram {
     return new WasmHistogram(
-      wasm[`Histogram32`].wrap(
+      wasm[this._remoteHistogramClass].wrap(
         this._wasmHistogram.copyCorrectedForCoordinatedOmission(
           expectedIntervalBetweenValueSamples
         )
-      )
+      ),
+      this._remoteHistogramClass
     );
   }
 
   add(otherHistogram: WasmHistogram): void {
-    throw "not implemented";
+    this._wasmHistogram[`add${otherHistogram._remoteHistogramClass}`](otherHistogram._wasmHistogram);
   }
 
   subtract(otherHistogram: WasmHistogram): void {

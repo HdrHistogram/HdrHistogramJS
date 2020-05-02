@@ -618,7 +618,7 @@ export default class Histogram<T, U> extends AbstractHistogramBase<T, U> {
     this.counts = newCounts;
   }
 
-  add(otherHistogram: Histogram<T, U>): void {
+  add<V, W>(otherHistogram: Histogram<V, W>): void {
     const highestRecordableValue = this.highestEquivalentValue(
       this.valueFromIndex(this.countsArrayLength - 1)
     );

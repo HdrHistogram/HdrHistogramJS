@@ -1,4 +1,4 @@
-import { Histogram8 } from "../Histogram";
+import { Histogram8, Histogram16 } from "../Histogram";
 
 const buildHistogram = (): Histogram8 =>
   new Histogram8(
@@ -266,11 +266,11 @@ describe("Histogram add & substract", () => {
   it("should add histograms of same size", () => {
     // given
     const histogram = buildHistogram();
-    const histogram2 = buildHistogram();
+    const histogram2 = new Histogram16(1, 256, 3);
     histogram.recordValue(42);
     histogram2.recordValue(158);
-    // when
-    histogram.add(histogram2);
+    // testwhen
+    histogram.add<Uint16Array, u16>(histogram2);
     // then
     expect(histogram.totalCount).toBe(2);
     expect(histogram.getMean()).toBe(100);

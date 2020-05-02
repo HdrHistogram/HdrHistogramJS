@@ -73,6 +73,19 @@ class HistogramAdapter<T, U> {
     return copy;
   }
 
+  addHistogram8(otherHistogram: Histogram8): void {
+    this._histogram.add(otherHistogram._histogram);
+  }
+  addHistogram16(otherHistogram: Histogram16): void {
+    this._histogram.add(otherHistogram._histogram);
+  }
+  addHistogram32(otherHistogram: Histogram32): void {
+    this._histogram.add(otherHistogram._histogram);
+  }
+  addHistogram64(otherHistogram: Histogram64): void {
+    this._histogram.add(otherHistogram._histogram);
+  }
+
   reset(): void {
     this._histogram.reset();
   }

@@ -63,7 +63,9 @@ b.suite(
   b.add(
     "WASM Int32Histogram",
     () => {
-      const histogram = new WasmHistogram(1, 2, 3, 32);
+      const histogram = build({
+        webAssembly: true,
+      });
       return () => {
         histogram.recordValue(randomInteger());
       };

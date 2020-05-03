@@ -6,6 +6,7 @@ import ByteBuffer from "./ByteBuffer";
 import Int32Histogram from "./Int32Histogram";
 import PercentileIterator from "./PercentileIterator";
 import HistogramIterationValue from "./HistogramIterationValue";
+import { build } from ".";
 
 declare function require(name: string): any;
 
@@ -322,6 +323,34 @@ describe("Histogram add & substract", () => {
     expect(histogram.getMean()).to.be.equal(100);
   });
 
+  it("should add histograms of different sizes & precisions", () => {
+    // given
+    const histogram = build({
+      lowestDiscernibleValue: 1,
+      highestTrackableValue: 1024,
+      autoResize: true,
+      numberOfSignificantValueDigits: 2,
+      bitBucketSize: 32,
+      webAssembly: true,
+    });
+    const histogram2 = build({
+      lowestDiscernibleValue: 1,
+      highestTrackableValue: 1024,
+      autoResize: true,
+      numberOfSignificantValueDigits: 3,
+      bitBucketSize: 32,
+      webAssembly: true,
+    });
+    //histogram2.autoResize = true;
+    histogram.recordValue(42000);
+    histogram2.recordValue(1000);
+    // when
+    histogram.add(histogram2);
+    // then
+    expect(histogram.getTotalCount()).to.be.equal(2);
+    expect(Math.floor(histogram.getMean() / 100)).to.be.equal(215);
+  });
+
   it("should add histograms of different sizes", () => {
     // given
     const histogram = new Int32Histogram(1, Number.MAX_SAFE_INTEGER, 2);
@@ -335,11 +364,10 @@ describe("Histogram add & substract", () => {
     expect(histogram.getTotalCount()).to.be.equal(2);
     expect(Math.floor(histogram.getMean() / 100)).to.be.equal(215);
   });
-
-  it("should add histograms of different sizes & precisions", () => {
+  it("should add histograms of different sizes b", () => {
     // given
     const histogram = new Int32Histogram(1, Number.MAX_SAFE_INTEGER, 2);
-    const histogram2 = new Int32Histogram(1, 1024, 3);
+    const histogram2 = new Int32Histogram(1, 1024, 2);
     histogram2.autoResize = true;
     histogram.recordValue(42000);
     histogram2.recordValue(1000);
@@ -355,6 +383,33 @@ describe("Histogram add & substract", () => {
     const histogram = new Int32Histogram(1, 1024, 5);
     const histogram2 = new Int32Histogram(1, Number.MAX_SAFE_INTEGER, 5);
     histogram.autoResize = true;
+    histogram.recordValue(1000);
+    histogram2.recordValue(42000);
+    const outputBefore = histogram.outputPercentileDistribution();
+    // when
+    histogram.add(histogram2);
+    histogram.subtract(histogram2);
+    // then
+    expect(histogram.outputPercentileDistribution()).to.be.equal(outputBefore);
+  });
+
+  it("should be equal when another histogram is added then subtracted bis", () => {
+    // given
+    const histogram = build({
+      lowestDiscernibleValue: 1,
+      highestTrackableValue: 1024,
+      autoResize: true,
+      numberOfSignificantValueDigits: 5,
+      bitBucketSize: 32,
+      webAssembly: true,
+    });
+    const histogram2 = build({
+      lowestDiscernibleValue: 1,
+      highestTrackableValue: Number.MAX_SAFE_INTEGER,
+      numberOfSignificantValueDigits: 5,
+      bitBucketSize: 32,
+      webAssembly: true,
+    });
     histogram.recordValue(1000);
     histogram2.recordValue(42000);
     const outputBefore = histogram.outputPercentileDistribution();

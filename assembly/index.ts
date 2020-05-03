@@ -16,6 +16,22 @@ class HistogramAdapter<T, U> {
     this._histogram.autoResize = autoResize;
   }
 
+  public get autoResize(): boolean {
+    return this._histogram.autoResize;
+  }
+
+  public set autoResize(resize: boolean) {
+    this._histogram.autoResize = resize;
+  }
+
+  public get highestTrackableValue(): f64 {
+    return <f64>this._histogram.highestTrackableValue;
+  }
+
+  public set highestTrackableValue(value: f64) {
+    this._histogram.highestTrackableValue = <u64>value;
+  }
+
   recordValue(value: f64): void {
     this._histogram.recordSingleValue(<u64>value);
   }

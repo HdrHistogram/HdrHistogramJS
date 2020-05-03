@@ -11,6 +11,7 @@ import PercentileIterator from "./PercentileIterator";
 import HistogramIterationValue from "./HistogramIterationValue";
 import { integerFormatter, floatFormatter } from "./formatters";
 import ulp from "./ulp";
+import { Histogram } from ".";
 
 const { pow, floor, ceil, log2, max, min } = Math;
 
@@ -19,7 +20,7 @@ export interface HistogramConstructor {
     lowestDiscernibleValue: number,
     highestTrackableValue: number,
     numberOfSignificantValueDigits: number
-  ): AbstractHistogram;
+  ): Histogram;
 }
 
 export abstract class AbstractHistogram extends AbstractHistogramBase {

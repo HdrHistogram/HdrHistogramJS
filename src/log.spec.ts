@@ -3,20 +3,20 @@ import {
   HistogramLogWriter,
   HistogramLogReader,
   build,
-  AbstractHistogram
+  AbstractHistogram,
 } from ".";
 
 describe("Logs", () => {
   it("should give same result after been written then read", () => {
     // given
     let buffer = "";
-    const writer = new HistogramLogWriter(content => {
+    const writer = new HistogramLogWriter((content) => {
       buffer += content;
     });
     writer.outputLogFormatVersion();
     writer.outputStartTime(12345000);
     writer.outputLegend();
-    const inputHistogram = build();
+    const inputHistogram = build() as AbstractHistogram;
     inputHistogram.recordValue(1515);
     inputHistogram.recordValue(1789);
     // when

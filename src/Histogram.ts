@@ -1,4 +1,7 @@
 export default interface Histogram {
+  autoResize: boolean;
+  highestTrackableValue: number;
+
   /**
    * Record a value in the histogram
    *

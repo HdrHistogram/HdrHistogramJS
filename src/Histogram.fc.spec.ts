@@ -13,20 +13,20 @@ const runFromStryker = __dirname.includes("stryker");
 
 const runnerOptions = {
   numRuns: runFromStryker ? 10 : 1000,
-  verbose: true
+  verbose: true,
 };
 
 describe("Histogram percentile computation", () => {
   it("should be accurate according to its significant figures", () => {
     const numberOfSignificantValueDigits = 3;
     const histogram = hdr.build({
-      numberOfSignificantValueDigits
+      numberOfSignificantValueDigits,
     });
     fc.json;
     fc.assert(
-      fc.property(arbData(2000), numbers => {
+      fc.property(arbData(2000), (numbers) => {
         histogram.reset();
-        numbers.forEach(n => histogram.recordValue(n));
+        numbers.forEach((n) => histogram.recordValue(n));
         const actual = quantile(numbers, 90);
         const got = histogram.getValueAtPercentile(90);
         const relativeError = Math.abs(1 - got / actual);
@@ -47,9 +47,9 @@ describe("Histogram encoding/decoding", () => {
         fc.property(arbData(1), fc.double(50, 100), (numbers, percentile) => {
           const histogram = hdr.build({
             bitBucketSize,
-            numberOfSignificantValueDigits
-          });
-          numbers.forEach(n => histogram.recordValue(n));
+            numberOfSignificantValueDigits,
+          }) as hdr.AbstractHistogram;
+          numbers.forEach((n) => histogram.recordValue(n));
           const encodedHistogram = hdr.encodeIntoBase64String(histogram);
           const decodedHistogram = hdr.decodeFromCompressedBase64(
             encodedHistogram
@@ -70,7 +70,7 @@ const arbData = (size: number) =>
 // reference implementation
 const quantile = (inputData: number[], percentile: number) => {
   const data = [...inputData].sort((a, b) => a - b);
-  const index = percentile / 100 * (data.length - 1);
+  const index = (percentile / 100) * (data.length - 1);
   let result: number;
   if (Math.floor(index) === index) {
     result = data[index];

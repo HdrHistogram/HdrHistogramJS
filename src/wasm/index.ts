@@ -5,7 +5,7 @@ const base64 = require("base64-js");
 const isNode = typeof process !== "undefined" && process.version;
 export const webAssemblyAvailable = (() => {
   let available = false;
-  if (typeof process !== "undefined" && process.version) {
+  if (isNode) {
     // nodejs
     available = "WebAssembly" in global;
   } else {

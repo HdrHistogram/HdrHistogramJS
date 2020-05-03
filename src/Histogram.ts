@@ -53,9 +53,9 @@ export default interface Histogram {
    * @param useCsvFormat  Output in CSV format if true. Otherwise use plain text form.
    */
   outputPercentileDistribution(
-    percentileTicksPerHalfDistance: number,
-    outputValueUnitScalingRatio: number,
-    useCsvFormat: false
+    percentileTicksPerHalfDistance?: number,
+    outputValueUnitScalingRatio?: number,
+    useCsvFormat?: false
   ): string;
 
   /**

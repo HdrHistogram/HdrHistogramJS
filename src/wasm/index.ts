@@ -2,7 +2,64 @@ import { BINARY } from "./generated-wasm";
 const loader = require("@assemblyscript/loader");
 const base64 = require("base64-js");
 
-const wasm = loader.instantiateSync(base64.toByteArray(BINARY));
+const isNode = typeof process !== "undefined" && process.version;
+export const webAssemblyAvailable = (() => {
+  let available = false;
+  if (typeof process !== "undefined" && process.version) {
+    // nodejs
+    available = "WebAssembly" in global;
+  } else {
+    // browser
+    // @ts-ignore
+    available = "WebAssembly" in window;
+  }
+  return available;
+})();
+
+const wasm =
+  webAssemblyAvailable && loader.instantiateSync(base64.toByteArray(BINARY));
+
+interface WasmBuildRequest {
+  /**
+   * The size in bit of each count bucket
+   * Default value is 32
+   */
+  bitBucketSize?: 8 | 16 | 32 | 64; // | "packed"
+  /**
+   * Control whether or not the histogram can auto-resize and auto-adjust it's
+   * highestTrackableValue
+   * Default value is true
+   */
+  autoResize?: boolean;
+  /**
+   * The lowest value that can be discerned (distinguished from 0) by the histogram.
+   * Must be a positive integer that is {@literal >=} 1. May be internally rounded
+   * down to nearest power of 2.
+   * Default value is 1
+   */
+  lowestDiscernibleValue?: number;
+  /**
+   * The highest value to be tracked by the histogram. Must be a positive
+   * integer that is {@literal >=} (2 * lowestDiscernibleValue).
+   * Default value is Number.MAX_SAFE_INTEGER
+   */
+  highestTrackableValue?: number;
+  /**
+   * The number of significant decimal digits to which the histogram will
+   * maintain value resolution and separation. Must be a non-negative
+   * integer between 0 and 5.
+   * Default value is 3
+   */
+  numberOfSignificantValueDigits?: 1 | 2 | 3 | 4 | 5;
+}
+
+const defaultRequest: WasmBuildRequest = {
+  bitBucketSize: 32,
+  autoResize: true,
+  lowestDiscernibleValue: 1,
+  highestTrackableValue: 2,
+  numberOfSignificantValueDigits: 3,
+};
 
 export class WasmHistogram {
   constructor(
@@ -10,20 +67,15 @@ export class WasmHistogram {
     private _remoteHistogramClass: string
   ) {}
 
-  static create(
-    lowestDiscernibleValue: number,
-    highestTrackableValue: number,
-    numberOfSignificantValueDigits: number,
-    bitBucketSize: 8 | 16 | 32 | 64 | "packed",
-    autoResize: boolean = true
-  ) {
-    const remoteHistogramClass = `Histogram${bitBucketSize}`;
+  static build(request: WasmBuildRequest = defaultRequest) {
+    const parameters = Object.assign({}, defaultRequest, request);
+    const remoteHistogramClass = `Histogram${parameters.bitBucketSize}`;
     return new WasmHistogram(
       new wasm[remoteHistogramClass](
-        lowestDiscernibleValue,
-        highestTrackableValue,
-        numberOfSignificantValueDigits,
-        autoResize
+        parameters.lowestDiscernibleValue,
+        parameters.highestTrackableValue,
+        parameters.numberOfSignificantValueDigits,
+        parameters.autoResize
       ),
       remoteHistogramClass
     );
@@ -99,11 +151,15 @@ export class WasmHistogram {
   }
 
   add(otherHistogram: WasmHistogram): void {
-    this._wasmHistogram[`add${otherHistogram._remoteHistogramClass}`](otherHistogram._wasmHistogram);
+    this._wasmHistogram[`add${otherHistogram._remoteHistogramClass}`](
+      otherHistogram._wasmHistogram
+    );
   }
 
   subtract(otherHistogram: WasmHistogram): void {
-    this._wasmHistogram[`subtract${otherHistogram._remoteHistogramClass}`](otherHistogram._wasmHistogram);
+    this._wasmHistogram[`subtract${otherHistogram._remoteHistogramClass}`](
+      otherHistogram._wasmHistogram
+    );
   }
 
   reset(): void {

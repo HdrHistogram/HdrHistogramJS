@@ -18,7 +18,7 @@ import HistogramLogReader, { listTags } from "./HistogramLogReader";
 import HistogramLogWriter from "./HistogramLogWriter";
 import { decodeFromCompressedBase64, encodeIntoBase64String } from "./encoding";
 import Recorder from "./Recorder";
-import { WasmHistogram } from "./wasm";
+import { WasmHistogram, webAssemblyAvailable } from "./wasm";
 
 //const BigIntHistogram = require("./BigIntHistogram").default;
 
@@ -84,14 +84,8 @@ const defaultRequest: BuildRequest = {
 
 const build = (request = defaultRequest): Histogram => {
   const parameters = Object.assign({}, defaultRequest, request);
-  if (request.webAssembly) {
-    return WasmHistogram.create(
-      request.lowestDiscernibleValue as number,
-      request.highestTrackableValue as number,
-      request.numberOfSignificantValueDigits as number,
-      request.bitBucketSize as any,
-      request.autoResize as boolean
-    );
+  if (request.webAssembly && webAssemblyAvailable) {
+    return WasmHistogram.build(parameters);
   }
   let histogramConstr: HistogramConstructor;
   switch (parameters.bitBucketSize) {

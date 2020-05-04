@@ -1,6 +1,13 @@
 export default interface Histogram {
+  /**
+   * Flag to enable automatic resizing of the underlying array
+   */
   autoResize: boolean;
-  highestTrackableValue: number;
+
+  /**
+   * The current highest trackable value. May change if autoresize flag is set to true
+   */
+  readonly highestTrackableValue: number;
 
   /**
    * Total count of all recorded values in the histogram

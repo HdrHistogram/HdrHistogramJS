@@ -65,23 +65,15 @@ export abstract class AbstractHistogram extends AbstractHistogramBase {
   //
 
   abstract getCountAtIndex(index: number): number;
-  /*
-    abstract getCountAtNormalizedIndex(index: number): number;
-  */
+
   abstract incrementCountAtIndex(index: number): void;
 
   abstract addToCountAtIndex(index: number, value: number): void;
 
   abstract setCountAtIndex(index: number, value: number): void;
-  /*
-    abstract setCountAtNormalizedIndex(index: number, value: number): void;
-  
-    abstract getNormalizingIndexOffset(): number;
-  */
+
   abstract setNormalizingIndexOffset(normalizingIndexOffset: number): void;
-  /*
-    abstract shiftNormalizingIndexByOffset(offsetToAdd: number, lowestHalfBucketPopulated: boolean): void;
-  */
+
   abstract setTotalCount(totalCount: number): void;
 
   abstract incrementTotalCount(): void;
@@ -405,8 +397,7 @@ export abstract class AbstractHistogram extends AbstractHistogramBase {
     //
     // First, Compute fp value for count at the requested percentile. Note that fp result end up
     // being 1 ulp larger than the correct integer count for this percentile:
-    const fpCountAtPercentile =
-      (requestedPercentile / 100.0) * this.totalCount;
+    const fpCountAtPercentile = (requestedPercentile / 100.0) * this.totalCount;
     // Next, round up, but make sure to prevent <= 1 ulp inaccurancies in the above fp math from
     // making us skip a count:
     const countAtPercentile = max(

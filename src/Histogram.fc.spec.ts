@@ -22,7 +22,6 @@ describe("Histogram percentile computation", () => {
     const histogram = hdr.build({
       numberOfSignificantValueDigits,
     });
-    fc.json;
     fc.assert(
       fc.property(arbData(2000), (numbers) => {
         histogram.reset();

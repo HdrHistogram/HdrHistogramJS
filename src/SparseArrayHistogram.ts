@@ -8,8 +8,8 @@
 import AbstractHistogram from "./AbstractHistogram";
 
 class SparseArrayHistogram extends AbstractHistogram {
-  counts: Array<number>;
-  totalCount: number;
+  _counts: Array<number>;
+  _totalCount: number;
 
   constructor(
     lowestDiscernibleValue: number,
@@ -21,25 +21,25 @@ class SparseArrayHistogram extends AbstractHistogram {
       highestTrackableValue,
       numberOfSignificantValueDigits
     );
-    this.totalCount = 0;
-    this.counts = new Array();
+    this._totalCount = 0;
+    this._counts = new Array();
   }
 
   clearCounts() {
-    this.counts.fill(0);
+    this._counts.fill(0);
   }
 
   incrementCountAtIndex(index: number) {
-    const currentCount = this.counts[index] || 0;
+    const currentCount = this._counts[index] || 0;
     const newCount = currentCount + 1;
     if (newCount < 0) {
       throw newCount + " would overflow short integer count";
     }
-    this.counts[index] = newCount;
+    this._counts[index] = newCount;
   }
 
   addToCountAtIndex(index: number, value: number) {
-    const currentCount = this.counts[index] || 0;
+    const currentCount = this._counts[index] || 0;
     const newCount = currentCount + value;
     if (
       newCount < Number.MIN_SAFE_INTEGER ||
@@ -47,14 +47,14 @@ class SparseArrayHistogram extends AbstractHistogram {
     ) {
       throw newCount + " would overflow integer count";
     }
-    this.counts[index] = newCount;
+    this._counts[index] = newCount;
   }
 
   setCountAtIndex(index: number, value: number) {
     if (value < Number.MIN_SAFE_INTEGER || value > Number.MAX_SAFE_INTEGER) {
       throw value + " would overflow integer count";
     }
-    this.counts[index] = value;
+    this._counts[index] = value;
   }
 
   resize(newHighestTrackableValue: number) {
@@ -64,27 +64,27 @@ class SparseArrayHistogram extends AbstractHistogram {
   setNormalizingIndexOffset(normalizingIndexOffset: number) {}
 
   incrementTotalCount() {
-    this.totalCount++;
+    this._totalCount++;
   }
 
   addToTotalCount(value: number) {
-    this.totalCount += value;
+    this._totalCount += value;
   }
 
   setTotalCount(value: number) {
-    this.totalCount = value;
+    this._totalCount = value;
   }
 
   getTotalCount() {
-    return this.totalCount;
+    return this._totalCount;
   }
 
   getCountAtIndex(index: number) {
-    return this.counts[index] || 0;
+    return this._counts[index] || 0;
   }
 
   protected _getEstimatedFootprintInBytes() {
-    return 512 + this.counts.length;
+    return 512 + this._counts.length;
   }
 
   copyCorrectedForCoordinatedOmission(

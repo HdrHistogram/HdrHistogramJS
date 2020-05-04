@@ -73,7 +73,7 @@ describe("Histogram Log Reader", () => {
   it("should read encoded histogram and use provided constructor", () => {
     // given
     const reader = new HistogramLogReader(fileContent, {
-      histogramConstr: PackedHistogram
+      histogramConstr: PackedHistogram,
     });
     // when
     const histogram = reader.nextIntervalHistogram();
@@ -222,7 +222,7 @@ describe("Histogram Log Reader", () => {
     // when
     while ((histogram = reader.nextIntervalHistogram()) != null) {
       histogramCount++;
-      totalCount += histogram.getTotalCount();
+      totalCount += histogram.totalCount;
       accumulatedHistogram.add(histogram);
     }
 

@@ -3,6 +3,26 @@ export default interface Histogram {
   highestTrackableValue: number;
 
   /**
+   * Total count of all recorded values in the histogram
+   */
+  readonly totalCount: number;
+
+  /**
+   * The computed standard deviation of all recorded values in the histogram
+   */
+  readonly stdDeviation: number;
+
+  /**
+   * The computed mean value of all recorded values in the histogram
+   */
+  readonly mean: number;
+
+  /**
+   * A (conservatively high) estimate of the Histogram's total footprint in bytes
+   */
+  readonly estimatedFootprintInBytes: number;
+
+  /**
    * Record a value in the histogram
    *
    * @param value The value to be recorded
@@ -37,12 +57,6 @@ export default interface Histogram {
   getValueAtPercentile(percentile: number): number;
 
   /**
-   * Get the total count of all recorded values in the histogram
-   * @return the total count of all recorded values in the histogram
-   */
-  getTotalCount(): number;
-
-  /**
    * Produce textual representation of the value distribution of histogram data by percentile. The distribution is
    * output with exponentially increasing resolution, with each exponentially decreasing half-distance containing
    * <i>dumpTicksPerHalf</i> percentile reporting tick points.
@@ -60,27 +74,6 @@ export default interface Histogram {
     outputValueUnitScalingRatio?: number,
     useCsvFormat?: false
   ): string;
-
-  /**
-   * Get the computed standard deviation of all recorded values in the histogram
-   *
-   * @return the standard deviation (in value units) of the histogram data
-   */
-  getStdDeviation(): number;
-
-  /**
-   * Get the computed mean value of all recorded values in the histogram
-   *
-   * @return the mean value (in value units) of the histogram data
-   */
-  getMean(): number;
-
-  /**
-   * Provide a (conservatively high) estimate of the Histogram's total footprint in bytes
-   *
-   * @return a (conservatively high) estimate of the Histogram's total footprint in bytes
-   */
-  getEstimatedFootprintInBytes(): number;
 
   /**
    * Record a value in the histogram.

@@ -100,6 +100,10 @@ export abstract class AbstractHistogram extends AbstractHistogramBase {
    */
   abstract getTotalCount(): number;
 
+  get totalCount() {
+    return this.getTotalCount();
+  }
+
   private updatedMaxValue(value: number): void {
     const internalValue: number = value + this.unitMagnitudeMask;
     this.maxValue = internalValue;
@@ -402,7 +406,7 @@ export abstract class AbstractHistogram extends AbstractHistogramBase {
     // First, Compute fp value for count at the requested percentile. Note that fp result end up
     // being 1 ulp larger than the correct integer count for this percentile:
     const fpCountAtPercentile =
-      (requestedPercentile / 100.0) * this.getTotalCount();
+      (requestedPercentile / 100.0) * this.totalCount;
     // Next, round up, but make sure to prevent <= 1 ulp inaccurancies in the above fp math from
     // making us skip a count:
     const countAtPercentile = max(
@@ -522,7 +526,7 @@ export abstract class AbstractHistogram extends AbstractHistogramBase {
    * @return the mean value (in value units) of the histogram data
    */
   getMean() {
-    if (this.getTotalCount() === 0) {
+    if (this.totalCount === 0) {
       return 0;
     }
     this.recordedValuesIterator.reset();
@@ -533,7 +537,11 @@ export abstract class AbstractHistogram extends AbstractHistogramBase {
         this.medianEquivalentValue(iterationValue.valueIteratedTo) *
         iterationValue.countAtValueIteratedTo;
     }
-    return (totalValue * 1.0) / this.getTotalCount();
+    return (totalValue * 1.0) / this.totalCount;
+  }
+
+  get mean() {
+    return this.getMean();
   }
 
   /**
@@ -542,7 +550,7 @@ export abstract class AbstractHistogram extends AbstractHistogramBase {
    * @return the standard deviation (in value units) of the histogram data
    */
   getStdDeviation() {
-    if (this.getTotalCount() === 0) {
+    if (this.totalCount === 0) {
       return 0;
     }
     const mean = this.getMean();
@@ -556,9 +564,13 @@ export abstract class AbstractHistogram extends AbstractHistogramBase {
         deviation * deviation * iterationValue.countAddedInThisIterationStep;
     }
     const std_deviation = Math.sqrt(
-      geometric_deviation_total / this.getTotalCount()
+      geometric_deviation_total / this.totalCount
     );
     return std_deviation;
+  }
+
+  get stdDeviation() {
+    return this.getStdDeviation();
   }
 
   /**
@@ -684,7 +696,7 @@ export abstract class AbstractHistogram extends AbstractHistogramBase {
       );
       const max = formatter(this.maxValue / outputValueUnitScalingRatio);
       const intFormatter = integerFormatter(12);
-      const totalCount = intFormatter(this.getTotalCount());
+      const totalCount = intFormatter(this.totalCount);
       const bucketCount = intFormatter(this.bucketCount);
       const subBucketCount = intFormatter(this.subBucketCount);
 
@@ -703,6 +715,10 @@ export abstract class AbstractHistogram extends AbstractHistogramBase {
    * @return a (conservatively high) estimate of the Histogram's total footprint in bytes
    */
   getEstimatedFootprintInBytes() {
+    return this._getEstimatedFootprintInBytes();
+  }
+
+  get estimatedFootprintInBytes() {
     return this._getEstimatedFootprintInBytes();
   }
 
@@ -899,7 +915,7 @@ export abstract class AbstractHistogram extends AbstractHistogramBase {
           observedOtherTotalCount += otherCount;
         }
       }
-      this.setTotalCount(this.getTotalCount() + observedOtherTotalCount);
+      this.setTotalCount(this.totalCount + observedOtherTotalCount);
       this.updatedMaxValue(max(this.maxValue, otherHistogram.maxValue));
       this.updateMinNonZeroValue(
         min(this.minNonZeroValue, otherHistogram.minNonZeroValue)

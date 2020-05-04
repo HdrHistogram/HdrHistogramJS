@@ -9,7 +9,7 @@ describe("Float64 histogram", () => {
     // when
     histogram.recordValue(123456);
     // then
-    expect(histogram.counts[8073]).equals(1);
+    expect(histogram.getCountAtIndex(8073)).equals(1);
   });
 
   it("should compute median value in first bucket", () => {
@@ -45,6 +45,6 @@ describe("Float64 histogram", () => {
     // when
     histogram.addToCountAtIndex(123, Number.MAX_SAFE_INTEGER - 42);
     // then
-    expect(histogram.counts[123]).equals(Number.MAX_SAFE_INTEGER - 42);
+    expect(histogram.getCountAtIndex(123)).equals(Number.MAX_SAFE_INTEGER - 42);
   });
 });

@@ -30,8 +30,8 @@ abstract class AbstractHistogramIterator /* implements Iterator<HistogramIterati
 
   resetIterator(histogram: AbstractHistogram) {
     this.histogram = histogram;
-    this.savedHistogramTotalRawCount = histogram.getTotalCount();
-    this.arrayTotalCount = histogram.getTotalCount();
+    this.savedHistogramTotalRawCount = histogram.totalCount;
+    this.arrayTotalCount = histogram.totalCount;
     this.currentIndex = 0;
     this.currentValueAtIndex = 0;
     this.nextValueAtIndex = Math.pow(2, histogram.unitMagnitude);
@@ -51,7 +51,7 @@ abstract class AbstractHistogramIterator /* implements Iterator<HistogramIterati
    * @return true if the iterator has more elements.
    */
   public hasNext(): boolean {
-    if (this.histogram.getTotalCount() !== this.savedHistogramTotalRawCount) {
+    if (this.histogram.totalCount !== this.savedHistogramTotalRawCount) {
       throw "Concurrent Modification Exception";
     }
     return this.totalCountToCurrentIndex < this.arrayTotalCount;
@@ -86,16 +86,14 @@ abstract class AbstractHistogramIterator /* implements Iterator<HistogramIterati
           totalCountToThisValue: this.totalCountToCurrentIndex,
           totalValueToThisValue: this.totalValueToCurrentIndex,
           percentile:
-            100 * this.totalCountToCurrentIndex / this.arrayTotalCount,
-          percentileLevelIteratedTo: this.getPercentileIteratedTo()
+            (100 * this.totalCountToCurrentIndex) / this.arrayTotalCount,
+          percentileLevelIteratedTo: this.getPercentileIteratedTo(),
         });
 
         this.prevValueIteratedTo = valueIteratedTo;
         this.totalCountToPrevIndex = this.totalCountToCurrentIndex;
         this.incrementIterationLevel();
-        if (
-          this.histogram.getTotalCount() !== this.savedHistogramTotalRawCount
-        ) {
+        if (this.histogram.totalCount !== this.savedHistogramTotalRawCount) {
           throw new Error("Concurrent Modification Exception");
         }
         return this.currentIterationValue;
@@ -113,11 +111,11 @@ abstract class AbstractHistogramIterator /* implements Iterator<HistogramIterati
   abstract reachedIterationLevel(): boolean;
 
   getPercentileIteratedTo(): number {
-    return 100 * this.totalCountToCurrentIndex / this.arrayTotalCount;
+    return (100 * this.totalCountToCurrentIndex) / this.arrayTotalCount;
   }
 
   getPercentileIteratedFrom(): number {
-    return 100 * this.totalCountToPrevIndex / this.arrayTotalCount;
+    return (100 * this.totalCountToPrevIndex) / this.arrayTotalCount;
   }
 
   getValueIteratedTo(): number {

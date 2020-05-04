@@ -11,7 +11,7 @@ describe("Recorder", () => {
     recorder.recordValue(123);
     // then
     const histogram = recorder.getIntervalHistogram();
-    expect(histogram.getTotalCount()).to.be.equal(1);
+    expect(histogram.totalCount).to.be.equal(1);
   });
 
   it("should record value in a packed histogram", () => {
@@ -33,7 +33,7 @@ describe("Recorder", () => {
     recorder.recordValueWithCount(123, 3);
     // then
     const histogram = recorder.getIntervalHistogram();
-    expect(histogram.getTotalCount()).to.be.equal(3);
+    expect(histogram.totalCount).to.be.equal(3);
   });
 
   it("should record value with expected interval", () => {
@@ -43,7 +43,7 @@ describe("Recorder", () => {
     recorder.recordValueWithExpectedInterval(223, 100);
     // then
     const histogram = recorder.getIntervalHistogram();
-    expect(histogram.getTotalCount()).to.be.equal(2);
+    expect(histogram.totalCount).to.be.equal(2);
   });
 
   it("should record value in a packed histogram", () => {
@@ -64,7 +64,7 @@ describe("Recorder", () => {
     const firstHistogram = recorder.getIntervalHistogram();
     // then
     const secondHistogram = recorder.getIntervalHistogram();
-    expect(secondHistogram.getTotalCount()).to.be.equal(0);
+    expect(secondHistogram.totalCount).to.be.equal(0);
   });
 
   it("should not record value on returned interval histogram", () => {
@@ -76,7 +76,7 @@ describe("Recorder", () => {
     firstHistogram.recordValue(42); // should have 0 impact on recorder
     const thirdHistogram = recorder.getIntervalHistogram();
     // then
-    expect(thirdHistogram.getTotalCount()).to.be.equal(0);
+    expect(thirdHistogram.totalCount).to.be.equal(0);
   });
 
   it("should return interval histograms with expected significant digits", () => {
@@ -118,7 +118,7 @@ describe("Recorder", () => {
     const secondHistogram = recorder.getIntervalHistogram(firstHistogram);
     const thirdHistogram = recorder.getIntervalHistogram();
     // then
-    expect(thirdHistogram.getTotalCount()).to.be.equal(0);
+    expect(thirdHistogram.totalCount).to.be.equal(0);
   });
 
   it("should set timestamps on first interval histogram", () => {
@@ -160,7 +160,7 @@ describe("Recorder", () => {
     currentTime = 51;
     recorder.getIntervalHistogramInto(histogram);
     // then
-    expect(histogram.getTotalCount()).to.be.equal(1);
+    expect(histogram.totalCount).to.be.equal(1);
     expect(histogram.startTimeStampMsec).to.be.equal(42);
     expect(histogram.endTimeStampMsec).to.be.equal(51);
   });
@@ -176,7 +176,7 @@ describe("Recorder", () => {
     recorder.reset();
     const histogram = recorder.getIntervalHistogram();
     // then
-    expect(histogram.getTotalCount()).to.be.equal(0);
+    expect(histogram.totalCount).to.be.equal(0);
     expect(histogram.startTimeStampMsec).to.be.equal(55);
   });
 });

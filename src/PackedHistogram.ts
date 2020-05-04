@@ -37,7 +37,7 @@ import { PackedArray } from "./packedarray/PackedArray";
  */
 class PackedHistogram extends AbstractHistogram {
   packedCounts: PackedArray;
-  totalCount: number;
+  _totalCount: number;
 
   constructor(
     lowestDiscernibleValue: number,
@@ -49,13 +49,13 @@ class PackedHistogram extends AbstractHistogram {
       highestTrackableValue,
       numberOfSignificantValueDigits
     );
-    this.totalCount = 0;
+    this._totalCount = 0;
     this.packedCounts = new PackedArray(this.countsArrayLength);
   }
 
   clearCounts() {
     this.packedCounts.clear();
-    this.totalCount = 0;
+    this._totalCount = 0;
   }
 
   incrementCountAtIndex(index: number) {
@@ -82,19 +82,19 @@ class PackedHistogram extends AbstractHistogram {
   setNormalizingIndexOffset(normalizingIndexOffset: number) {}
 
   incrementTotalCount() {
-    this.totalCount++;
+    this._totalCount++;
   }
 
   addToTotalCount(value: number) {
-    this.totalCount += value;
+    this._totalCount += value;
   }
 
   setTotalCount(value: number) {
-    this.totalCount = value;
+    this._totalCount = value;
   }
 
   getTotalCount() {
-    return this.totalCount;
+    return this._totalCount;
   }
 
   getCountAtIndex(index: number) {

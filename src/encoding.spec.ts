@@ -12,7 +12,7 @@ import {
   ByteBuffer,
   AbstractHistogram,
   decodeFromCompressedBase64,
-  encodeIntoBase64String
+  encodeIntoBase64String,
 } from "./index";
 
 describe("Histogram encoding", () => {
@@ -64,7 +64,7 @@ describe("Histogram encoding", () => {
     );
     // then
     expect(histogram.getMean()).to.be.equal(42);
-    expect(histogram.getTotalCount()).to.be.equal(1);
+    expect(histogram.totalCount).to.be.equal(1);
   });
 
   it("should encode and compress an histogram", () => {
@@ -93,7 +93,7 @@ describe("Histogram encoding", () => {
     const histogram = decodeFromCompressedBase64(base64String);
     // then
     expect(histogram.getMean()).to.be.equal(42);
-    expect(histogram.getTotalCount()).to.be.equal(1);
+    expect(histogram.totalCount).to.be.equal(1);
   });
 
   it("should decode and decompress a big base64 string", () => {
@@ -103,7 +103,7 @@ describe("Histogram encoding", () => {
     // when
     const histogram = decodeFromCompressedBase64(base64String);
     // then
-    expect(histogram.getTotalCount()).to.be.equal(10000);
+    expect(histogram.totalCount).to.be.equal(10000);
   });
 
   it("should encode and compress an histogram to a base64 string", () => {

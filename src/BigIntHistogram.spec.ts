@@ -9,7 +9,7 @@ describe("BigInt histogram", () => {
     // when
     histogram.recordValue(123456);
     // then
-    expect(Number(histogram.counts[8073])).equals(1);
+    expect(Number(histogram.getCountAtIndex(8073))).equals(1);
   });
 
   it("should compute median value in first bucket", () => {
@@ -45,6 +45,8 @@ describe("BigInt histogram", () => {
     // when
     histogram.addToCountAtIndex(123, Number.MAX_SAFE_INTEGER + 200);
     // then
-    expect(Number(histogram.counts[123])).equals(Number.MAX_SAFE_INTEGER + 200);
+    expect(Number(histogram.getCountAtIndex(123))).equals(
+      Number.MAX_SAFE_INTEGER + 200
+    );
   });
 });

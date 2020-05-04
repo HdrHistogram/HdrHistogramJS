@@ -319,7 +319,7 @@ describe("Histogram add & substract", () => {
     // when
     histogram.add(histogram2);
     // then
-    expect(histogram.getTotalCount()).to.be.equal(2);
+    expect(histogram.totalCount).to.be.equal(2);
     expect(histogram.getMean()).to.be.equal(100);
   });
 
@@ -347,8 +347,8 @@ describe("Histogram add & substract", () => {
     // when
     histogram.add(histogram2);
     // then
-    expect(histogram.getTotalCount()).to.be.equal(2);
-    expect(Math.floor(histogram.getMean() / 100)).to.be.equal(215);
+    expect(histogram.totalCount).to.be.equal(2);
+    expect(Math.floor(histogram.mean / 100)).to.be.equal(215);
   });
 
   it("should add histograms of different sizes", () => {
@@ -361,7 +361,7 @@ describe("Histogram add & substract", () => {
     // when
     histogram.add(histogram2);
     // then
-    expect(histogram.getTotalCount()).to.be.equal(2);
+    expect(histogram.totalCount).to.be.equal(2);
     expect(Math.floor(histogram.getMean() / 100)).to.be.equal(215);
   });
   it("should add histograms of different sizes b", () => {
@@ -374,7 +374,7 @@ describe("Histogram add & substract", () => {
     // when
     histogram.add(histogram2);
     // then
-    expect(histogram.getTotalCount()).to.be.equal(2);
+    expect(histogram.totalCount).to.be.equal(2);
     expect(Math.floor(histogram.getMean() / 100)).to.be.equal(215);
   });
 

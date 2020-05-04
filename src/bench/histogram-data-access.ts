@@ -52,7 +52,7 @@ b.suite(
     () => {
       const histogram = build({
         bitBucketSize: 32,
-        highestTrackableValue: Number.MAX_SAFE_INTEGER,
+        highestTrackableValue: Number.MAX_SAFE_INTEGER
       });
       return () => {
         histogram.recordValue(randomInteger());
@@ -64,7 +64,7 @@ b.suite(
     "WASM Int32Histogram",
     () => {
       const histogram = build({
-        webAssembly: true,
+        webAssembly: true
       });
       return () => {
         histogram.recordValue(randomInteger());
@@ -77,7 +77,7 @@ b.suite(
     () => {
       const histogram = build({
         bitBucketSize: 64,
-        highestTrackableValue: Number.MAX_SAFE_INTEGER,
+        highestTrackableValue: Number.MAX_SAFE_INTEGER
       });
       return () => {
         histogram.recordValue(randomInteger());

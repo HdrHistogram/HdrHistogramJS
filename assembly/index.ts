@@ -32,6 +32,18 @@ class HistogramAdapter<T, U> {
     this._histogram.highestTrackableValue = <u64>value;
   }
 
+  public get totalCount(): f64 {
+    return <f64>this._histogram.totalCount;
+  }
+
+  public get stdDeviation(): f64 {
+    return <f64>this._histogram.getStdDeviation();
+  }
+
+  public get mean(): f64 {
+    return <f64>this._histogram.getMean();
+  }
+
   recordValue(value: f64): void {
     this._histogram.recordSingleValue(<u64>value);
   }
@@ -52,16 +64,6 @@ class HistogramAdapter<T, U> {
 
   getValueAtPercentile(percentile: f64): f64 {
     return <f64>this._histogram.getValueAtPercentile(percentile);
-  }
-
-  getStdDeviation(): f64 {
-    return this._histogram.getStdDeviation();
-  }
-  getMean(): f64 {
-    return this._histogram.getMean();
-  }
-  getTotalCount(): f64 {
-    return <f64>this._histogram.totalCount;
   }
 
   outputPercentileDistribution(

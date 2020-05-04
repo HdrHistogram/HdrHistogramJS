@@ -9,7 +9,7 @@ describe("Int8 histogram", () => {
     // when
     histogram.recordValue(123456);
     // then
-    expect(histogram.counts[8073]).equals(1);
+    expect(histogram.getCountAtIndex(8073)).equals(1);
   });
 
   it("should compute median value in first bucket", () => {

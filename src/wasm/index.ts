@@ -58,7 +58,7 @@ const defaultRequest: WasmBuildRequest = {
   autoResize: true,
   lowestDiscernibleValue: 1,
   highestTrackableValue: 2,
-  numberOfSignificantValueDigits: 3,
+  numberOfSignificantValueDigits: 3
 };
 
 export class WasmHistogram {
@@ -97,6 +97,19 @@ export class WasmHistogram {
     this._wasmHistogram.highestTrackableValue = value;
   }
 
+  public get totalCount(): number {
+    return this._wasmHistogram.totalCount;
+  }
+  public get stdDeviation(): number {
+    return this._wasmHistogram.stdDeviation;
+  }
+  public get mean(): number {
+    return this._wasmHistogram.mean;
+  }
+  public get estimatedFootprintInBytes(): number {
+    return this._wasmHistogram.estimatedFootprintInBytes;
+  }
+
   recordValue(value: number) {
     this._wasmHistogram.recordValue(value);
   }
@@ -117,16 +130,6 @@ export class WasmHistogram {
 
   getValueAtPercentile(percentile: number): number {
     return this._wasmHistogram.getValueAtPercentile(percentile);
-  }
-
-  getStdDeviation(): number {
-    return this._wasmHistogram.getStdDeviation();
-  }
-  getMean(): number {
-    return this._wasmHistogram.getMean();
-  }
-  getTotalCount(): number {
-    return this._wasmHistogram.getTotalCount();
   }
 
   outputPercentileDistribution(
@@ -185,9 +188,5 @@ export class WasmHistogram {
   destroy(): void {
     wasm.__release(this._wasmHistogram);
     this._wasmHistogram = null;
-  }
-
-  getEstimatedFootprintInBytes(): number {
-    throw "not implemented";
   }
 }

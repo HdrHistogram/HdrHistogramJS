@@ -8,7 +8,6 @@
 const AbstractHistogram = require("./AbstractHistogram");
 
 class BigIntHistogram extends AbstractHistogram.default {
-
   constructor(
     lowestDiscernibleValue,
     highestTrackableValue,
@@ -19,69 +18,67 @@ class BigIntHistogram extends AbstractHistogram.default {
       highestTrackableValue,
       numberOfSignificantValueDigits
     );
-    this.totalCount = 0;  
-    this.counts = new BigUint64Array(this.countsArrayLength);
+    this._totalCount = 0;
+    this._counts = new BigUint64Array(this.countsArrayLength);
   }
 
   clearCounts() {
-    this.counts.fill(0n);
+    this._counts.fill(0n);
   }
 
   incrementCountAtIndex(index) {
-    const currentCount = this.counts[index];
+    const currentCount = this._counts[index];
     const newCount = currentCount + 1n;
     if (newCount < 0) {
       throw newCount + " would overflow short integer count";
     }
-    this.counts[index] = newCount;
+    this._counts[index] = newCount;
   }
 
   addToCountAtIndex(index, value) {
-    const currentCount = this.counts[index];
+    const currentCount = this._counts[index];
     const newCount = currentCount + BigInt(value);
-    this.counts[index] = newCount;
+    this._counts[index] = newCount;
   }
 
   setCountAtIndex(index, value) {
-    this.counts[index] = BigInt(value);
+    this._counts[index] = BigInt(value);
   }
 
   resize(newHighestTrackableValue) {
     this.establishSize(newHighestTrackableValue);
     const newCounts = new BigUint64Array(this.countsArrayLength);
-    newCounts.set(this.counts);
-    this.counts = newCounts;
+    newCounts.set(this._counts);
+    this._counts = newCounts;
   }
 
   setNormalizingIndexOffset(normalizingIndexOffset) {}
 
   incrementTotalCount() {
-    this.totalCount++;
+    this._totalCount++;
   }
 
   addToTotalCount(value) {
-    this.totalCount += value;
+    this._totalCount += value;
   }
 
   setTotalCount(value) {
-    this.totalCount = value;
+    this._totalCount = value;
   }
 
   getTotalCount() {
-    return this.totalCount;
+    return this._totalCount;
   }
 
   getCountAtIndex(index) {
-    return Number(this.counts[index]);
+    return Number(this._counts[index]);
   }
 
   _getEstimatedFootprintInBytes() {
-    return 512 + 8 * this.counts.length;
+    return 512 + 8 * this._counts.length;
   }
 
-  copyCorrectedForCoordinatedOmission(
-    expectedIntervalBetweenValueSamples
-  ) {
+  copyCorrectedForCoordinatedOmission(expectedIntervalBetweenValueSamples) {
     const copy = new BigUint64Array(
       this.lowestDiscernibleValue,
       this.highestTrackableValue,

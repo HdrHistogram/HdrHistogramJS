@@ -1,12 +1,9 @@
-import "core-js";
 import { expect } from "chai";
-import { NO_TAG } from "./AbstractHistogramBase";
-import AbstractHistogram from "./AbstractHistogram";
-import ByteBuffer from "./ByteBuffer";
-import Int32Histogram from "./Int32Histogram";
-import PercentileIterator from "./PercentileIterator";
-import HistogramIterationValue from "./HistogramIterationValue";
+import "core-js";
 import { build } from ".";
+import AbstractHistogram from "./AbstractHistogram";
+import { NO_TAG } from "./AbstractHistogramBase";
+import Int32Histogram from "./Int32Histogram";
 
 declare function require(name: string): any;
 
@@ -393,7 +390,7 @@ describe("Histogram add & substract", () => {
     expect(histogram.outputPercentileDistribution()).to.be.equal(outputBefore);
   });
 
-  it("should be equal when another histogram is added then subtracted bis", () => {
+  it("should be equal when another wasm histogram is added then subtracted", () => {
     // given
     const histogram = build({
       lowestDiscernibleValue: 1,

@@ -24,7 +24,7 @@ interface WasmBuildRequest {
    * The size in bit of each count bucket
    * Default value is 32
    */
-  bitBucketSize?: 8 | 16 | 32 | 64 | "packed" | "sparse_array";
+  bitBucketSize?: 8 | 16 | 32 | 64 | "packed";
   /**
    * Control whether or not the histogram can auto-resize and auto-adjust it's
    * highestTrackableValue
@@ -58,7 +58,7 @@ const defaultRequest: WasmBuildRequest = {
   autoResize: true,
   lowestDiscernibleValue: 1,
   highestTrackableValue: 2,
-  numberOfSignificantValueDigits: 3
+  numberOfSignificantValueDigits: 3,
 };
 
 export class WasmHistogram {

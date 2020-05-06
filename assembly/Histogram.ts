@@ -584,7 +584,9 @@ export default class Histogram<T, U> extends AbstractHistogramBase<T, U> {
     const currentCount = unchecked(this.counts[index]);
     const newCount = currentCount + 1;
     if (newCount < 0) {
-      throw newCount + " would overflow short integer count";
+      throw new Error(
+        newCount.toString() + " would overflow short integer count"
+      );
     }
     // @ts-ignore
     unchecked((this.counts[index] = newCount));
@@ -592,18 +594,18 @@ export default class Histogram<T, U> extends AbstractHistogramBase<T, U> {
 
   setCountAtIndex(index: i32, value: u64): void {
     // @ts-ignore
-    this.counts[index] = <U>value;
+    unchecked((this.counts[index] = <U>value));
   }
 
   addToCountAtIndex(index: i32, value: u64): void {
     // @ts-ignore
-    const currentCount = this.counts[index];
+    const currentCount = unchecked(this.counts[index]);
     const newCount = currentCount + value;
     if (newCount < 0) {
       throw newCount + " would overflow short integer count";
     }
     // @ts-ignore
-    this.counts[index] = <U>newCount;
+    unchecked((this.counts[index] = <U>newCount));
   }
 
   incrementTotalCount(): void {
@@ -612,7 +614,7 @@ export default class Histogram<T, U> extends AbstractHistogramBase<T, U> {
 
   getCountAtIndex(index: i32): u64 {
     // @ts-ignore
-    return <u64>this.counts[index];
+    return unchecked(<u64>this.counts[index]);
   }
 
   resize(newHighestTrackableValue: u64): void {

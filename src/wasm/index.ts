@@ -59,7 +59,7 @@ const defaultRequest: WasmBuildRequest = {
   autoResize: true,
   lowestDiscernibleValue: 1,
   highestTrackableValue: 2,
-  numberOfSignificantValueDigits: 3
+  numberOfSignificantValueDigits: 3,
 };
 
 export class WasmHistogram {
@@ -90,12 +90,14 @@ export class WasmHistogram {
     const decodeFunc = `decodeHistogram${bitBucketSize}`;
     const remoteHistogramClass = `Histogram${bitBucketSize}`;
     const ptrArr = wasm.__retain(wasm.__allocArray(wasm.UINT8ARRAY_ID, data));
-    return new WasmHistogram(
+    const wasmHistogram = new WasmHistogram(
       wasm[remoteHistogramClass].wrap(
         wasm[decodeFunc](ptrArr, minBarForHighestTrackableValue)
       ),
       remoteHistogramClass
     );
+    wasm.__release(ptrArr);
+    return wasmHistogram;
   }
 
   public get autoResize(): boolean {

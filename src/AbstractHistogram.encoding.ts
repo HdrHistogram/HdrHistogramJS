@@ -8,6 +8,11 @@
 import ByteBuffer from "./ByteBuffer";
 import { AbstractHistogram, HistogramConstructor } from "./AbstractHistogram";
 import ZigZagEncoding from "./ZigZagEncoding";
+import { Histogram, Int8Histogram } from ".";
+import PackedHistogram from "./PackedHistogram";
+import Int16Histogram from "./Int16Histogram";
+import Int32Histogram from "./Int32Histogram";
+import Float64Histogram from "./Float64Histogram";
 
 const { max } = Math;
 
@@ -207,11 +212,8 @@ function findInflateFunction() {
 const deflate = findDeflateFunction();
 const inflate = findInflateFunction();
 
-export function doDecodeFromCompressedByteBuffer(
-  buffer: ByteBuffer,
-  histogramConstr: HistogramConstructor,
-  minBarForHighestTrackableValue: number
-): AbstractHistogram {
+export function decompress(data: Uint8Array): Uint8Array {
+  const buffer = new ByteBuffer(data);
   const initialTargetPosition = buffer.position;
 
   const cookie = buffer.getInt32();
@@ -228,6 +230,15 @@ export function doDecodeFromCompressedByteBuffer(
       initialTargetPosition + 8 + lengthOfCompressedContents
     )
   );
+  return uncompressedBuffer;
+}
+
+export function doDecodeFromCompressedByteBuffer(
+  data: Uint8Array,
+  histogramConstr: HistogramConstructor,
+  minBarForHighestTrackableValue: number
+): Histogram {
+  const uncompressedBuffer = decompress(data);
 
   return doDecodeFromByteBuffer(
     new ByteBuffer(uncompressedBuffer),
@@ -267,14 +278,87 @@ export function encodeIntoCompressedByteBuffer(
   return targetBuffer.position;
 }
 
+function ctrFromBucketSize(bitBucketSize: 8 | 16 | 32 | 64 | "packed") {
+  switch (bitBucketSize) {
+    case "packed":
+      return PackedHistogram;
+    case 8:
+      return Int8Histogram;
+    case 16:
+      return Int16Histogram;
+    case 32:
+      return Int32Histogram;
+    case 64:
+      return Float64Histogram;
+  }
+}
+
+export function doDecode(
+  data: Uint8Array,
+  bitBucketSize: 8 | 16 | 32 | 64 | "packed" = 32,
+  minBarForHighestTrackableValue: number = 0
+) {
+  const buffer = new ByteBuffer(data);
+  const cookie = buffer.getInt32();
+
+  let payloadLengthInBytes: number;
+  let numberOfSignificantValueDigits: number;
+  let lowestTrackableUnitValue: number;
+  let highestTrackableValue: number;
+
+  if (getCookieBase(cookie) === V2EncodingCookieBase) {
+    if (getWordSizeInBytesFromCookie(cookie) != V2maxWordSizeInBytes) {
+      throw new Error(
+        "The buffer does not contain a Histogram (no valid cookie found)"
+      );
+    }
+    payloadLengthInBytes = buffer.getInt32();
+    buffer.getInt32(); // normalizingIndexOffset not used
+    numberOfSignificantValueDigits = buffer.getInt32();
+    lowestTrackableUnitValue = buffer.getInt64();
+    highestTrackableValue = buffer.getInt64();
+    buffer.getInt64(); // integerToDoubleValueConversionRatio not used
+  } else {
+    throw new Error(
+      "The buffer does not contain a Histogram (no valid V2 encoding cookie found)"
+    );
+  }
+
+  highestTrackableValue = max(
+    highestTrackableValue,
+    minBarForHighestTrackableValue
+  );
+
+  const histogramConstr = ctrFromBucketSize(bitBucketSize);
+
+  const histogram: AbstractHistogram = new histogramConstr(
+    lowestTrackableUnitValue,
+    highestTrackableValue,
+    numberOfSignificantValueDigits
+  );
+
+  const filledLength = fillCountsArrayFromSourceBuffer(
+    histogram,
+    buffer,
+    payloadLengthInBytes,
+    V2maxWordSizeInBytes
+  );
+
+  histogram.establishInternalTackingValues(filledLength);
+
+  return histogram;
+}
+
 declare module "./AbstractHistogram" {
   namespace AbstractHistogram {
     export let decodeFromByteBuffer: typeof doDecodeFromByteBuffer;
+    export let decode: typeof doDecode;
     export let decodeFromCompressedByteBuffer: typeof doDecodeFromCompressedByteBuffer;
   }
 }
 
 AbstractHistogram.decodeFromByteBuffer = doDecodeFromByteBuffer;
+AbstractHistogram.decode = doDecode;
 AbstractHistogram.decodeFromCompressedByteBuffer = doDecodeFromCompressedByteBuffer;
 
 declare module "./AbstractHistogram" {

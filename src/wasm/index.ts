@@ -1,4 +1,5 @@
 import { BINARY } from "./generated-wasm";
+import Histogram from "../Histogram";
 const loader = require("@assemblyscript/loader");
 const base64 = require("base64-js");
 
@@ -76,6 +77,22 @@ export class WasmHistogram {
         parameters.highestTrackableValue,
         parameters.numberOfSignificantValueDigits,
         parameters.autoResize
+      ),
+      remoteHistogramClass
+    );
+  }
+
+  static decode(
+    data: Uint8Array,
+    bitBucketSize: 8 | 16 | 32 | 64 | "packed" = 32,
+    minBarForHighestTrackableValue: number = 0
+  ): Histogram {
+    const decodeFunc = `decodeHistogram${bitBucketSize}`;
+    const remoteHistogramClass = `Histogram${bitBucketSize}`;
+    const ptrArr = wasm.__retain(wasm.__allocArray(wasm.UINT8ARRAY_ID, data));
+    return new WasmHistogram(
+      wasm[remoteHistogramClass].wrap(
+        wasm[decodeFunc](ptrArr, minBarForHighestTrackableValue)
       ),
       remoteHistogramClass
     );

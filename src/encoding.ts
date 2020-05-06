@@ -8,24 +8,48 @@
 import ByteBuffer from "./ByteBuffer";
 import { AbstractHistogram, HistogramConstructor } from "./AbstractHistogram";
 import Int32Histogram from "./Int32Histogram";
-import "./AbstractHistogram.encoding";
+import { decompress } from "./AbstractHistogram.encoding";
+import { WasmHistogram } from "./wasm";
+import Histogram from "./Histogram";
 
 const base64 = require("base64-js");
 
-const decodeFromCompressedBase64 = (
+export const decodeFromCompressedBase64 = (
   base64String: string,
   histogramConstr: HistogramConstructor = Int32Histogram,
   minBarForHighestTrackableValue: number = 0
 ): AbstractHistogram => {
-  const buffer = new ByteBuffer(base64.toByteArray(base64String.trim()));
+  const data = base64.toByteArray(base64String.trim());
   return AbstractHistogram.decodeFromCompressedByteBuffer(
-    buffer,
+    data,
     histogramConstr,
     minBarForHighestTrackableValue
   );
 };
 
-const encodeIntoBase64String = (
+export const decodeFromCompressedBase64B = (
+  base64String: string,
+  bitBucketSize: 8 | 16 | 32 | 64 | "packed" = 32,
+  useWebAssembly: boolean = false,
+  minBarForHighestTrackableValue: number = 0
+): Histogram => {
+  const data = base64.toByteArray(base64String.trim());
+  const uncompressedData = decompress(data);
+  if (useWebAssembly) {
+    return WasmHistogram.decode(
+      uncompressedData,
+      bitBucketSize,
+      minBarForHighestTrackableValue
+    );
+  }
+  return AbstractHistogram.decode(
+    uncompressedData,
+    bitBucketSize,
+    minBarForHighestTrackableValue
+  );
+};
+
+export const encodeIntoBase64String = (
   histogram: AbstractHistogram,
   compressionLevel?: number
 ): string => {
@@ -38,5 +62,3 @@ const encodeIntoBase64String = (
   const encodedBuffer = buffer.data.slice(0, bufferSize);
   return base64.fromByteArray(encodedBuffer);
 };
-
-export { decodeFromCompressedBase64, encodeIntoBase64String };

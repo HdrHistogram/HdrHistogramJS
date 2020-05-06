@@ -590,6 +590,11 @@ export default class Histogram<T, U> extends AbstractHistogramBase<T, U> {
     unchecked((this.counts[index] = newCount));
   }
 
+  setCountAtIndex(index: i32, value: u64): void {
+    // @ts-ignore
+    this.counts[index] = <U>value;
+  }
+
   addToCountAtIndex(index: i32, value: u64): void {
     // @ts-ignore
     const currentCount = this.counts[index];
@@ -696,7 +701,7 @@ export default class Histogram<T, U> extends AbstractHistogramBase<T, U> {
     return this.getCountAtIndex(index);
   }
 
-  private establishInternalTackingValues(
+  establishInternalTackingValues(
     lengthToCover: i32 = this.countsArrayLength
   ): void {
     this.maxValue = 0;

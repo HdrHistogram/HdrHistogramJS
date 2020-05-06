@@ -1,4 +1,8 @@
 import Histogram from "./Histogram";
+import { decodeFromByteBuffer } from "./encoding";
+import ByteBuffer from "./ByteBuffer";
+
+export const UINT8ARRAY_ID = idof<Uint8Array>();
 
 class HistogramAdapter<T, U> {
   private _histogram: Histogram<T, U>;
@@ -6,14 +10,19 @@ class HistogramAdapter<T, U> {
     lowestDiscernibleValue: f64,
     highestTrackableValue: f64,
     numberOfSignificantValueDigits: f64,
-    autoResize: boolean
+    autoResize: boolean,
+    histogram: Histogram<T, U> | null = null
   ) {
-    this._histogram = new Histogram<T, U>(
-      <u64>lowestDiscernibleValue,
-      <u64>highestTrackableValue,
-      <u8>numberOfSignificantValueDigits
-    );
-    this._histogram.autoResize = autoResize;
+    if (histogram) {
+      this._histogram = histogram;
+    } else {
+      this._histogram = new Histogram<T, U>(
+        <u64>lowestDiscernibleValue,
+        <u64>highestTrackableValue,
+        <u8>numberOfSignificantValueDigits
+      );
+      this._histogram.autoResize = autoResize;
+    }
   }
 
   public get autoResize(): boolean {
@@ -79,16 +88,11 @@ class HistogramAdapter<T, U> {
   copyCorrectedForCoordinatedOmission(
     expectedIntervalBetweenValueSamples: f64
   ): HistogramAdapter<T, U> {
-    const copy = new HistogramAdapter<T, U>(
-      <f64>this._histogram.lowestDiscernibleValue,
-      <f64>this._histogram.highestTrackableValue,
-      <f64>this._histogram.numberOfSignificantValueDigits,
-      this._histogram.autoResize
-    );
-    copy._histogram = this._histogram.copyCorrectedForCoordinatedOmission(
+    const copy = this._histogram.copyCorrectedForCoordinatedOmission(
       <u64>expectedIntervalBetweenValueSamples
     );
-    return copy;
+
+    return new HistogramAdapter<T, U>(0, 0, 0, false, copy);
   }
 
   addHistogram8(otherHistogram: Histogram8): void {
@@ -126,3 +130,15 @@ export class Histogram8 extends HistogramAdapter<Uint8Array, u8> {}
 export class Histogram16 extends HistogramAdapter<Uint16Array, u16> {}
 export class Histogram32 extends HistogramAdapter<Uint32Array, u32> {}
 export class Histogram64 extends HistogramAdapter<Uint64Array, u64> {}
+
+export function decodeHistogram32(
+  data: Uint8Array,
+  minBarForHighestTrackableValue: f64
+): Histogram32 {
+  const buffer = new ByteBuffer(data);
+  const histogram = decodeFromByteBuffer<Uint32Array, u32>(
+    buffer,
+    <u64>minBarForHighestTrackableValue
+  );
+  return new Histogram32(0, 0, 0, false, histogram);
+}

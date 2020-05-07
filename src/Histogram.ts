@@ -1,3 +1,5 @@
+export const NO_TAG = "NO TAG";
+
 export default interface Histogram {
   /**
    * Flag to enable automatic resizing of the underlying array
@@ -28,6 +30,14 @@ export default interface Histogram {
    * A (conservatively high) estimate of the Histogram's total footprint in bytes
    */
   readonly estimatedFootprintInBytes: number;
+
+  readonly maxValue: number;
+
+  readonly minNonZeroValue: number;
+
+  startTimeStampMsec: number;
+  endTimeStampMsec: number;
+  tag: string;
 
   /**
    * Record a value in the histogram

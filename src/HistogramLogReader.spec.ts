@@ -5,6 +5,7 @@ import HistogramLogReader, { listTags } from "./HistogramLogReader";
 import AbstractHistogram from "./AbstractHistogram";
 import Int32Histogram from "./Int32Histogram";
 import PackedHistogram from "./PackedHistogram";
+import Histogram from "./Histogram";
 
 const { floor } = Math;
 
@@ -72,9 +73,7 @@ describe("Histogram Log Reader", () => {
 
   it("should read encoded histogram and use provided constructor", () => {
     // given
-    const reader = new HistogramLogReader(fileContent, {
-      histogramConstr: PackedHistogram,
-    });
+    const reader = new HistogramLogReader(fileContent, "packed");
     // when
     const histogram = reader.nextIntervalHistogram();
     // then
@@ -101,7 +100,7 @@ describe("Histogram Log Reader", () => {
     // then
     if (checkNotNull(histogram)) {
       // if mean is good, strong probability everything else is good as well
-      expect(floor(histogram.getMean())).to.be.equal(293719);
+      expect(floor(histogram.mean)).to.be.equal(293719);
     }
   });
 
@@ -143,8 +142,8 @@ describe("Histogram Log Reader", () => {
     expect(thirdHistogram).to.be.null;
     if (checkNotNull(firstHistogram) && checkNotNull(secondHistogram)) {
       // if mean is good, strong probability everything else is good as well
-      expect(floor(firstHistogram.getMean())).to.be.equal(301998);
-      expect(floor(secondHistogram.getMean())).to.be.equal(293719);
+      expect(floor(firstHistogram.mean)).to.be.equal(301998);
+      expect(floor(secondHistogram.mean)).to.be.equal(293719);
     }
   });
 
@@ -179,7 +178,7 @@ describe("Histogram Log Reader", () => {
     // then
     if (checkNotNull(histogram)) {
       expect(histogram.tag).to.be.equal("A");
-      expect(floor(histogram.getMean())).to.be.equal(301998);
+      expect(floor(histogram.mean)).to.be.equal(301998);
     }
   });
 
@@ -215,7 +214,7 @@ describe("Histogram Log Reader", () => {
       Number.MAX_SAFE_INTEGER,
       3
     );
-    let histogram: AbstractHistogram | null;
+    let histogram: Histogram | null;
     let histogramCount = 0;
     let totalCount = 0;
 

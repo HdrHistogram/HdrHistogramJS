@@ -105,7 +105,7 @@ const build = (request = defaultRequest): Histogram => {
       histogramConstr = Float64Histogram;
   }
 
-  const histogram: AbstractHistogram = new histogramConstr(
+  const histogram = new histogramConstr(
     parameters.lowestDiscernibleValue as number,
     parameters.highestTrackableValue as number,
     parameters.numberOfSignificantValueDigits as number

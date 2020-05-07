@@ -11,7 +11,7 @@ import PercentileIterator from "./PercentileIterator";
 import HistogramIterationValue from "./HistogramIterationValue";
 import { integerFormatter, floatFormatter } from "./formatters";
 import ulp from "./ulp";
-import { Histogram } from ".";
+import Histogram from "./Histogram";
 
 const { pow, floor, ceil, log2, max, min } = Math;
 
@@ -20,7 +20,7 @@ export interface HistogramConstructor {
     lowestDiscernibleValue: number,
     highestTrackableValue: number,
     numberOfSignificantValueDigits: number
-  ): Histogram;
+  ): AbstractHistogram;
 }
 
 export abstract class AbstractHistogram extends AbstractHistogramBase {
@@ -878,7 +878,12 @@ export abstract class AbstractHistogram extends AbstractHistogramBase {
    * @throws (may throw) if values in fromHistogram's are
    * higher than highestTrackableValue.
    */
-  add(otherHistogram: AbstractHistogram) {
+  add(otherHistogram: Histogram) {
+    if (!(otherHistogram instanceof AbstractHistogram)) {
+      throw new Error(
+        "Cannot add webAssembly histogram to non webAssembly histogram"
+      );
+    }
     const highestRecordableValue = this.highestEquivalentValue(
       this.valueFromIndex(this.countsArrayLength - 1)
     );

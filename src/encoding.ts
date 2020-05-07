@@ -5,29 +5,58 @@
  * and released to the public domain, as explained at
  * http://creativecommons.org/publicdomain/zero/1.0/
  */
+import { AbstractHistogram } from "./AbstractHistogram";
+import "./AbstractHistogram.encoding";
 import ByteBuffer from "./ByteBuffer";
-import { AbstractHistogram, HistogramConstructor } from "./AbstractHistogram";
-import Int32Histogram from "./Int32Histogram";
-import { decompress } from "./AbstractHistogram.encoding";
-import { WasmHistogram } from "./wasm";
 import Histogram from "./Histogram";
+import { WasmHistogram } from "./wasm";
 
 const base64 = require("base64-js");
 
-export const decodeFromCompressedBase64 = (
-  base64String: string,
-  histogramConstr: HistogramConstructor = Int32Histogram,
-  minBarForHighestTrackableValue: number = 0
-): AbstractHistogram => {
-  const data = base64.toByteArray(base64String.trim());
-  return AbstractHistogram.decodeFromCompressedByteBuffer(
-    data,
-    histogramConstr,
-    minBarForHighestTrackableValue
-  );
-};
+const V2CompressedEncodingCookieBase = 0x1c849304;
 
-export const decodeFromCompressedBase64B = (
+function findDeflateFunction() {
+  try {
+    return eval('require("zlib").deflateSync');
+  } catch (error) {
+    const pako: any = require("pako/lib/deflate");
+    return pako.deflate;
+  }
+}
+function findInflateFunction() {
+  try {
+    return eval('require("zlib").inflateSync');
+  } catch (error) {
+    const pako: any = require("pako/lib/inflate");
+    return pako.inflate;
+  }
+}
+
+const deflate = findDeflateFunction();
+const inflate = findInflateFunction();
+
+export function decompress(data: Uint8Array): Uint8Array {
+  const buffer = new ByteBuffer(data);
+  const initialTargetPosition = buffer.position;
+
+  const cookie = buffer.getInt32();
+
+  if ((cookie & ~0xf0) !== V2CompressedEncodingCookieBase) {
+    throw new Error("Encoding not supported, only V2 is supported");
+  }
+
+  const lengthOfCompressedContents = buffer.getInt32();
+
+  const uncompressedBuffer: Uint8Array = inflate(
+    buffer.data.slice(
+      initialTargetPosition + 8,
+      initialTargetPosition + 8 + lengthOfCompressedContents
+    )
+  );
+  return uncompressedBuffer;
+}
+
+export const decodeFromCompressedBase64 = (
   base64String: string,
   bitBucketSize: 8 | 16 | 32 | 64 | "packed" = 32,
   useWebAssembly: boolean = false,

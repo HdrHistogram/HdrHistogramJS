@@ -1,5 +1,5 @@
 import { BINARY } from "./generated-wasm";
-import Histogram from "../Histogram";
+import Histogram, { NO_TAG } from "../Histogram";
 const loader = require("@assemblyscript/loader");
 const base64 = require("base64-js");
 
@@ -59,14 +59,18 @@ const defaultRequest: WasmBuildRequest = {
   autoResize: true,
   lowestDiscernibleValue: 1,
   highestTrackableValue: 2,
-  numberOfSignificantValueDigits: 3,
+  numberOfSignificantValueDigits: 3
 };
 
 export class WasmHistogram {
+  tag: string;
+
   constructor(
     private _wasmHistogram: any,
     private _remoteHistogramClass: string
-  ) {}
+  ) {
+    this.tag = NO_TAG;
+  }
 
   static build(request: WasmBuildRequest = defaultRequest) {
     const parameters = Object.assign({}, defaultRequest, request);
@@ -116,6 +120,22 @@ export class WasmHistogram {
     this._wasmHistogram.highestTrackableValue = value;
   }
 
+  public get startTimeStampMsec(): number {
+    return this._wasmHistogram.startTimeStampMsec;
+  }
+
+  public set startTimeStampMsec(value: number) {
+    this._wasmHistogram.startTimeStampMsec = value;
+  }
+
+  public get endTimeStampMsec(): number {
+    return this._wasmHistogram.endTimeStampMsec;
+  }
+
+  public set endTimeStampMsec(value: number) {
+    this._wasmHistogram.endTimeStampMsec = value;
+  }
+
   public get totalCount(): number {
     return this._wasmHistogram.totalCount;
   }
@@ -127,6 +147,13 @@ export class WasmHistogram {
   }
   public get estimatedFootprintInBytes(): number {
     return this._wasmHistogram.estimatedFootprintInBytes;
+  }
+
+  public get minNonZeroValue(): number {
+    return this._wasmHistogram.minNonZeroValue;
+  }
+  public get maxValue(): number {
+    return this._wasmHistogram.maxValue;
   }
 
   recordValue(value: number) {
@@ -201,11 +228,12 @@ export class WasmHistogram {
   }
 
   reset(): void {
+    this.tag = NO_TAG;
     this._wasmHistogram.reset();
   }
 
   destroy(): void {
     wasm.__release(this._wasmHistogram);
-    this._wasmHistogram = null;
+    this._wasmHistogram = NO_TAG;
   }
 }

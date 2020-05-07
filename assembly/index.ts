@@ -41,6 +41,30 @@ class HistogramAdapter<T, U> {
     this._histogram.highestTrackableValue = <u64>value;
   }
 
+  public get startTimeStampMsec(): f64 {
+    return <f64>this._histogram.startTimeStampMsec;
+  }
+
+  public set startTimeStampMsec(value: f64) {
+    this._histogram.startTimeStampMsec = <u64>value;
+  }
+
+  public get endTimeStampMsec(): f64 {
+    return <f64>this._histogram.endTimeStampMsec;
+  }
+
+  public set endTimeStampMsec(value: f64) {
+    this._histogram.endTimeStampMsec = <u64>value;
+  }
+
+  public get minNonZeroValue(): f64 {
+    return <f64>this._histogram.minNonZeroValue;
+  }
+
+  public get maxValue(): f64 {
+    return <f64>this._histogram.maxValue;
+  }
+
   public get totalCount(): f64 {
     return <f64>this._histogram.totalCount;
   }

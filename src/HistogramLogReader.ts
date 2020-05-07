@@ -9,6 +9,7 @@ import { NO_TAG } from "./AbstractHistogramBase";
 import AbstractHistogram, { HistogramConstructor } from "./AbstractHistogram";
 import Int32Histogram from "./Int32Histogram";
 import { decodeFromCompressedBase64 } from "./encoding";
+import Histogram from "./Histogram";
 
 const TAG_PREFIX = "Tag=";
 const TAG_PREFIX_LENGTH = "Tag=".length;
@@ -60,15 +61,18 @@ class HistogramLogReader {
 
   lines: string[];
   currentLineIndex: number;
-  histogramConstr: HistogramConstructor;
+  bitBucketSize: 8 | 16 | 32 | 64 | "packed";
+  useWebAssembly: boolean;
 
   constructor(
     logContent: string,
-    options?: { histogramConstr: HistogramConstructor }
+    bitBucketSize: 8 | 16 | 32 | 64 | "packed" = 32,
+    useWebAssembly: boolean = false
   ) {
     this.lines = splitLines(logContent);
     this.currentLineIndex = 0;
-    this.histogramConstr = options?.histogramConstr || Int32Histogram;
+    this.bitBucketSize = bitBucketSize;
+    this.useWebAssembly = useWebAssembly;
   }
 
   /**
@@ -81,7 +85,7 @@ class HistogramLogReader {
   public nextIntervalHistogram(
     rangeStartTimeSec = 0,
     rangeEndTimeSec = Number.MAX_VALUE
-  ): AbstractHistogram | null {
+  ): Histogram | null {
     while (this.currentLineIndex < this.lines.length) {
       const currentLine = this.lines[this.currentLineIndex];
       this.currentLineIndex++;
@@ -109,7 +113,7 @@ class HistogramLogReader {
           rawLogTimeStampInSec,
           rawIntervalLengthSec,
           ,
-          base64Histogram
+          base64Histogram,
         ] = tokens;
         const logTimeStampInSec = Number.parseFloat(rawLogTimeStampInSec);
 
@@ -133,7 +137,8 @@ class HistogramLogReader {
         }
         const histogram = decodeFromCompressedBase64(
           base64Histogram,
-          this.histogramConstr
+          this.bitBucketSize,
+          this.useWebAssembly
         );
         histogram.startTimeStampMsec =
           (this.baseTimeSec + logTimeStampInSec) * 1000;
@@ -162,7 +167,7 @@ const splitLines = (logContent: string) => logContent.split(/\r\n|\r|\n/g);
 
 const shouldIncludeNoTag = (lines: string[]) =>
   lines.find(
-    line =>
+    (line) =>
       !line.startsWith("#") &&
       !line.startsWith('"') &&
       !line.startsWith(TAG_PREFIX) &&
@@ -172,8 +177,8 @@ const shouldIncludeNoTag = (lines: string[]) =>
 export const listTags = (content: string) => {
   const lines = splitLines(content);
   const tags = lines
-    .filter(line => line.includes(",") && line.startsWith(TAG_PREFIX))
-    .map(line => line.substring(TAG_PREFIX_LENGTH, line.indexOf(",")));
+    .filter((line) => line.includes(",") && line.startsWith(TAG_PREFIX))
+    .map((line) => line.substring(TAG_PREFIX_LENGTH, line.indexOf(",")));
   const tagsWithoutDuplicates = new Set(tags);
   const result = Array.from(tagsWithoutDuplicates);
   if (shouldIncludeNoTag(lines)) {

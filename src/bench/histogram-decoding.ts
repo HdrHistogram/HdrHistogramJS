@@ -2,7 +2,7 @@ import b from "benny";
 import { build, AbstractHistogram } from "../index";
 import {
   encodeIntoBase64String,
-  decodeFromCompressedBase64B,
+  decodeFromCompressedBase64
 } from "../encoding";
 
 const randomInteger = (max: number = Number.MAX_SAFE_INTEGER) =>
@@ -20,7 +20,7 @@ b.suite(
       }
       const b64 = encodeIntoBase64String(histogram as AbstractHistogram);
       return () => {
-        decodeFromCompressedBase64B(b64, 32, false).destroy();
+        decodeFromCompressedBase64(b64, 32, false).destroy();
       };
     },
     options
@@ -35,7 +35,7 @@ b.suite(
       }
       const b64 = encodeIntoBase64String(histogram as AbstractHistogram);
       return () => {
-        decodeFromCompressedBase64B(b64, 32, true).destroy();
+        decodeFromCompressedBase64(b64, 32, true).destroy();
       };
     },
     options

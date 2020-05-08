@@ -1,4 +1,3 @@
-import { expect } from "chai";
 import HistogramLogWriter from "./HistogramLogWriter";
 import Int32Histogram from "./Int32Histogram";
 
@@ -8,7 +7,7 @@ describe("Histogram Log Writer", () => {
   let histogram: Int32Histogram;
   beforeEach(() => {
     buffer = "";
-    writer = new HistogramLogWriter(content => {
+    writer = new HistogramLogWriter((content) => {
       buffer += content;
     });
     histogram = new Int32Histogram(1, Number.MAX_SAFE_INTEGER, 3);
@@ -20,7 +19,7 @@ describe("Histogram Log Writer", () => {
     // when
     writer.outputIntervalHistogram(histogram, 1000, 1042);
     // then
-    expect(buffer).to.match(/^1000.000,42.000,123.000,HISTFAA/);
+    expect(buffer).toMatch(/^1000.000,42.000,123.000,HISTFAA/);
   });
 
   it("should write start time, duration and  max value using 3 digits", () => {
@@ -29,7 +28,7 @@ describe("Histogram Log Writer", () => {
     // when
     writer.outputIntervalHistogram(histogram, 1000.0120001, 1042.013001);
     // then
-    expect(buffer).to.match(/^1000.012,42.001,123.001,HISTFAA/);
+    expect(buffer).toMatch(/^1000.012,42.001,123.001,HISTFAA/);
   });
 
   it("should write a line starting with histogram tag", () => {
@@ -39,7 +38,7 @@ describe("Histogram Log Writer", () => {
     // when
     writer.outputIntervalHistogram(histogram, 1000, 1042);
     // then
-    expect(buffer).to.contain("Tag=TAG,1000.000,42.000,123.000,HISTFAA");
+    expect(buffer).toContain("Tag=TAG,1000.000,42.000,123.000,HISTFAA");
   });
 
   it("should write a histogram's start time in sec using basetime", () => {
@@ -51,7 +50,7 @@ describe("Histogram Log Writer", () => {
     // when
     writer.outputIntervalHistogram(histogram);
     // then
-    expect(buffer).to.contain("234.001");
+    expect(buffer).toContain("234.001");
   });
 
   it("should write start time in seconds", () => {
@@ -59,6 +58,6 @@ describe("Histogram Log Writer", () => {
     // when
     writer.outputStartTime(1234560);
     // then
-    expect(buffer).to.contain("1234.560");
+    expect(buffer).toContain("1234.560");
   });
 });

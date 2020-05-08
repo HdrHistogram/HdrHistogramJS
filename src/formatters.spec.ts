@@ -1,5 +1,4 @@
 import "core-js";
-import { expect } from "chai";
 import { integerFormatter, floatFormatter } from "./formatters";
 
 describe("Integer formatter", () => {
@@ -9,7 +8,7 @@ describe("Integer formatter", () => {
     // when
     const result = formatter(123);
     // then
-    expect(result).to.be.equal("123");
+    expect(result).toBe("123");
   });
 
   it("should add padding on the left when input has a few digits", () => {
@@ -18,7 +17,7 @@ describe("Integer formatter", () => {
     // when
     const result = formatter(123);
     // then
-    expect(result).to.be.equal("  123");
+    expect(result).toBe("  123");
   });
 });
 
@@ -29,7 +28,7 @@ describe("Float formatter", () => {
     // when
     const result = formatter(12.34);
     // then
-    expect(result).to.be.equal("12.34");
+    expect(result).toBe("12.34");
   });
 
   it("should format float as a string with given number of fraction digits", () => {
@@ -38,7 +37,7 @@ describe("Float formatter", () => {
     // when
     const result = formatter(12.342);
     // then
-    expect(result).to.be.equal("12.34");
+    expect(result).toBe("12.34");
   });
 
   it("should format float as a string adding fraction digits", () => {
@@ -47,7 +46,7 @@ describe("Float formatter", () => {
     // when
     const result = formatter(12.3);
     // then
-    expect(result).to.be.equal("12.30");
+    expect(result).toBe("12.30");
   });
 
   it("should format the whole float input even with lots of digits", () => {
@@ -56,7 +55,7 @@ describe("Float formatter", () => {
     // when
     const result = formatter(12456789.34);
     // then
-    expect(result).to.be.equal("12456789.34");
+    expect(result).toBe("12456789.34");
   });
 
   it("should add padding on the left when not enough digits", () => {
@@ -65,6 +64,6 @@ describe("Float formatter", () => {
     // when
     const result = formatter(9.34);
     // then
-    expect(result).to.be.equal(" 9.34");
+    expect(result).toBe(" 9.34");
   });
 });

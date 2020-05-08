@@ -5,7 +5,6 @@
  * and released to the public domain, as explained at
  * http://creativecommons.org/publicdomain/zero/1.0/
  */
-import { expect } from "chai";
 import * as hdr from "./index";
 
 describe("Histogram builder", () => {
@@ -14,9 +13,9 @@ describe("Histogram builder", () => {
     // when
     const histogram = hdr.build();
     // then
-    expect(histogram).to.be.not.null;
-    expect(histogram.autoResize).to.be.true;
-    expect(histogram.highestTrackableValue).to.be.equal(2);
+    expect(histogram).not.toBeNull();
+    expect(histogram.autoResize).toBe(true);
+    expect(histogram.highestTrackableValue).toBe(2);
   });
 
   it("should build histogram with custom parameters", () => {
@@ -33,8 +32,6 @@ describe("Histogram builder", () => {
     expectedHistogram.recordValue(12345678);
 
     // then
-    expect(histogram.outputPercentileDistribution()).to.be.equal(
-      expectedHistogram.outputPercentileDistribution()
-    );
+    expect(histogram.outputPercentileDistribution()).toBe(expectedHistogram.outputPercentileDistribution());
   });
 });

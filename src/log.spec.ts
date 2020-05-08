@@ -1,4 +1,3 @@
-import { expect } from "chai";
 import {
   HistogramLogWriter,
   HistogramLogReader,
@@ -24,9 +23,9 @@ describe("Logs", () => {
     const reader = new HistogramLogReader(buffer);
     const outputHistogram = reader.nextIntervalHistogram();
     // then
-    expect(outputHistogram).to.be.not.null;
+    expect(outputHistogram).not.toBeNull();
     const outputText = (outputHistogram as AbstractHistogram).outputPercentileDistribution();
     const inputText = inputHistogram.outputPercentileDistribution();
-    expect(outputText).to.be.equal(inputText);
+    expect(outputText).toBe(inputText);
   });
 });

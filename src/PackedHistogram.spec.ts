@@ -1,5 +1,4 @@
 import "core-js";
-import { expect } from "chai";
 import Histogram from "./PackedHistogram";
 
 describe("Packed histogram", () => {
@@ -12,7 +11,7 @@ describe("Packed histogram", () => {
     // when
     const medianValue = histogram.getValueAtPercentile(50);
     // then
-    expect(medianValue).equals(127);
+    expect(medianValue).toBe(127);
   });
 
   it("should compute value outside first bucket with an error less than 1000", () => {
@@ -25,9 +24,7 @@ describe("Packed histogram", () => {
     // when
     const percentileValue = histogram.getValueAtPercentile(99.9);
     // then
-    expect(percentileValue).satisfies(
-      (result: number) => Math.abs(result - 123456) < 1000
-    );
+    expect(Math.abs(percentileValue - 123456)).toBeLessThan(1000);
   });
 
   it("should resize underlying packed array when recording an out of bound value", () => {
@@ -37,6 +34,6 @@ describe("Packed histogram", () => {
     // when
     histogram.recordValue(123456);
     // then
-    expect(histogram.totalCount).to.equal(1);
+    expect(histogram.totalCount).toBe(1);
   });
 });

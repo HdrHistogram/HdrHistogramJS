@@ -1,5 +1,4 @@
 import "core-js";
-import { expect } from "chai";
 const Histogram: any = require("./BigIntHistogram").default;
 
 describe("BigInt histogram", () => {
@@ -9,7 +8,7 @@ describe("BigInt histogram", () => {
     // when
     histogram.recordValue(123456);
     // then
-    expect(Number(histogram.getCountAtIndex(8073))).equals(1);
+    expect(Number(histogram.getCountAtIndex(8073))).toBe(1);
   });
 
   it("should compute median value in first bucket", () => {
@@ -21,7 +20,7 @@ describe("BigInt histogram", () => {
     // when
     const medianValue = histogram.getValueAtPercentile(50);
     // then
-    expect(medianValue).equals(127);
+    expect(medianValue).toBe(127);
   });
 
   it("should compute value outside first bucket with an error less than 1000", () => {
@@ -34,9 +33,7 @@ describe("BigInt histogram", () => {
     // when
     const percentileValue = histogram.getValueAtPercentile(99.9);
     // then
-    expect(percentileValue).satisfies(
-      (result: number) => Math.abs(result - 123456) < 1000
-    );
+    expect(Math.abs(percentileValue - 123456)).toBeLessThan(1000);
   });
 
   it("should add to count big numbers", () => {
@@ -45,7 +42,7 @@ describe("BigInt histogram", () => {
     // when
     histogram.addToCountAtIndex(123, Number.MAX_SAFE_INTEGER + 200);
     // then
-    expect(Number(histogram.getCountAtIndex(123))).equals(
+    expect(Number(histogram.getCountAtIndex(123))).toBe(
       Number.MAX_SAFE_INTEGER + 200
     );
   });

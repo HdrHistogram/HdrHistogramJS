@@ -6,7 +6,6 @@
  * http://creativecommons.org/publicdomain/zero/1.0/
  */
 import "core-js";
-import { expect } from "chai";
 import { PackedArrayContext } from "./PackedArrayContext";
 import { PackedArray } from "./PackedArray";
 
@@ -15,16 +14,16 @@ const { pow } = Math;
 describe("Packed array context", () => {
   it("Should initialize array", () => {
     const ctx = new PackedArrayContext(1024, 128);
-    expect(ctx.isPacked).to.be.true;
-    expect(ctx.getPopulatedShortLength()).to.be.greaterThan(0);
+    expect(ctx.isPacked).toBe(true);
+    expect(ctx.getPopulatedShortLength()).toBeGreaterThan(0);
   });
 });
 
 describe("Packed array", () => {
   it("Should initialize array", () => {
     const array = new PackedArray(1024, 128);
-    expect(array.getPhysicalLength()).to.equal(128);
-    expect(array.length()).to.equal(1024);
+    expect(array.getPhysicalLength()).toBe(128);
+    expect(array.length()).toBe(1024);
   });
 
   it("Should retrieve data stored in array", () => {
@@ -36,8 +35,8 @@ describe("Packed array", () => {
     array.set(12, 42);
 
     // then
-    expect(array.get(12)).to.be.equal(42);
-    expect(array.get(16)).to.be.equal(1);
+    expect(array.get(12)).toBe(42);
+    expect(array.get(16)).toBe(1);
   });
 
   it("Should resize array when storing data", () => {
@@ -49,7 +48,7 @@ describe("Packed array", () => {
 
     // then
     const storedData = array.get(12);
-    expect(storedData).to.be.equal(361);
+    expect(storedData).toBe(361);
   });
 
   it("Should retrieve big numbers stored in array", () => {
@@ -61,7 +60,7 @@ describe("Packed array", () => {
 
     // then
     const storedData = array.get(12);
-    expect(storedData).to.be.equal(Math.pow(2, 16) + 1);
+    expect(storedData).toBe(Math.pow(2, 16) + 1);
   });
 
   it("Should copy data when resizing array", () => {
@@ -71,7 +70,7 @@ describe("Packed array", () => {
     }
 
     for (let value = 256; value <= 272; value++) {
-      expect(array.get(value)).to.be.equal(value);
+      expect(array.get(value)).toBe(value);
     }
   });
 
@@ -84,7 +83,7 @@ describe("Packed array", () => {
     array.add(16, 41);
 
     // then
-    expect(array.get(16)).to.be.equal(42);
+    expect(array.get(16)).toBe(42);
   });
 
   it("Should increment data stored in array with big numbers", () => {
@@ -96,7 +95,7 @@ describe("Packed array", () => {
     array.add(16, pow(2, 33));
 
     // then
-    expect(array.get(16)).to.be.equal(pow(2, 33) + 42);
+    expect(array.get(16)).toBe(pow(2, 33) + 42);
   });
 
   it("Should increment data stored in array with big numbers when a resize is needed", () => {
@@ -110,7 +109,7 @@ describe("Packed array", () => {
     array.add(6144, 25);
 
     // then
-    expect(array.get(6144)).to.be.equal(268);
+    expect(array.get(6144)).toBe(268);
   });
 
   it("Should increment data stored in array with big numbers", () => {
@@ -122,7 +121,7 @@ describe("Packed array", () => {
     array.add(16, pow(2, 33));
 
     // then
-    expect(array.get(16)).to.be.equal(pow(2, 33) + 42);
+    expect(array.get(16)).toBe(pow(2, 33) + 42);
   });
 
   it("Should clear data stored in array", () => {
@@ -134,7 +133,7 @@ describe("Packed array", () => {
     array.clear();
 
     // then
-    expect(array.get(16)).to.be.equal(0);
+    expect(array.get(16)).toBe(0);
   });
 
   it("Should resize array when virtual length change", () => {
@@ -147,8 +146,8 @@ describe("Packed array", () => {
     array.add(pow(2, 19), 42);
 
     // then
-    expect(array.get(7)).to.be.equal(42);
-    expect(array.get(pow(2, 19))).to.be.equal(42);
+    expect(array.get(7)).toBe(42);
+    expect(array.get(pow(2, 19))).toBe(42);
   });
 });
 
@@ -162,6 +161,6 @@ describe("Unpacked array", () => {
     array.add(16, 41);
 
     // then
-    expect(array.get(16)).to.be.equal(42);
+    expect(array.get(16)).toBe(42);
   });
 });

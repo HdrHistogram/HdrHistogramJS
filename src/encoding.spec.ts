@@ -6,7 +6,6 @@
  * http://creativecommons.org/publicdomain/zero/1.0/
  */
 import "core-js";
-import { expect } from "chai";
 import {
   Int32Histogram,
   ByteBuffer,
@@ -25,7 +24,7 @@ describe("Histogram encoding", () => {
     // when
     const encodedSize = histogram.encodeIntoByteBuffer(buffer);
     // then
-    expect(encodedSize).to.be.equal(42);
+    expect(encodedSize).toBe(42);
   });
 
   it("should encode and decode an histogram", () => {
@@ -36,9 +35,7 @@ describe("Histogram encoding", () => {
     const b64 = encodeIntoBase64String(histogram);
     // then
     const decodedHistogram = decodeFromCompressedBase64(b64);
-    expect(decodedHistogram.getValueAtPercentile(50)).to.be.equal(
-      histogram.getValueAtPercentile(50)
-    );
+    expect(decodedHistogram.getValueAtPercentile(50)).toBe(histogram.getValueAtPercentile(50));
   });
 
   it("should decode and decompress reading a base64 string", () => {
@@ -47,8 +44,8 @@ describe("Histogram encoding", () => {
     // when
     const histogram = decodeFromCompressedBase64(base64String);
     // then
-    expect(histogram.mean).to.be.equal(42);
-    expect(histogram.totalCount).to.be.equal(1);
+    expect(histogram.mean).toBe(42);
+    expect(histogram.totalCount).toBe(1);
   });
 
   it("should decode and decompress a big base64 string", () => {
@@ -58,7 +55,7 @@ describe("Histogram encoding", () => {
     // when
     const histogram = decodeFromCompressedBase64(base64String);
     // then
-    expect(histogram.totalCount).to.be.equal(10000);
+    expect(histogram.totalCount).toBe(10000);
   });
 
   it("should encode and compress an histogram to a base64 string", () => {
@@ -68,9 +65,7 @@ describe("Histogram encoding", () => {
     // when
     const base64Histogram = encodeIntoBase64String(histogram);
     // then
-    expect(base64Histogram).to.be.equal(
-      "HISTFAAAAB94nJNpmSzMwMDABMSMQMzMAAGMUJoJxg9mAgA1TQGm"
-    );
+    expect(base64Histogram).toBe("HISTFAAAAB94nJNpmSzMwMDABMSMQMzMAAGMUJoJxg9mAgA1TQGm");
   });
 
   it("should throw an error when trying to decompress an histogram using V1 encoding", () => {
@@ -78,9 +73,7 @@ describe("Histogram encoding", () => {
     const base64V1EncodingString =
       "HISTIgAAAFd42pNpmazIwMAYxgABTBDKT4GBgdnNYMcCBvsPUBkeBkYGZqA8MwMbAzsDC5DFBCTZgJCDQY1BjkGLQZRBlUEPCB8zWDCYMxgDZZkZhgJgHDibAY8JB/A=";
     // when & then
-    expect(() => decodeFromCompressedBase64(base64V1EncodingString)).to.throw(
-      "Encoding not supported"
-    );
+    expect(() => decodeFromCompressedBase64(base64V1EncodingString)).toThrowError("Encoding not supported");
   });
 });
 
@@ -101,6 +94,6 @@ describe("WASM Histogram encoding", () => {
     const histogram = decodeFromCompressedBase64(base64String, 32, true);
     // then
     //console.log(histogram);
-    expect(histogram.totalCount).to.be.equal(10000);
+    expect(histogram.totalCount).toBe(10000);
   });
 });

@@ -1,5 +1,4 @@
 import "core-js";
-import { expect } from "chai";
 import * as fc from "fast-check";
 import ByteBuffer from "./ByteBuffer";
 import ZigZagEncoding from "./ZigZagEncoding";

@@ -1,5 +1,4 @@
 import "core-js";
-import { expect } from "chai";
 import Histogram from "./Float64Histogram";
 
 describe("Float64 histogram", () => {
@@ -9,7 +8,7 @@ describe("Float64 histogram", () => {
     // when
     histogram.recordValue(123456);
     // then
-    expect(histogram.getCountAtIndex(8073)).equals(1);
+    expect(histogram.getCountAtIndex(8073)).toBe(1);
   });
 
   it("should compute median value in first bucket", () => {
@@ -21,7 +20,7 @@ describe("Float64 histogram", () => {
     // when
     const medianValue = histogram.getValueAtPercentile(50);
     // then
-    expect(medianValue).equals(127);
+    expect(medianValue).toBe(127);
   });
 
   it("should compute value outside first bucket with an error less than 1000", () => {
@@ -34,9 +33,7 @@ describe("Float64 histogram", () => {
     // when
     const percentileValue = histogram.getValueAtPercentile(99.9);
     // then
-    expect(percentileValue).satisfies(
-      (result: number) => Math.abs(result - 123456) < 1000
-    );
+    expect(Math.abs(percentileValue - 123456)).toBeLessThan(1000);
   });
 
   it("should add to count big numbers", () => {
@@ -45,6 +42,6 @@ describe("Float64 histogram", () => {
     // when
     histogram.addToCountAtIndex(123, Number.MAX_SAFE_INTEGER - 42);
     // then
-    expect(histogram.getCountAtIndex(123)).equals(Number.MAX_SAFE_INTEGER - 42);
+    expect(histogram.getCountAtIndex(123)).toBe(Number.MAX_SAFE_INTEGER - 42);
   });
 });

@@ -6,9 +6,7 @@
   "types": "./index.d.ts",
   "scripts": {
     "tsc": "tsc --outDir dist",
-    "test": "mocha --opts mocha.opts",
-    "test:coverage": "nyc mocha --opts mocha.opts",
-    "test:stryker": "stryker run",
+    "test": "jest",
     "build": "yarn tsc && webpack --debug && webpack -p",
     "prepare-publish": "tsc --outDir . --declaration true --sourceMap true && webpack --debug && webpack -p",
     "prettier": "prettier --parser typescript -l src/**/*.ts",
@@ -29,50 +27,21 @@
   "devDependencies": {
     "@as-pect/cli": "^3.1.4",
     "@types/benchmark": "^1.0.31",
-    "@types/chai": "^3.4.34",
-    "@types/mocha": "^5.2.0",
+    "@types/jest": "^25.2.1",
     "@types/node": "7.0.0",
     "assemblyscript": "^0.9.4",
     "benchmark": "^2.1.4",
     "benny": "^3.6.14",
-    "chai": "^3.5.0",
     "core-js": "^2.4.1",
     "fast-check": "^1.1.1",
-    "mocha": "^5.2.0",
-    "nyc": "^8.4.0",
+    "jest": "25.1.x",
     "prettier": "^1.6.1",
-    "stryker": "^0.19.3",
-    "stryker-api": "^0.13.0",
-    "stryker-html-reporter": "^0.12.1",
-    "stryker-mocha-runner": "^0.10.5",
-    "stryker-typescript": "^0.9.1",
+    "ts-jest": "25.0.x",
     "ts-loader": "^3.5.0",
     "ts-node": "^5.0.1",
     "typescript": "^3.7.1",
     "webpack": "^1.13.3",
     "yargs": "^6.4.0"
-  },
-  "nyc": {
-    "include": [
-      "src/**/*.ts"
-    ],
-    "exclude": [
-      "node_modules/",
-      "dist/",
-      "src/**/*.spec.ts"
-    ],
-    "extension": [
-      ".ts"
-    ],
-    "require": [
-      "ts-node/register"
-    ],
-    "reporter": [
-      "text-summary",
-      "json",
-      "html"
-    ],
-    "all": true
   },
   "dependencies": {
     "@assemblyscript/loader": "^0.9.4",

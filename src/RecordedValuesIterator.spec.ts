@@ -1,5 +1,4 @@
 import "core-js";
-import { expect } from "chai";
 import RecordedValuesIterator from "./RecordedValuesIterator";
 import Histogram from "./Int32Histogram";
 
@@ -12,9 +11,9 @@ describe("Recorded Values Iterator", () => {
     // when
     const iterationValue = iterator.next();
     // then
-    expect(iterator.hasNext()).is.false;
-    expect(iterationValue.totalCountToThisValue).equals(1);
-    expect(iterationValue.totalValueToThisValue).equals(12345);
+    expect(iterator.hasNext()).toBe(false);
+    expect(iterationValue.totalCountToThisValue).toBe(1);
+    expect(iterationValue.totalValueToThisValue).toBe(12345);
   });
 
   it("should iterate to all recorded values", () => {
@@ -30,9 +29,9 @@ describe("Recorded Values Iterator", () => {
       values.push(iterator.next().valueIteratedTo);
     }
     // then
-    expect(values).to.have.length(3);
-    expect(values[0]).equals(1);
-    expect(values[1]).satisfies((value: number) => value >= 300);
-    expect(values[2]).satisfies((value: number) => value >= 3000);
+    expect(values).toHaveLength(3);
+    expect(values[0]).toBe(1);
+    expect(values[1]).toBeGreaterThan(300);
+    expect(values[2]).toBeGreaterThan(3000);
   });
 });

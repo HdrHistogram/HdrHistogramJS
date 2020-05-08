@@ -1,6 +1,5 @@
 import "core-js";
 import * as fs from "fs";
-import { expect } from "chai";
 import HistogramLogReader, { listTags } from "./HistogramLogReader";
 import AbstractHistogram from "./AbstractHistogram";
 import Int32Histogram from "./Int32Histogram";
@@ -10,7 +9,7 @@ import Histogram from "./Histogram";
 const { floor } = Math;
 
 const checkNotNull = <T>(actual: T | null): actual is T => {
-  expect(actual).to.be.not.null;
+  expect(actual).not.toBeNull();
   return true;
 };
 
@@ -20,7 +19,7 @@ describe("Histogram Log Reader", () => {
   let fileContentWithBaseTime: string;
   let fileContentWithoutHeader: string;
   let fileContentWithTrailingWhitespace: string;
-  before(() => {
+  beforeAll(() => {
     // when using mutation testing tool stryker, source code
     // is copied in a sandbox directory without the test_files
     // directory...
@@ -55,7 +54,7 @@ describe("Histogram Log Reader", () => {
     // when
     reader.nextIntervalHistogram();
     // then
-    expect(reader.startTimeSec).to.be.equal(1441812279.474);
+    expect(reader.startTimeSec).toBe(1441812279.474);
   });
 
   it("should read first histogram starting from the beginning", () => {
@@ -66,9 +65,7 @@ describe("Histogram Log Reader", () => {
     // then
     checkNotNull(histogram);
     // if mean is good, strong probability everything else is good as well
-    expect(floor((histogram as AbstractHistogram).getMean())).to.be.equal(
-      301998
-    );
+    expect(floor((histogram as AbstractHistogram).getMean())).toBe(301998);
   });
 
   it("should read encoded histogram and use provided constructor", () => {
@@ -79,7 +76,7 @@ describe("Histogram Log Reader", () => {
     // then
     checkNotNull(histogram);
     // if mean is good, strong probability everything else is good as well
-    expect(floor((histogram as PackedHistogram).getMean())).to.be.equal(301998);
+    expect(floor((histogram as PackedHistogram).getMean())).toBe(301998);
   });
 
   it("should return null if no histogram in the logs", () => {
@@ -88,7 +85,7 @@ describe("Histogram Log Reader", () => {
     // when
     const histogram = reader.nextIntervalHistogram();
     // then
-    expect(histogram).to.be.null;
+    expect(histogram).toBeNull();
   });
 
   it("should return next histogram in the logs", () => {
@@ -100,7 +97,7 @@ describe("Histogram Log Reader", () => {
     // then
     if (checkNotNull(histogram)) {
       // if mean is good, strong probability everything else is good as well
-      expect(floor(histogram.mean)).to.be.equal(293719);
+      expect(floor(histogram.mean)).toBe(293719);
     }
   });
 
@@ -110,7 +107,7 @@ describe("Histogram Log Reader", () => {
     // when
     const histogram = reader.nextIntervalHistogram(0.01, 0.1);
     // then
-    expect(histogram).to.be.null;
+    expect(histogram).toBeNull();
   });
 
   it("should return null if all histograms are before specified time range", () => {
@@ -119,7 +116,7 @@ describe("Histogram Log Reader", () => {
     // when
     const histogram = reader.nextIntervalHistogram(62, 63);
     // then
-    expect(histogram).to.be.null;
+    expect(histogram).toBeNull();
   });
 
   it("should parse histogram even if there are trailing whitespaces", () => {
@@ -139,11 +136,11 @@ describe("Histogram Log Reader", () => {
     const secondHistogram = reader.nextIntervalHistogram(0, 2);
     const thirdHistogram = reader.nextIntervalHistogram(0, 2);
     // then
-    expect(thirdHistogram).to.be.null;
+    expect(thirdHistogram).toBeNull();
     if (checkNotNull(firstHistogram) && checkNotNull(secondHistogram)) {
       // if mean is good, strong probability everything else is good as well
-      expect(floor(firstHistogram.mean)).to.be.equal(301998);
-      expect(floor(secondHistogram.mean)).to.be.equal(293719);
+      expect(floor(firstHistogram.mean)).toBe(301998);
+      expect(floor(secondHistogram.mean)).toBe(293719);
     }
   });
 
@@ -154,7 +151,7 @@ describe("Histogram Log Reader", () => {
     const histogram = reader.nextIntervalHistogram();
     // then
     if (checkNotNull(histogram)) {
-      expect(histogram.startTimeStampMsec).to.be.equal(1441812279601);
+      expect(histogram.startTimeStampMsec).toBe(1441812279601);
     }
   });
 
@@ -165,7 +162,7 @@ describe("Histogram Log Reader", () => {
     const histogram = reader.nextIntervalHistogram();
     // then
     if (checkNotNull(histogram)) {
-      expect(histogram.endTimeStampMsec).to.be.equal(1441812280608);
+      expect(histogram.endTimeStampMsec).toBe(1441812280608);
     }
   });
 
@@ -177,8 +174,8 @@ describe("Histogram Log Reader", () => {
     const histogram = reader.nextIntervalHistogram();
     // then
     if (checkNotNull(histogram)) {
-      expect(histogram.tag).to.be.equal("A");
-      expect(floor(histogram.mean)).to.be.equal(301998);
+      expect(histogram.tag).toBe("A");
+      expect(floor(histogram.mean)).toBe(301998);
     }
   });
 
@@ -189,8 +186,8 @@ describe("Histogram Log Reader", () => {
     const histogram = reader.nextIntervalHistogram();
     // then
     if (checkNotNull(histogram)) {
-      expect(histogram.startTimeStampMsec).to.be.equal(1441812123250);
-      expect(histogram.endTimeStampMsec).to.be.equal(1441812124257);
+      expect(histogram.startTimeStampMsec).toBe(1441812123250);
+      expect(histogram.endTimeStampMsec).toBe(1441812124257);
     }
   });
 
@@ -201,8 +198,8 @@ describe("Histogram Log Reader", () => {
     const histogram = reader.nextIntervalHistogram();
     // then
     if (checkNotNull(histogram)) {
-      expect(histogram.startTimeStampMsec).to.be.equal(127);
-      expect(histogram.endTimeStampMsec).to.be.equal(1134);
+      expect(histogram.startTimeStampMsec).toBe(127);
+      expect(histogram.endTimeStampMsec).toBe(1134);
     }
   });
 
@@ -226,12 +223,10 @@ describe("Histogram Log Reader", () => {
     }
 
     // then
-    expect(histogramCount).to.be.equal(62);
-    expect(totalCount).to.be.equal(48761);
-    expect(accumulatedHistogram.getValueAtPercentile(99.9)).to.be.equal(
-      1745879039
-    );
-    expect(reader.startTimeSec).to.be.equal(1441812279.474);
+    expect(histogramCount).toBe(62);
+    expect(totalCount).toBe(48761);
+    expect(accumulatedHistogram.getValueAtPercentile(99.9)).toBe(1745879039);
+    expect(reader.startTimeSec).toBe(1441812279.474);
   });
 
   it("should list all the tags of a log file", () => {
@@ -239,7 +234,7 @@ describe("Histogram Log Reader", () => {
     // when
     const tags = listTags(tagFileContent);
     // then
-    expect(tags).to.be.deep.equal(["NO TAG", "A"]);
+    expect(tags).toEqual(["NO TAG", "A"]);
   });
 
   it("should list all the tags of a log file where all histograms are tagged", () => {
@@ -254,6 +249,6 @@ Tag=A,0.127,1.007,2.769,HISTFAAAAEV42pNpmSzMwMCgyAABTBDKT4GBgdnNYMcCBvsPEBEJISEu
     // when
     const tags = listTags(content);
     // then
-    expect(tags).to.be.deep.equal(["NOT-EMPTY", "A"]);
+    expect(tags).toEqual(["NOT-EMPTY", "A"]);
   });
 });

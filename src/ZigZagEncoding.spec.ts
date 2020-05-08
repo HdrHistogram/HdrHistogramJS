@@ -1,5 +1,4 @@
 import "core-js";
-import { expect } from "chai";
 import ByteBuffer from "./ByteBuffer";
 import ZigZagEncoding from "./ZigZagEncoding";
 
@@ -10,8 +9,8 @@ describe("Zig Zag Encoding", () => {
     // when
     ZigZagEncoding.encode(buffer, 56);
     // then
-    expect(buffer.data).to.have.length(4);
-    expect(buffer.data[0]).to.equals(112);
+    expect(buffer.data).toHaveLength(4);
+    expect(buffer.data[0]).toBe(112);
   });
 
   it("should encode int using several bytes when value is more than 64", () => {
@@ -20,8 +19,8 @@ describe("Zig Zag Encoding", () => {
     // when
     ZigZagEncoding.encode(buffer, 456);
     // then
-    expect(buffer.data).to.have.length(4);
-    expect(Array.from(buffer.data)).to.deep.equals([144, 7, 0, 0]);
+    expect(buffer.data).toHaveLength(4);
+    expect(Array.from(buffer.data)).toEqual([144, 7, 0, 0]);
   });
 
   it("should encode negative int using several bytes when value is more than 64", () => {
@@ -30,8 +29,8 @@ describe("Zig Zag Encoding", () => {
     // when
     ZigZagEncoding.encode(buffer, -456);
     // then
-    expect(buffer.data).to.have.length(4);
-    expect(Array.from(buffer.data)).to.deep.equals([143, 7, 0, 0]);
+    expect(buffer.data).toHaveLength(4);
+    expect(Array.from(buffer.data)).toEqual([143, 7, 0, 0]);
   });
 
   it("should encode large safe int greater than 2^32", () => {
@@ -40,8 +39,8 @@ describe("Zig Zag Encoding", () => {
     // when
     ZigZagEncoding.encode(buffer, Math.pow(2, 50));
     // then
-    expect(buffer.data).to.have.length(8);
-    expect(Array.from(buffer.data)).to.deep.equals([
+    expect(buffer.data).toHaveLength(8);
+    expect(Array.from(buffer.data)).toEqual([
       128,
       128,
       128,
@@ -61,7 +60,7 @@ describe("Zig Zag Encoding", () => {
     // when
     const value = ZigZagEncoding.decode(buffer);
     // then
-    expect(value).to.equals(56);
+    expect(value).toBe(56);
   });
 
   it("should decode int using multiple bytes", () => {
@@ -73,7 +72,7 @@ describe("Zig Zag Encoding", () => {
     // when
     const value = ZigZagEncoding.decode(buffer);
     // then
-    expect(value).to.equals(70000);
+    expect(value).toBe(70000);
   });
 
   it("should decode negative int using multiple bytes", () => {
@@ -85,7 +84,7 @@ describe("Zig Zag Encoding", () => {
     // when
     const value = ZigZagEncoding.decode(buffer);
     // then
-    expect(value).to.equals(-1515);
+    expect(value).toBe(-1515);
   });
 
   it("should decode large safe int greater than 2^32", () => {
@@ -97,6 +96,6 @@ describe("Zig Zag Encoding", () => {
     // when
     const value = ZigZagEncoding.decode(buffer);
     // then
-    expect(value).to.equals(Math.pow(2, 50) + 1234);
+    expect(value).toBe(Math.pow(2, 50) + 1234);
   });
 });

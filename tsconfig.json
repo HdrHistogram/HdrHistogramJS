@@ -9,8 +9,8 @@
     "target": "es6",
     "typeRoots": ["./node_modules/@types"],
     "lib": ["es2017"],
-    "types": ["mocha", "chai", "node"]
+    "types": ["node", "jest"]
   },
   "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist"]
+  "exclude": ["node_modules", "dist", "assembly"]
 }

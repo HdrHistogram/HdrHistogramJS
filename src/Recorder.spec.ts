@@ -1,4 +1,3 @@
-import { expect } from "chai";
 import Recorder from "./Recorder";
 import Int32Histogram from "./Int32Histogram";
 import PackedHistogram from "./PackedHistogram";
@@ -11,7 +10,7 @@ describe("Recorder", () => {
     recorder.recordValue(123);
     // then
     const histogram = recorder.getIntervalHistogram();
-    expect(histogram.totalCount).to.be.equal(1);
+    expect(histogram.totalCount).toBe(1);
   });
 
   it("should record value in a packed histogram", () => {
@@ -20,10 +19,8 @@ describe("Recorder", () => {
     // when
     recorder.recordValue(123);
     // then
-    expect(recorder.getIntervalHistogram() instanceof PackedHistogram).to.be
-      .true;
-    expect(recorder.getIntervalHistogram() instanceof PackedHistogram).to.be
-      .true;
+    expect(recorder.getIntervalHistogram() instanceof PackedHistogram).toBe(true);
+    expect(recorder.getIntervalHistogram() instanceof PackedHistogram).toBe(true);
   });
 
   it("should record value with count", () => {
@@ -33,7 +30,7 @@ describe("Recorder", () => {
     recorder.recordValueWithCount(123, 3);
     // then
     const histogram = recorder.getIntervalHistogram();
-    expect(histogram.totalCount).to.be.equal(3);
+    expect(histogram.totalCount).toBe(3);
   });
 
   it("should record value with expected interval", () => {
@@ -43,7 +40,7 @@ describe("Recorder", () => {
     recorder.recordValueWithExpectedInterval(223, 100);
     // then
     const histogram = recorder.getIntervalHistogram();
-    expect(histogram.totalCount).to.be.equal(2);
+    expect(histogram.totalCount).toBe(2);
   });
 
   it("should record value in a packed histogram", () => {
@@ -53,7 +50,7 @@ describe("Recorder", () => {
     // when
     const histogram = recorder.getIntervalHistogram();
     // then
-    expect(histogram instanceof PackedHistogram).to.be.true;
+    expect(histogram instanceof PackedHistogram).toBe(true);
   });
 
   it("should record value only on one interval histogram", () => {
@@ -64,7 +61,7 @@ describe("Recorder", () => {
     const firstHistogram = recorder.getIntervalHistogram();
     // then
     const secondHistogram = recorder.getIntervalHistogram();
-    expect(secondHistogram.totalCount).to.be.equal(0);
+    expect(secondHistogram.totalCount).toBe(0);
   });
 
   it("should not record value on returned interval histogram", () => {
@@ -76,7 +73,7 @@ describe("Recorder", () => {
     firstHistogram.recordValue(42); // should have 0 impact on recorder
     const thirdHistogram = recorder.getIntervalHistogram();
     // then
-    expect(thirdHistogram.totalCount).to.be.equal(0);
+    expect(thirdHistogram.totalCount).toBe(0);
   });
 
   it("should return interval histograms with expected significant digits", () => {
@@ -87,7 +84,7 @@ describe("Recorder", () => {
     // when
     const thirdHistogram = recorder.getIntervalHistogram();
     // then
-    expect(thirdHistogram.numberOfSignificantValueDigits).to.be.equal(4);
+    expect(thirdHistogram.numberOfSignificantValueDigits).toBe(4);
   });
 
   it("should return recycled histograms when asking for interval histogram", () => {
@@ -98,7 +95,7 @@ describe("Recorder", () => {
     const secondHistogram = recorder.getIntervalHistogram(firstHistogram);
     const thirdHistogram = recorder.getIntervalHistogram();
     // then
-    expect(thirdHistogram === firstHistogram).to.be.true;
+    expect(thirdHistogram === firstHistogram).toBe(true);
   });
 
   it("should throw an error when trying to recycle an histogram not created by the recorder", () => {
@@ -106,7 +103,7 @@ describe("Recorder", () => {
     const recorder = new Recorder();
     const somehistogram = new Int32Histogram(1, 2, 3);
     // when & then
-    expect(() => recorder.getIntervalHistogram(somehistogram)).to.throw();
+    expect(() => recorder.getIntervalHistogram(somehistogram)).toThrowError();
   });
 
   it("should reset histogram when recycling", () => {
@@ -118,7 +115,7 @@ describe("Recorder", () => {
     const secondHistogram = recorder.getIntervalHistogram(firstHistogram);
     const thirdHistogram = recorder.getIntervalHistogram();
     // then
-    expect(thirdHistogram.totalCount).to.be.equal(0);
+    expect(thirdHistogram.totalCount).toBe(0);
   });
 
   it("should set timestamps on first interval histogram", () => {
@@ -130,8 +127,8 @@ describe("Recorder", () => {
     currentTime = 123;
     const histogram = recorder.getIntervalHistogram();
     // then
-    expect(histogram.startTimeStampMsec).to.be.equal(42);
-    expect(histogram.endTimeStampMsec).to.be.equal(123);
+    expect(histogram.startTimeStampMsec).toBe(42);
+    expect(histogram.endTimeStampMsec).toBe(123);
   });
 
   it("should set timestamps on any interval histogram", () => {
@@ -145,8 +142,8 @@ describe("Recorder", () => {
     currentTime = 56;
     const secondHistogram = recorder.getIntervalHistogram();
     // then
-    expect(secondHistogram.startTimeStampMsec).to.be.equal(51);
-    expect(secondHistogram.endTimeStampMsec).to.be.equal(56);
+    expect(secondHistogram.startTimeStampMsec).toBe(51);
+    expect(secondHistogram.endTimeStampMsec).toBe(56);
   });
 
   it("should copy interval histogram", () => {
@@ -160,9 +157,9 @@ describe("Recorder", () => {
     currentTime = 51;
     recorder.getIntervalHistogramInto(histogram);
     // then
-    expect(histogram.totalCount).to.be.equal(1);
-    expect(histogram.startTimeStampMsec).to.be.equal(42);
-    expect(histogram.endTimeStampMsec).to.be.equal(51);
+    expect(histogram.totalCount).toBe(1);
+    expect(histogram.startTimeStampMsec).toBe(42);
+    expect(histogram.endTimeStampMsec).toBe(51);
   });
 
   it("should reset values and timestamp", () => {
@@ -176,7 +173,7 @@ describe("Recorder", () => {
     recorder.reset();
     const histogram = recorder.getIntervalHistogram();
     // then
-    expect(histogram.totalCount).to.be.equal(0);
-    expect(histogram.startTimeStampMsec).to.be.equal(55);
+    expect(histogram.totalCount).toBe(0);
+    expect(histogram.startTimeStampMsec).toBe(55);
   });
 });

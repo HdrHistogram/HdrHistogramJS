@@ -14,6 +14,7 @@ import {
   encodeIntoBase64String,
   Histogram,
 } from "./index";
+import { initWebAssembly } from "./wasm";
 
 describe("Histogram encoding", () => {
   it("should encode filling a byte buffer", () => {
@@ -35,7 +36,9 @@ describe("Histogram encoding", () => {
     const b64 = encodeIntoBase64String(histogram);
     // then
     const decodedHistogram = decodeFromCompressedBase64(b64);
-    expect(decodedHistogram.getValueAtPercentile(50)).toBe(histogram.getValueAtPercentile(50));
+    expect(decodedHistogram.getValueAtPercentile(50)).toBe(
+      histogram.getValueAtPercentile(50)
+    );
   });
 
   it("should decode and decompress reading a base64 string", () => {
@@ -65,7 +68,9 @@ describe("Histogram encoding", () => {
     // when
     const base64Histogram = encodeIntoBase64String(histogram);
     // then
-    expect(base64Histogram).toBe("HISTFAAAAB94nJNpmSzMwMDABMSMQMzMAAGMUJoJxg9mAgA1TQGm");
+    expect(base64Histogram).toBe(
+      "HISTFAAAAB94nJNpmSzMwMDABMSMQMzMAAGMUJoJxg9mAgA1TQGm"
+    );
   });
 
   it("should throw an error when trying to decompress an histogram using V1 encoding", () => {
@@ -73,12 +78,16 @@ describe("Histogram encoding", () => {
     const base64V1EncodingString =
       "HISTIgAAAFd42pNpmazIwMAYxgABTBDKT4GBgdnNYMcCBvsPUBkeBkYGZqA8MwMbAzsDC5DFBCTZgJCDQY1BjkGLQZRBlUEPCB8zWDCYMxgDZZkZhgJgHDibAY8JB/A=";
     // when & then
-    expect(() => decodeFromCompressedBase64(base64V1EncodingString)).toThrowError("Encoding not supported");
+    expect(() =>
+      decodeFromCompressedBase64(base64V1EncodingString)
+    ).toThrowError("Encoding not supported");
   });
 });
 
 describe("WASM Histogram encoding", () => {
   let histogram: Histogram;
+
+  beforeAll(initWebAssembly);
 
   afterEach(() => {
     if (histogram) {

@@ -2,7 +2,9 @@
   "name": "hdr-histogram-js",
   "version": "1.1.2",
   "description": "TypeScript port of HdrHistogram",
-  "main": "./index.js",
+  "main": "dist/hdrhistogram.cjs.js",
+  "module": "dist/hdrhistogram.esm.js",
+  "browser": "dist/hdrhistogram.umd.js",
   "types": "./index.d.ts",
   "scripts": {
     "tsc": "tsc --outDir dist",
@@ -16,7 +18,8 @@
     "asbuild:untouched": "asc assembly/index.ts -b build/untouched.wasm -t build/untouched.wat --validate --sourceMap --debug",
     "asbuild:optimized": "asc assembly/index.ts -b build/optimized.wasm -t build/optimized.wat --validate --sourceMap -O3 --noAssert",
     "asbuild:base64": "echo \"/** @internal */\nexport const BINARY = \\\"$(node ./base64.js build/optimized.wasm)\\\";\" > src/wasm/generated-wasm.ts",
-    "asbuild": "npm run asbuild:untouched && npm run asbuild:optimized && npm run asbuild:base64"
+    "asbuild": "npm run asbuild:untouched && npm run asbuild:optimized && npm run asbuild:base64",
+    "rollup": "rollup -c"
   },
   "repository": {
     "type": "git",
@@ -36,11 +39,15 @@
     "fast-check": "^1.1.1",
     "jest": "25.1.x",
     "prettier": "^1.6.1",
+    "rollup": "^2.8.2",
+    "rollup-plugin-commonjs": "^10.1.0",
+    "rollup-plugin-node-resolve": "^5.2.0",
+    "rollup-plugin-terser": "^5.3.0",
+    "rollup-plugin-typescript": "^1.0.1",
     "ts-jest": "25.0.x",
     "ts-loader": "^3.5.0",
     "ts-node": "^5.0.1",
     "typescript": "^3.7.1",
-    "webpack": "^1.13.3",
     "yargs": "^6.4.0"
   },
   "dependencies": {

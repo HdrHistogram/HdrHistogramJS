@@ -15,6 +15,9 @@ import Int16Histogram from "./Int16Histogram";
 import Int32Histogram from "./Int32Histogram";
 import Float64Histogram from "./Float64Histogram";
 
+// @ts-ignore
+import * as pako from "pako";
+
 const { max } = Math;
 
 const V2EncodingCookieBase = 0x1c849303;
@@ -144,7 +147,6 @@ function findDeflateFunction() {
   try {
     return eval('require("zlib").deflateSync');
   } catch (error) {
-    const pako: any = require("pako/lib/deflate");
     return pako.deflate;
   }
 }
@@ -152,7 +154,6 @@ function findInflateFunction() {
   try {
     return eval('require("zlib").inflateSync');
   } catch (error) {
-    const pako: any = require("pako/lib/inflate");
     return pako.inflate;
   }
 }

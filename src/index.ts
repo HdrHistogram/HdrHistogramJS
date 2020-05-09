@@ -17,7 +17,12 @@ import HistogramLogReader, { listTags } from "./HistogramLogReader";
 import HistogramLogWriter from "./HistogramLogWriter";
 import { decodeFromCompressedBase64, encodeIntoBase64String } from "./encoding";
 import Recorder from "./Recorder";
-import { WasmHistogram, webAssemblyAvailable } from "./wasm";
+import {
+  WasmHistogram,
+  webAssemblyAvailable,
+  initWebAssembly,
+  webAssemblyReady,
+} from "./wasm";
 
 //const BigIntHistogram = require("./BigIntHistogram").default;
 
@@ -84,6 +89,9 @@ const defaultRequest: BuildRequest = {
 const build = (request = defaultRequest): Histogram => {
   const parameters = Object.assign({}, defaultRequest, request);
   if (request.webAssembly && webAssemblyAvailable) {
+    if (!webAssemblyReady()) {
+      throw new Error("WebAssembly is not ready yet!");
+    }
     return WasmHistogram.build(parameters);
   }
   let histogramConstr: HistogramConstructor;
@@ -115,6 +123,7 @@ const build = (request = defaultRequest): Histogram => {
 };
 
 export {
+  initWebAssembly,
   Int8Histogram,
   Int16Histogram,
   Int32Histogram,

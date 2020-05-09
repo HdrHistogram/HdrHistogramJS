@@ -3,8 +3,7 @@ import { build } from ".";
 import AbstractHistogram from "./AbstractHistogram";
 import { NO_TAG } from "./AbstractHistogramBase";
 import Int32Histogram from "./Int32Histogram";
-
-declare function require(name: string): any;
+import { initWebAssembly } from "./wasm";
 
 class HistogramForTests extends AbstractHistogram {
   //constructor() {}
@@ -304,6 +303,8 @@ describe("Histogram correcting coordinated omissions", () => {
 });
 
 describe("Histogram add & substract", () => {
+  beforeAll(initWebAssembly);
+
   it("should add histograms of same size", () => {
     // given
     const histogram = new Int32Histogram(1, Number.MAX_SAFE_INTEGER, 2);
@@ -445,6 +446,8 @@ describe("Histogram add & substract", () => {
 });
 
 describe("Histogram clearing support", () => {
+  beforeAll(initWebAssembly);
+
   it("should reset data in order to reuse histogram", () => {
     // given
     //const histogram = new Int32Histogram(1, Number.MAX_SAFE_INTEGER, 5);

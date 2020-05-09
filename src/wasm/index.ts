@@ -1,7 +1,9 @@
 import { BINARY } from "./generated-wasm";
 import Histogram, { NO_TAG } from "../Histogram";
-const loader = require("@assemblyscript/loader");
-const base64 = require("base64-js");
+// @ts-ignore
+import * as base64 from "base64-js";
+// @ts-ignore
+import * as loader from "@assemblyscript/loader";
 
 const isNode = typeof process !== "undefined" && process.version;
 export const webAssemblyAvailable = (() => {
@@ -17,8 +19,21 @@ export const webAssemblyAvailable = (() => {
   return available;
 })();
 
-const wasm =
-  webAssemblyAvailable && loader.instantiateSync(base64.toByteArray(BINARY));
+let wasm: any = undefined;
+
+export const initWebAssembly = async (): Promise<void> => {
+  if (!webAssemblyAvailable) {
+    throw new Error("WebAssembly not available here!");
+  }
+  if (!!wasm) {
+    return;
+  }
+  return loader
+    .instantiate(base64.toByteArray(BINARY))
+    .then((w: any) => (wasm = w));
+};
+
+export const webAssemblyReady = () => !!wasm;
 
 interface WasmBuildRequest {
   /**
@@ -59,7 +74,7 @@ const defaultRequest: WasmBuildRequest = {
   autoResize: true,
   lowestDiscernibleValue: 1,
   highestTrackableValue: 2,
-  numberOfSignificantValueDigits: 3
+  numberOfSignificantValueDigits: 3,
 };
 
 export class WasmHistogram {

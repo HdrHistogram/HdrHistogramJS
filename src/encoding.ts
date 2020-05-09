@@ -11,7 +11,10 @@ import ByteBuffer from "./ByteBuffer";
 import Histogram from "./Histogram";
 import { WasmHistogram } from "./wasm";
 
-const base64 = require("base64-js");
+// @ts-ignore
+import * as base64 from "base64-js";
+// @ts-ignore
+import * as pako from "pako";
 
 const V2CompressedEncodingCookieBase = 0x1c849304;
 
@@ -19,7 +22,6 @@ function findDeflateFunction() {
   try {
     return eval('require("zlib").deflateSync');
   } catch (error) {
-    const pako: any = require("pako/lib/deflate");
     return pako.deflate;
   }
 }
@@ -27,7 +29,6 @@ function findInflateFunction() {
   try {
     return eval('require("zlib").inflateSync');
   } catch (error) {
-    const pako: any = require("pako/lib/inflate");
     return pako.inflate;
   }
 }

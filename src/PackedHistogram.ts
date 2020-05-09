@@ -79,8 +79,6 @@ class PackedHistogram extends AbstractHistogram {
     this.packedCounts.setVirtualLength(this.countsArrayLength);
   }
 
-  setNormalizingIndexOffset(normalizingIndexOffset: number) {}
-
   incrementTotalCount() {
     this._totalCount++;
   }

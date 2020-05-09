@@ -72,8 +72,6 @@ export abstract class AbstractHistogram extends AbstractHistogramBase {
 
   abstract setCountAtIndex(index: number, value: number): void;
 
-  abstract setNormalizingIndexOffset(normalizingIndexOffset: number): void;
-
   abstract setTotalCount(totalCount: number): void;
 
   abstract incrementTotalCount(): void;
@@ -148,8 +146,7 @@ export abstract class AbstractHistogram extends AbstractHistogramBase {
       lowestDiscernibleValue,
       highestTrackableValue,
       numberOfSignificantValueDigits,
-      1.0,
-      0
+      1.0
     );
   }
 
@@ -157,16 +154,12 @@ export abstract class AbstractHistogram extends AbstractHistogramBase {
     lowestDiscernibleValue: number,
     highestTrackableValue: number,
     numberOfSignificantValueDigits: number,
-    integerToDoubleValueConversionRatio: number,
-    normalizingIndexOffset: number
+    integerToDoubleValueConversionRatio: number
   ) {
     this.lowestDiscernibleValue = lowestDiscernibleValue;
     this.highestTrackableValue = highestTrackableValue;
     this.numberOfSignificantValueDigits = numberOfSignificantValueDigits;
     this.integerToDoubleValueConversionRatio = integerToDoubleValueConversionRatio;
-    if (normalizingIndexOffset !== 0) {
-      this.setNormalizingIndexOffset(normalizingIndexOffset);
-    }
 
     /*
      * Given a 3 decimal point accuracy, the expectation is obviously for "+/- 1 unit at 1000". It also means that

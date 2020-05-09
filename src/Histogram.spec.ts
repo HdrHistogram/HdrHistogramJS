@@ -12,8 +12,6 @@ class HistogramForTests extends AbstractHistogram {
 
   incrementCountAtIndex(index: number): void {}
 
-  setNormalizingIndexOffset(normalizingIndexOffset: number): void {}
-
   incrementTotalCount(): void {}
 
   addToTotalCount(value: number) {}

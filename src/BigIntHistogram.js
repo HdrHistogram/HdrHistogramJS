@@ -52,8 +52,6 @@ class BigIntHistogram extends AbstractHistogram.default {
     this._counts = newCounts;
   }
 
-  setNormalizingIndexOffset(normalizingIndexOffset) {}
-
   incrementTotalCount() {
     this._totalCount++;
   }

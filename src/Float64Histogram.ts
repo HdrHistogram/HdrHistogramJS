@@ -64,8 +64,6 @@ class Float64Histogram extends AbstractHistogram {
     this._counts = newCounts;
   }
 
-  setNormalizingIndexOffset(normalizingIndexOffset: number) {}
-
   incrementTotalCount() {
     this._totalCount++;
   }

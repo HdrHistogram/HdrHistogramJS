@@ -65,7 +65,7 @@ interface BuildRequest {
    * Is WebAssembly used to speed up computations.
    * Default value is false
    */
-  webAssembly?: boolean;
+  useWebAssembly?: boolean;
 }
 
 const defaultRequest: BuildRequest = {
@@ -74,7 +74,7 @@ const defaultRequest: BuildRequest = {
   lowestDiscernibleValue: 1,
   highestTrackableValue: 2,
   numberOfSignificantValueDigits: 3,
-  webAssembly: false,
+  useWebAssembly: false,
 };
 
 /*const bigIntAvailable = (() => {
@@ -88,7 +88,7 @@ const defaultRequest: BuildRequest = {
 
 const build = (request = defaultRequest): Histogram => {
   const parameters = Object.assign({}, defaultRequest, request);
-  if (request.webAssembly && webAssemblyAvailable) {
+  if (request.useWebAssembly && webAssemblyAvailable) {
     if (!webAssemblyReady()) {
       throw new Error("WebAssembly is not ready yet!");
     }

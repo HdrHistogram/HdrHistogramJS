@@ -326,7 +326,7 @@ describe("Histogram add & substract", () => {
       autoResize: true,
       numberOfSignificantValueDigits: 2,
       bitBucketSize: 32,
-      webAssembly: true,
+      useWebAssembly: true,
     });
     const histogram2 = build({
       lowestDiscernibleValue: 1,
@@ -334,7 +334,7 @@ describe("Histogram add & substract", () => {
       autoResize: true,
       numberOfSignificantValueDigits: 3,
       bitBucketSize: 32,
-      webAssembly: true,
+      useWebAssembly: true,
     });
     //histogram2.autoResize = true;
     histogram.recordValue(42000);
@@ -410,14 +410,14 @@ describe("Histogram add & substract", () => {
       autoResize: true,
       numberOfSignificantValueDigits: 5,
       bitBucketSize: 32,
-      webAssembly: true,
+      useWebAssembly: true,
     });
     const histogram2 = build({
       lowestDiscernibleValue: 1,
       highestTrackableValue: Number.MAX_SAFE_INTEGER,
       numberOfSignificantValueDigits: 5,
       bitBucketSize: 32,
-      webAssembly: true,
+      useWebAssembly: true,
     });
     histogram.recordValue(1000);
     histogram2.recordValue(42000);
@@ -455,7 +455,7 @@ describe("Histogram clearing support", () => {
       lowestDiscernibleValue: 1,
       highestTrackableValue: Number.MAX_SAFE_INTEGER,
       numberOfSignificantValueDigits: 5,
-      webAssembly: true,
+      useWebAssembly: true,
     }); // new Int32Histogram(1, Number.MAX_SAFE_INTEGER, 5);
     histogram.startTimeStampMsec = 42;
     histogram.endTimeStampMsec = 56;

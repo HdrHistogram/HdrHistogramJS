@@ -21,6 +21,7 @@ export default [
       resolve(), // so Rollup can find `base64...`
       commonjs(), // so Rollup can convert `base64` to an ES module
       typescript(), // so Rollup can convert TypeScript to JavaScript
+      terser(),
     ],
   },
 

@@ -1,4 +1,5 @@
 const fs = require("fs");
+const zlib = require("zlib");
 
 const src = process.argv[2];
 if (!src || !src.length) {
@@ -8,7 +9,9 @@ if (!src || !src.length) {
 
 try {
   const raw = fs.readFileSync(src);
-  const encoded = Buffer.from(raw).toString("base64");
+  const encoded = zlib
+    .deflateSync(Buffer.from(raw), { level: zlib.constants.Z_BEST_COMPRESSION })
+    .toString("base64");
   process.stdout.write(encoded);
 } catch (e) {
   process.stderr.write(`error encoding: ${e.message}`);

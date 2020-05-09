@@ -3,6 +3,8 @@ import Histogram, { NO_TAG } from "../Histogram";
 // @ts-ignore
 import * as base64 from "base64-js";
 // @ts-ignore
+import * as pako from "pako";
+// @ts-ignore
 import * as loader from "@assemblyscript/loader";
 
 const isNode = typeof process !== "undefined" && process.version;
@@ -29,7 +31,7 @@ export const initWebAssembly = async (): Promise<void> => {
     return;
   }
   return loader
-    .instantiate(base64.toByteArray(BINARY))
+    .instantiate(pako.inflate(base64.toByteArray(BINARY)))
     .then((w: any) => (wasm = w));
 };
 

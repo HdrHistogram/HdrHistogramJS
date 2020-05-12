@@ -23,7 +23,8 @@ export interface HistogramConstructor {
   ): AbstractHistogram;
 }
 
-export abstract class AbstractHistogram extends AbstractHistogramBase {
+export abstract class AbstractHistogram extends AbstractHistogramBase
+  implements Histogram {
   // "Hot" accessed fields (used in the the value recording code path) are bunched here, such
   // that they will have a good chance of ending up in the same cache line as the totalCounts and
   // counts array reference fields that subclass implementations will typically add.

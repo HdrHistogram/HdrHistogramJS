@@ -76,10 +76,10 @@ const defaultRequest: WasmBuildRequest = {
   autoResize: true,
   lowestDiscernibleValue: 1,
   highestTrackableValue: 2,
-  numberOfSignificantValueDigits: 3
+  numberOfSignificantValueDigits: 3,
 };
 
-export class WasmHistogram {
+export class WasmHistogram implements Histogram {
   tag: string;
 
   constructor(
@@ -242,6 +242,14 @@ export class WasmHistogram {
     this._wasmHistogram[`subtract${otherHistogram._remoteHistogramClass}`](
       otherHistogram._wasmHistogram
     );
+  }
+
+  encode(): Uint8Array {
+    this._wasmHistogram.encode2();
+    const ptrArray = this._wasmHistogram.encode();
+    const array = wasm.__getUint8Array(ptrArray);
+    wasm.__release(ptrArray);
+    return array;
   }
 
   reset(): void {

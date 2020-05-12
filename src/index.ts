@@ -15,7 +15,10 @@ import PackedHistogram from "./PackedHistogram";
 import AbstractHistogram, { HistogramConstructor } from "./AbstractHistogram";
 import HistogramLogReader, { listTags } from "./HistogramLogReader";
 import HistogramLogWriter from "./HistogramLogWriter";
-import { decodeFromCompressedBase64, encodeIntoBase64String } from "./encoding";
+import {
+  decodeFromCompressedBase64,
+  encodeIntoCompressedBase64,
+} from "./encoding";
 import Recorder from "./Recorder";
 import {
   WasmHistogram,
@@ -130,7 +133,7 @@ export {
   Float64Histogram,
   PackedHistogram,
   AbstractHistogram,
-  AbstractHistogram as Histogram,
+  Histogram,
   HistogramLogReader,
   listTags,
   BuildRequest,
@@ -138,7 +141,7 @@ export {
   build,
   ByteBuffer,
   decodeFromCompressedBase64,
-  encodeIntoBase64String,
+  encodeIntoCompressedBase64,
   HistogramLogWriter,
   Recorder,
   WasmHistogram,

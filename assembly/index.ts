@@ -145,6 +145,14 @@ class HistogramAdapter<T, U> {
     this._histogram.subtract(otherHistogram._histogram);
   }
 
+  encode(): Uint8Array {
+    return this._histogram.encode();
+  }
+
+  encode2(): void {
+    this._histogram.encode();
+  }
+
   reset(): void {
     this._histogram.reset();
   }

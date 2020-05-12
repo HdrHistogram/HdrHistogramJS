@@ -1,8 +1,8 @@
 import b from "benny";
 import { build, AbstractHistogram } from "../index";
 import {
-  encodeIntoBase64String,
-  decodeFromCompressedBase64
+  encodeIntoCompressedBase64,
+  decodeFromCompressedBase64,
 } from "../encoding";
 
 const randomInteger = (max: number = Number.MAX_SAFE_INTEGER) =>
@@ -18,7 +18,7 @@ b.suite(
       for (let index = 0; index < 1024; index++) {
         histogram.recordValueWithCount(randomInteger(), randomInteger(100));
       }
-      const b64 = encodeIntoBase64String(histogram as AbstractHistogram);
+      const b64 = encodeIntoCompressedBase64(histogram);
       return () => {
         decodeFromCompressedBase64(b64, 32, false).destroy();
       };
@@ -33,7 +33,7 @@ b.suite(
       for (let index = 0; index < 1024; index++) {
         histogram.recordValue(randomInteger());
       }
-      const b64 = encodeIntoBase64String(histogram as AbstractHistogram);
+      const b64 = encodeIntoCompressedBase64(histogram as AbstractHistogram);
       return () => {
         decodeFromCompressedBase64(b64, 32, true).destroy();
       };

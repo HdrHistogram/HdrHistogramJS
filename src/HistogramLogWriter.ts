@@ -1,6 +1,6 @@
 import AbstractHistogram from "./AbstractHistogram";
 import { NO_TAG } from "./AbstractHistogramBase";
-import { encodeIntoBase64String } from "./encoding";
+import { encodeIntoCompressedBase64 } from "./encoding";
 import { floatFormatter } from "./formatters";
 
 export interface Writable {
@@ -38,7 +38,7 @@ class HistogramLogWriter {
     endTimeStampSec = (histogram.endTimeStampMsec - this.baseTime) / 1000,
     maxValueUnitRatio = 1000
   ) {
-    const base64 = encodeIntoBase64String(histogram);
+    const base64 = encodeIntoCompressedBase64(histogram);
     const start = timeFormatter(startTimeStampSec);
     const duration = timeFormatter(endTimeStampSec - startTimeStampSec);
     const max = timeFormatter(histogram.maxValue / maxValueUnitRatio);
@@ -65,9 +65,12 @@ class HistogramLogWriter {
    */
   outputStartTime(startTimeMsec: number) {
     this.outputComment(
-      `[StartTime: ${floatFormatter(5, 3)(
-        startTimeMsec / 1000
-      )} (seconds since epoch), ${new Date(startTimeMsec)}]\n`
+      `[StartTime: ${floatFormatter(
+        5,
+        3
+      )(startTimeMsec / 1000)} (seconds since epoch), ${new Date(
+        startTimeMsec
+      )}]\n`
     );
   }
 

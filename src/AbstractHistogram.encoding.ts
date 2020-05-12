@@ -8,7 +8,6 @@
 import ByteBuffer from "./ByteBuffer";
 import { AbstractHistogram, HistogramConstructor } from "./AbstractHistogram";
 import ZigZagEncoding from "./ZigZagEncoding";
-import Histogram from "./Histogram";
 import PackedHistogram from "./PackedHistogram";
 import Int8Histogram from "./Int8Histogram";
 import Int16Histogram from "./Int16Histogram";
@@ -17,6 +16,8 @@ import Float64Histogram from "./Float64Histogram";
 
 // @ts-ignore
 import * as pako from "pako";
+// @ts-ignore
+import * as base64 from "base64-js";
 
 const { max } = Math;
 
@@ -30,6 +31,9 @@ function fillBufferFromCountsArray(
   self: AbstractHistogram,
   buffer: ByteBuffer
 ) {
+  if (!self.countsArrayIndex) {
+    console.log(self);
+  }
   const countsLimit = self.countsArrayIndex(self.maxValue) + 1;
   let srcIndex = 0;
 
@@ -69,11 +73,11 @@ function fillBufferFromCountsArray(
 
 /**
  * Encode this histogram into a ByteBuffer
+ * @param self this histogram
  * @param buffer The buffer to encode into
  * @return The number of bytes written to the buffer
  */
-export function encodeIntoByteBuffer(buffer: ByteBuffer) {
-  const self = this as AbstractHistogram;
+function encodeIntoByteBuffer(self: AbstractHistogram, buffer: ByteBuffer) {
   const initialPosition = buffer.position;
   buffer.putInt32(encodingCookie);
   buffer.putInt32(0); // Placeholder for payload length in bytes.
@@ -182,37 +186,6 @@ export function decompress(data: Uint8Array): Uint8Array {
   return uncompressedBuffer;
 }
 
-/**
- * Encode this histogram in compressed form into a byte array
- * @param targetBuffer The buffer to encode into
- * @return The number of bytes written to the array
- */
-export function encodeIntoCompressedByteBuffer(
-  targetBuffer: ByteBuffer,
-  compressionLevel?: number
-) {
-  const self = this as AbstractHistogram;
-  const intermediateUncompressedByteBuffer = ByteBuffer.allocate();
-
-  const uncompressedLength = self.encodeIntoByteBuffer(
-    intermediateUncompressedByteBuffer
-  );
-  targetBuffer.putInt32(compressedEncodingCookie);
-
-  const compressionOptions = compressionLevel
-    ? { level: compressionLevel }
-    : {};
-  const compressedArray: Uint8Array = deflate(
-    intermediateUncompressedByteBuffer.data.slice(0, uncompressedLength),
-    compressionOptions
-  );
-
-  targetBuffer.putInt32(compressedArray.byteLength);
-  targetBuffer.putArray(compressedArray);
-
-  return targetBuffer.position;
-}
-
 function ctrFromBucketSize(
   bitBucketSize: 8 | 16 | 32 | 64 | "packed"
 ): HistogramConstructor {
@@ -288,6 +261,31 @@ export function doDecode(
   return histogram;
 }
 
+function doEncodeIntoCompressedBase64(compressionLevel?: number): string {
+  const compressionOptions = compressionLevel
+    ? { level: compressionLevel }
+    : {};
+  const self: AbstractHistogram = this as any;
+
+  const targetBuffer = ByteBuffer.allocate();
+  targetBuffer.putInt32(compressedEncodingCookie);
+
+  const intermediateUncompressedByteBuffer = ByteBuffer.allocate();
+  const uncompressedLength = encodeIntoByteBuffer(
+    self,
+    intermediateUncompressedByteBuffer
+  );
+  const data = intermediateUncompressedByteBuffer.data.slice(
+    0,
+    uncompressedLength
+  );
+  const compressedData: Uint8Array = deflate(data, compressionOptions);
+  targetBuffer.putInt32(compressedData.byteLength);
+  targetBuffer.putArray(compressedData);
+
+  return base64.fromByteArray(targetBuffer.data);
+}
+
 declare module "./AbstractHistogram" {
   namespace AbstractHistogram {
     export let decode: typeof doDecode;
@@ -298,10 +296,8 @@ AbstractHistogram.decode = doDecode;
 
 declare module "./AbstractHistogram" {
   interface AbstractHistogram {
-    encodeIntoByteBuffer: typeof encodeIntoByteBuffer;
-    encodeIntoCompressedByteBuffer: typeof encodeIntoCompressedByteBuffer;
+    encodeIntoCompressedBase64: typeof doEncodeIntoCompressedBase64;
   }
 }
 
-AbstractHistogram.prototype.encodeIntoByteBuffer = encodeIntoByteBuffer;
-AbstractHistogram.prototype.encodeIntoCompressedByteBuffer = encodeIntoCompressedByteBuffer;
+AbstractHistogram.prototype.encodeIntoCompressedBase64 = doEncodeIntoCompressedBase64;

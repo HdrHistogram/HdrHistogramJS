@@ -4,6 +4,8 @@ import PercentileIterator from "./PercentileIterator";
 
 import ulp from "./ulp";
 import { FloatFormatter, IntegerFormatter } from "./formatters";
+import ByteBuffer from "./ByteBuffer";
+import { encodeIntoByteBuffer } from "./encoding";
 
 export default class Histogram<T, U> extends AbstractHistogramBase<T, U> {
   // "Hot" accessed fields (used in the the value recording code path) are bunched here, such
@@ -614,7 +616,8 @@ export default class Histogram<T, U> extends AbstractHistogramBase<T, U> {
 
   getCountAtIndex(index: i32): u64 {
     // @ts-ignore
-    return unchecked(<u64>this.counts[index]);
+    //return unchecked(<u64>this.counts[index]);
+    return <u64>this.counts[index];
   }
 
   resize(newHighestTrackableValue: u64): void {
@@ -899,6 +902,12 @@ export default class Histogram<T, U> extends AbstractHistogramBase<T, U> {
 `;
 
     return result;
+  }
+
+  encode(): Uint8Array {
+    const buffer = ByteBuffer.allocate(1024);
+    encodeIntoByteBuffer(this, buffer);
+    return buffer.data;
   }
 
   clearCounts(): void {

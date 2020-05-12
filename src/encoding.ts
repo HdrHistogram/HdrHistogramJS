@@ -5,8 +5,8 @@
  * and released to the public domain, as explained at
  * http://creativecommons.org/publicdomain/zero/1.0/
  */
-import { AbstractHistogram } from "./AbstractHistogram";
 import "./AbstractHistogram.encoding";
+import { AbstractHistogram } from "./AbstractHistogram";
 import ByteBuffer from "./ByteBuffer";
 import Histogram from "./Histogram";
 import { WasmHistogram } from "./wasm";
@@ -79,16 +79,33 @@ export const decodeFromCompressedBase64 = (
   );
 };
 
-export const encodeIntoBase64String = (
-  histogram: AbstractHistogram,
+function encodeWasmIntoCompressedBase64(compressionLevel?: number): string {
+  const compressionOptions = compressionLevel
+    ? { level: compressionLevel }
+    : {};
+  const self: WasmHistogram = this as any;
+  const data = self.encode();
+  const compressedData: Uint8Array = deflate(data, compressionOptions);
+  return base64.fromByteArray(compressedData);
+}
+
+declare module "./wasm" {
+  interface WasmHistogram {
+    encodeIntoCompressedBase64: typeof encodeWasmIntoCompressedBase64;
+  }
+}
+
+WasmHistogram.prototype.encodeIntoCompressedBase64 = encodeWasmIntoCompressedBase64;
+
+export const encodeIntoCompressedBase64 = (
+  histogram: Histogram,
   compressionLevel?: number
 ): string => {
-  const buffer = ByteBuffer.allocate();
-  const bufferSize = histogram.encodeIntoCompressedByteBuffer(
-    buffer,
-    compressionLevel
-  );
-
-  const encodedBuffer = buffer.data.slice(0, bufferSize);
-  return base64.fromByteArray(encodedBuffer);
+  if (histogram instanceof WasmHistogram) {
+    return histogram.encodeIntoCompressedBase64(compressionLevel);
+  }
+  if (histogram instanceof AbstractHistogram) {
+    return histogram.encodeIntoCompressedBase64(compressionLevel);
+  }
+  throw new Error("Unsupported Histogram implementation");
 };

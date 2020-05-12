@@ -48,7 +48,7 @@ describe("Histogram encoding/decoding", () => {
             numberOfSignificantValueDigits,
           }) as hdr.AbstractHistogram;
           numbers.forEach((n) => histogram.recordValue(n));
-          const encodedHistogram = hdr.encodeIntoBase64String(histogram);
+          const encodedHistogram = hdr.encodeIntoCompressedBase64(histogram);
           const decodedHistogram = hdr.decodeFromCompressedBase64(
             encodedHistogram
           );

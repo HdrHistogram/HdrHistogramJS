@@ -245,7 +245,6 @@ export class WasmHistogram implements Histogram {
   }
 
   encode(): Uint8Array {
-    this._wasmHistogram.encode2();
     const ptrArray = this._wasmHistogram.encode();
     const array = wasm.__getUint8Array(ptrArray);
     wasm.__release(ptrArray);

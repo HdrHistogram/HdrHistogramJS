@@ -1,9 +1,5 @@
-import { decodeFromByteBuffer, encodeIntoByteBuffer } from "../encoding";
-import { Histogram32 } from "../Histogram";
-import ByteBuffer from "../ByteBuffer";
-
-describe("bug loop", () => {
-  it("should ", () => {
+describe("assemblyscript bug", () => {
+  xit("should not crash", () => {
     const nbLoop = 14828;
     let index: i32 = 0;
     let count = Math.abs(index++);

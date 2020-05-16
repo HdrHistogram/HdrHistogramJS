@@ -149,10 +149,6 @@ class HistogramAdapter<T, U> {
     return this._histogram.encode();
   }
 
-  encode2(): void {
-    this._histogram.encode();
-  }
-
   reset(): void {
     this._histogram.reset();
   }

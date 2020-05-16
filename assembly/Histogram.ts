@@ -907,7 +907,7 @@ export default class Histogram<T, U> extends AbstractHistogramBase<T, U> {
   encode(): Uint8Array {
     const buffer = ByteBuffer.allocate(1024);
     encodeIntoByteBuffer(this, buffer);
-    return buffer.data;
+    return buffer.data.slice(0, buffer.position);
   }
 
   clearCounts(): void {

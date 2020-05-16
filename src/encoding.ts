@@ -17,6 +17,7 @@ import * as base64 from "base64-js";
 import * as pako from "pako";
 
 const V2CompressedEncodingCookieBase = 0x1c849304;
+const compressedEncodingCookie = V2CompressedEncodingCookieBase | 0x10; // LSBit of wordsize byte indicates TLZE Encoding
 
 function findDeflateFunction() {
   try {
@@ -84,9 +85,20 @@ function encodeWasmIntoCompressedBase64(compressionLevel?: number): string {
     ? { level: compressionLevel }
     : {};
   const self: WasmHistogram = this as any;
-  const data = self.encode();
-  const compressedData: Uint8Array = deflate(data, compressionOptions);
-  return base64.fromByteArray(compressedData);
+
+  const targetBuffer = ByteBuffer.allocate();
+  targetBuffer.putInt32(compressedEncodingCookie);
+
+  const uncompressedData = self.encode();
+  const compressedData: Uint8Array = deflate(
+    uncompressedData,
+    compressionOptions
+  );
+
+  targetBuffer.putInt32(compressedData.byteLength);
+  targetBuffer.putArray(compressedData);
+
+  return base64.fromByteArray(targetBuffer.data);
 }
 
 declare module "./wasm" {

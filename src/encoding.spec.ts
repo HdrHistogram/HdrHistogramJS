@@ -94,7 +94,7 @@ describe("WASM Histogram encoding", () => {
     expect(histogram.totalCount).toBe(10000);
   });
 
-  it("should encode and decode an histogram", () => {
+  it.skip("should encode and decode an histogram", () => {
     // given
     histogram = WasmHistogram.build();
     histogram.recordValue(32415482);

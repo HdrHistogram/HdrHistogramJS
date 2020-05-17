@@ -32,7 +32,7 @@ export const initWebAssembly = async (): Promise<void> => {
   }
   return loader
     .instantiate(pako.inflate(base64.toByteArray(BINARY)))
-    .then((w: any) => (wasm = w));
+    .then((w: any) => (wasm = w.exports || w));
 };
 
 export const webAssemblyReady = () => !!wasm;

@@ -91,7 +91,10 @@ export class WasmHistogram implements Histogram {
 
   static build(request: WasmBuildRequest = defaultRequest) {
     const parameters = Object.assign({}, defaultRequest, request);
-    const remoteHistogramClass = `Histogram${parameters.bitBucketSize}`;
+    const remoteHistogramClass =
+      parameters.bitBucketSize === "packed"
+        ? "PackedHistogram"
+        : `Histogram${parameters.bitBucketSize}`;
     return new WasmHistogram(
       new wasm[remoteHistogramClass](
         parameters.lowestDiscernibleValue,

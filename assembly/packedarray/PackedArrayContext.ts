@@ -485,7 +485,7 @@ export class PackedArrayContext {
         const newEntryIndex = this.newEntry(sizeOfEntry);
 
         // Link new level in.
-        this.setAtShortIndex(entryIndexPointer, newEntryIndex);
+        this.setAtShortIndex(entryIndexPointer, <u16>newEntryIndex);
         // Populate new level entry, use pointer to slot 0 as place to populate under:
         this.setPackedSlotIndicators(newEntryIndex, 0x1); // Slot 0 populated
         entryIndexPointer =
@@ -514,18 +514,18 @@ export class PackedArrayContext {
     const sizeOfEntry = NON_LEAF_ENTRY_HEADER_SIZE_IN_SHORTS + numberOfSlots;
     const entryIndex = this.newEntry(sizeOfEntry);
 
-    this.setAtShortIndex(levelEntryIndexPointer, entryIndex);
+    this.setAtShortIndex(levelEntryIndexPointer, <u16>entryIndex);
     this.setAtShortIndex(
       entryIndex + NON_LEAF_ENTRY_SLOT_INDICATORS_OFFSET,
       packedSlotIndicators
     );
 
-    for (let i = 0; i < numberOfSlots; i++) {
+    for (let i: u8 = 0; i < numberOfSlots; i++) {
       if (nextLevelIsLeaf) {
         // Make leaf in other:
         const leafEntryIndex = this.newLeafEntry();
 
-        this.setIndexAtEntrySlot(entryIndex, i, leafEntryIndex);
+        this.setIndexAtEntrySlot(entryIndex, i, <u16>leafEntryIndex);
 
         // OPTIM
         // avoid iteration on all the values of the source ctx

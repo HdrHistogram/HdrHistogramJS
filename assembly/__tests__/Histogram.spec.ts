@@ -1,4 +1,4 @@
-import { Histogram8, Histogram16 } from "../Histogram";
+import { Histogram8, Histogram16, Storage } from "../Histogram";
 
 const buildHistogram = (): Histogram8 =>
   new Histogram8(
@@ -270,7 +270,7 @@ describe("Histogram add & substract", () => {
     histogram.recordValue(42);
     histogram2.recordValue(158);
     // testwhen
-    histogram.add<Uint16Array, u16>(histogram2);
+    histogram.add<Storage<Uint16Array, u16>, u16>(histogram2);
     // then
     expect(histogram.totalCount).toBe(2);
     expect(histogram.getMean()).toBe(100);
@@ -284,7 +284,7 @@ describe("Histogram add & substract", () => {
     histogram.recordValue(42000);
     histogram2.recordValue(1000);
     // when
-    histogram.add<Uint16Array, u16>(histogram2);
+    histogram.add<Storage<Uint16Array, u16>, u16>(histogram2);
     // then
     expect(histogram.totalCount).toBe(2);
     expect(Math.floor(histogram.getMean() / 100)).toBe(215);
@@ -299,9 +299,27 @@ describe("Histogram add & substract", () => {
     histogram2.recordValue(42000);
     const outputBefore = histogram.outputPercentileDistribution();
     // when
-    histogram.add<Uint8Array, u8>(histogram2);
-    histogram.subtract<Uint8Array, u8>(histogram2);
+    histogram.add<Storage<Uint8Array, u8>, u8>(histogram2);
+    histogram.subtract<Storage<Uint8Array, u8>, u8>(histogram2);
     // then
     expect(histogram.outputPercentileDistribution()).toBe(outputBefore);
   });
 });
+
+/*
+describe("Packed Histogram", () => {
+  it("should compute mean value", () => {
+    // given
+    const histogram = new PackedHistogram(
+      1,
+      9007199254740991, // Number.MAX_SAFE_INTEGER
+      3
+    );
+    // when
+    histogram.recordValue(25);
+    histogram.recordValue(50);
+    histogram.recordValue(75);
+    // then
+    expect<f64>(histogram.getMean()).toBe(50);
+  });
+});*/

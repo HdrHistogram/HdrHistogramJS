@@ -1,6 +1,13 @@
 import Histogram from "./Histogram";
+import {
+  Uint8Storage,
+  Uint16Storage,
+  Uint32Storage,
+  Uint64Storage,
+} from "./Histogram";
 import { decodeFromByteBuffer } from "./encoding";
 import ByteBuffer from "./ByteBuffer";
+import { PackedArray } from "./packedarray/PackedArray";
 
 export const UINT8ARRAY_ID = idof<Uint8Array>();
 
@@ -154,10 +161,11 @@ class HistogramAdapter<T, U> {
   }
 }
 
-export class Histogram8 extends HistogramAdapter<Uint8Array, u8> {}
-export class Histogram16 extends HistogramAdapter<Uint16Array, u16> {}
-export class Histogram32 extends HistogramAdapter<Uint32Array, u32> {}
-export class Histogram64 extends HistogramAdapter<Uint64Array, u64> {}
+export class Histogram8 extends HistogramAdapter<Uint8Storage, u8> {}
+export class Histogram16 extends HistogramAdapter<Uint16Storage, u16> {}
+export class Histogram32 extends HistogramAdapter<Uint32Storage, u32> {}
+export class Histogram64 extends HistogramAdapter<Uint64Storage, u64> {}
+export class PackedHistogram extends HistogramAdapter<PackedArray, u64> {}
 
 function decodeHistogram<T, U>(
   data: Uint8Array,
@@ -174,14 +182,17 @@ function decodeHistogram<T, U>(
 export function decodeHistogram8(
   data: Uint8Array,
   minBarForHighestTrackableValue: f64
-): HistogramAdapter<Uint8Array, u8> {
-  return decodeHistogram<Uint8Array, u8>(data, minBarForHighestTrackableValue);
+): HistogramAdapter<Uint8Storage, u8> {
+  return decodeHistogram<Uint8Storage, u8>(
+    data,
+    minBarForHighestTrackableValue
+  );
 }
 export function decodeHistogram16(
   data: Uint8Array,
   minBarForHighestTrackableValue: f64
-): HistogramAdapter<Uint16Array, u16> {
-  return decodeHistogram<Uint16Array, u16>(
+): HistogramAdapter<Uint16Storage, u16> {
+  return decodeHistogram<Uint16Storage, u16>(
     data,
     minBarForHighestTrackableValue
   );
@@ -189,8 +200,8 @@ export function decodeHistogram16(
 export function decodeHistogram32(
   data: Uint8Array,
   minBarForHighestTrackableValue: f64
-): HistogramAdapter<Uint32Array, u32> {
-  return decodeHistogram<Uint32Array, u32>(
+): HistogramAdapter<Uint32Storage, u32> {
+  return decodeHistogram<Uint32Storage, u32>(
     data,
     minBarForHighestTrackableValue
   );
@@ -198,8 +209,8 @@ export function decodeHistogram32(
 export function decodeHistogram64(
   data: Uint8Array,
   minBarForHighestTrackableValue: f64
-): HistogramAdapter<Uint64Array, u64> {
-  return decodeHistogram<Uint64Array, u64>(
+): HistogramAdapter<Uint64Storage, u64> {
+  return decodeHistogram<Uint64Storage, u64>(
     data,
     minBarForHighestTrackableValue
   );

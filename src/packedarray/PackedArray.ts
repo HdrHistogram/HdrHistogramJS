@@ -7,9 +7,9 @@
  */
 import {
   PackedArrayContext,
-  MINIMUM_INITIAL_PACKED_ARRAY_CAPACITY
+  MINIMUM_INITIAL_PACKED_ARRAY_CAPACITY,
 } from "./PackedArrayContext";
-import { ResizeError } from "./ResizeError";
+//import { ResizeError } from "./ResizeError";
 
 const NUMBER_OF_SETS = 8;
 const { pow, floor } = Math;
@@ -106,17 +106,17 @@ export class PackedArray {
     setNumber: number,
     virtualIndex: number
   ) {
-    do {
-      try {
-        return this.arrayContext.getPackedIndex(setNumber, virtualIndex, true);
-      } catch (ex) {
+    //do {
+    //try {
+    return this.arrayContext.getPackedIndex(setNumber, virtualIndex, true);
+    /*} catch (ex) {
         if (ex instanceof ResizeError) {
           this.arrayContext.resizeArray(ex.newSize);
         } else {
           throw ex;
         }
-      }
-    } while (true);
+      }*/
+    //} while (true);
   }
 
   /**
@@ -167,58 +167,47 @@ export class PackedArray {
    */
   set(index: number, value: number) {
     let bytesAlreadySet = 0;
-    do {
-      let valueForNextLevels = value;
-      try {
-        for (let byteNum = 0; byteNum < NUMBER_OF_SETS; byteNum++) {
-          // Establish context within: critical section
+    let valueForNextLevels = value;
+    for (let byteNum = 0; byteNum < NUMBER_OF_SETS; byteNum++) {
+      // Establish context within: critical section
 
-          // Deal with unpacked context:
-          if (!this.arrayContext.isPacked) {
-            this.arrayContext.setAtUnpackedIndex(index, value);
-            return;
-          }
-          // Context is packed:
-          if (valueForNextLevels == 0) {
-            // Special-case zeros to avoid inflating packed array for no reason
-            const packedIndex = this.arrayContext.getPackedIndex(
-              byteNum,
-              index,
-              false
-            );
-            if (packedIndex < 0) {
-              return; // no need to create entries for zero values if they don't already exist
-            }
-          }
-          // Make sure byte is populated:
-          const packedIndex = this.arrayContext.getPackedIndex(
-            byteNum,
-            index,
-            true
-          );
-
-          // Determine value to write, and prepare for next levels
-          const byteToWrite = valueForNextLevels & 0xff;
-          valueForNextLevels = floor(valueForNextLevels / pow(2, 8));
-
-          if (byteNum < bytesAlreadySet) {
-            // We want to avoid writing to the same byte twice when not doing so for the
-            // entire 64 bit value atomically, as doing so opens a race with e.g. concurrent
-            // adders. So dobn't actually write the byte if has been written before.
-            continue;
-          }
-          this.arrayContext.setAtByteIndex(packedIndex, byteToWrite);
-          bytesAlreadySet++;
-        }
+      // Deal with unpacked context:
+      if (!this.arrayContext.isPacked) {
+        this.arrayContext.setAtUnpackedIndex(index, value);
         return;
-      } catch (ex) {
-        if (ex instanceof ResizeError) {
-          this.arrayContext.resizeArray(ex.newSize);
-        } else {
-          throw ex;
+      }
+      // Context is packed:
+      if (valueForNextLevels == 0) {
+        // Special-case zeros to avoid inflating packed array for no reason
+        const packedIndex = this.arrayContext.getPackedIndex(
+          byteNum,
+          index,
+          false
+        );
+        if (packedIndex < 0) {
+          return; // no need to create entries for zero values if they don't already exist
         }
       }
-    } while (true);
+      // Make sure byte is populated:
+      const packedIndex = this.arrayContext.getPackedIndex(
+        byteNum,
+        index,
+        true
+      );
+
+      // Determine value to write, and prepare for next levels
+      const byteToWrite = valueForNextLevels & 0xff;
+      valueForNextLevels = floor(valueForNextLevels / pow(2, 8));
+
+      if (byteNum < bytesAlreadySet) {
+        // We want to avoid writing to the same byte twice when not doing so for the
+        // entire 64 bit value atomically, as doing so opens a race with e.g. concurrent
+        // adders. So dobn't actually write the byte if has been written before.
+        continue;
+      }
+      this.arrayContext.setAtByteIndex(packedIndex, byteToWrite);
+      bytesAlreadySet++;
+    }
   }
 
   /**

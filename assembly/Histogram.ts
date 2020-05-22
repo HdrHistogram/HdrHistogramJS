@@ -46,6 +46,7 @@ export default class Histogram<T, U> extends AbstractHistogramBase<T, U> {
     numberOfSignificantValueDigits: u8
   ) {
     super();
+
     // Verify argument validity
     if (lowestDiscernibleValue < 1) {
       throw new Error("lowestDiscernibleValue must be >= 1");
@@ -107,6 +108,7 @@ export default class Histogram<T, U> extends AbstractHistogramBase<T, U> {
     this.subBucketMask = (<u64>this.subBucketCount - 1) << this.unitMagnitude;
 
     this.establishSize(highestTrackableValue);
+    // @ts-ignore
     this.counts = instantiate<T>(this.countsArrayLength);
 
     this.leadingZeroCountBase =
@@ -622,10 +624,8 @@ export default class Histogram<T, U> extends AbstractHistogramBase<T, U> {
 
   resize(newHighestTrackableValue: u64): void {
     this.establishSize(newHighestTrackableValue);
-    const newCounts = instantiate<T>(this.countsArrayLength);
     // @ts-ignore
-    newCounts.set(this.counts);
-    this.counts = newCounts;
+    this.counts = this.counts.resize(this.countsArrayLength);
   }
 
   add<V, W>(otherHistogram: Histogram<V, W>): void {
@@ -912,7 +912,7 @@ export default class Histogram<T, U> extends AbstractHistogramBase<T, U> {
 
   clearCounts(): void {
     // @ts-ignore
-    this.counts.fill(0);
+    this.counts.clear();
   }
 
   reset(): void {
@@ -926,7 +926,48 @@ export default class Histogram<T, U> extends AbstractHistogramBase<T, U> {
   }
 }
 
-export class Histogram8 extends Histogram<Uint8Array, u8> {}
-export class Histogram16 extends Histogram<Uint16Array, u16> {}
-export class Histogram32 extends Histogram<Uint32Array, u32> {}
-export class Histogram64 extends Histogram<Uint64Array, u64> {}
+export class Storage<T, U> {
+  [key: number]: number;
+  array: T;
+  constructor(size: i32) {
+    this.array = instantiate<T>(size);
+  }
+
+  resize(newSize: i32): Storage<T, U> {
+    const newArray = new Storage<T, U>(newSize);
+    // @ts-ignore
+    newArray.array.set(this.array);
+    return newArray;
+  }
+
+  clear(): void {
+    // @ts-ignore
+    this.array.fill(0);
+  }
+
+  @operator("[]") private __get(index: i32): U {
+    // @ts-ignore
+    return unchecked(this.array[index]);
+  }
+
+  @operator("[]=") private __set(index: i32, value: U): void {
+    // @ts-ignore
+    unchecked((this.array[index] = value));
+  }
+}
+
+export type Uint8Storage = Storage<Uint8Array, u8>;
+export type Uint16Storage = Storage<Uint16Array, u16>;
+export type Uint32Storage = Storage<Uint32Array, u32>;
+export type Uint64Storage = Storage<Uint64Array, u64>;
+
+export class Histogram8 extends Histogram<Uint8Storage, u8> {}
+export class Histogram16 extends Histogram<Uint16Storage, u16> {}
+export class Histogram32 extends Histogram<Uint32Storage, u32> {}
+export class Histogram64 extends Histogram<Uint64Storage, u64> {}
+/*export class PackedHistogram extends Histogram<PackedArray, u64> {
+  resize(newHighestTrackableValue: u64): void {
+    this.establishSize(newHighestTrackableValue);
+    this.counts.setVirtualLength(this.countsArrayLength);
+  }
+}*/

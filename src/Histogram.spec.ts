@@ -323,7 +323,7 @@ describe("Histogram add & substract", () => {
       highestTrackableValue: 1024,
       autoResize: true,
       numberOfSignificantValueDigits: 2,
-      bitBucketSize: 32,
+      bitBucketSize: "packed",
       useWebAssembly: true,
     });
     const histogram2 = build({

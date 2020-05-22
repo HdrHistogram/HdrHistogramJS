@@ -24,6 +24,8 @@ const NUMBER_OF_SETS: u8 = 8;
  *
  */
 export class PackedArray {
+  [key: number]: number;
+
   private arrayContext: PackedArrayContext;
 
   constructor(
@@ -34,6 +36,11 @@ export class PackedArray {
       virtualLength,
       initialPhysicalLength
     );
+  }
+
+  public resize(newVirtualArrayLength: i32): PackedArray {
+    this.setVirtualLength(newVirtualArrayLength);
+    return this;
   }
 
   public setVirtualLength(newVirtualArrayLength: i32): void {
@@ -60,6 +67,14 @@ export class PackedArray {
       this.getPhysicalLength(),
       newVirtualArrayLength
     );
+  }
+
+  @operator("[]") private __get(index: i32): u64 {
+    return this.get(index);
+  }
+
+  @operator("[]=") private __set(index: i32, value: u64): void {
+    this.set(index, value);
   }
 
   /**

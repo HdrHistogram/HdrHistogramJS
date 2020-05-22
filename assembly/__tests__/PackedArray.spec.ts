@@ -21,4 +21,15 @@ describe("Packed Array", () => {
     const storedData = array.get(12);
     expect(storedData).toBe(u64.MAX_VALUE);
   });
+
+  it("should nehave like an array", () => {
+    // given
+    const array = new PackedArray(1024, 16);
+
+    // when
+    array[12] = 4242;
+
+    // then
+    expect(array[12]).toBe(4242);
+  });
 });

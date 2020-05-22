@@ -5,7 +5,6 @@
  * and released to the public domain, as explained at
  * http://creativecommons.org/publicdomain/zero/1.0/
  */
-import { ResizeError } from "./ResizeError";
 
 /**
  * A packed-value, sparse array context used for storing 64 bit signed values.
@@ -207,7 +206,7 @@ export class PackedArrayContext {
         PACKED_ARRAY_GROWTH_INCREMENT,
         this.getPopulatedLongLength() >> PACKED_ARRAY_GROWTH_FRACTION_POW2
       );
-      throw new ResizeError(currentLength + growthIncrement);
+      this.resizeArray(currentLength + growthIncrement);
     }
   }
 

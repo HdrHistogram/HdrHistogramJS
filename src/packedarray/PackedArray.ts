@@ -7,7 +7,7 @@
  */
 import {
   PackedArrayContext,
-  MINIMUM_INITIAL_PACKED_ARRAY_CAPACITY,
+  MINIMUM_INITIAL_PACKED_ARRAY_CAPACITY
 } from "./PackedArrayContext";
 //import { ResizeError } from "./ResizeError";
 

@@ -2,7 +2,7 @@ import b from "benny";
 import { build, AbstractHistogram } from "../index";
 import {
   encodeIntoCompressedBase64,
-  decodeFromCompressedBase64,
+  decodeFromCompressedBase64
 } from "../encoding";
 
 const randomInteger = (max: number = Number.MAX_SAFE_INTEGER) =>

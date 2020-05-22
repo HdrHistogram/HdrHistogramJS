@@ -43,7 +43,7 @@ initWebAssembly().then(() => {
       () => {
         const histogram = build({
           bitBucketSize: 32,
-          highestTrackableValue: Number.MAX_SAFE_INTEGER,
+          highestTrackableValue: Number.MAX_SAFE_INTEGER
         });
         return () => {
           histogram.recordValue(randomInteger());
@@ -55,7 +55,7 @@ initWebAssembly().then(() => {
       "WASM Int32Histogram",
       () => {
         const histogram = build({
-          useWebAssembly: true,
+          useWebAssembly: true
         });
         return () => {
           histogram.recordValue(randomInteger());
@@ -67,7 +67,7 @@ initWebAssembly().then(() => {
       "WASM PackedHistogram",
       () => {
         const histogram = build({
-          useWebAssembly: true,
+          useWebAssembly: true
         });
         return () => {
           histogram.recordValue(randomInteger());
@@ -80,7 +80,7 @@ initWebAssembly().then(() => {
       () => {
         const histogram = build({
           bitBucketSize: 64,
-          highestTrackableValue: Number.MAX_SAFE_INTEGER,
+          highestTrackableValue: Number.MAX_SAFE_INTEGER
         });
         return () => {
           histogram.recordValue(randomInteger());

@@ -31,9 +31,6 @@ function fillBufferFromCountsArray(
   self: AbstractHistogram,
   buffer: ByteBuffer
 ) {
-  if (!self.countsArrayIndex) {
-    console.log(self);
-  }
   const countsLimit = self.countsArrayIndex(self.maxValue) + 1;
   let srcIndex = 0;
 

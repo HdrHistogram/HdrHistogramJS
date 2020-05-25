@@ -100,6 +100,7 @@ export class PackedArrayContext {
 
   public clear() {
     this.byteArray.fill(0);
+    this.init(this.virtualLength);
   }
 
   public copyAndIncreaseSize(

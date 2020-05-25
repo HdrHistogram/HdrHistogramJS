@@ -84,6 +84,7 @@ export class PackedArrayContext {
 
   public clear(): void {
     this.byteArray.fill(0);
+    this.init(this.virtualLength);
   }
 
   public copyAndIncreaseSize(
@@ -427,7 +428,8 @@ export class PackedArrayContext {
   determineTopLevelShiftForVirtualLength(virtualLength: i32): i32 {
     const sizeMagnitude = <i32>ceil(Math.log2(virtualLength));
     const eightsSizeMagnitude = sizeMagnitude - 3;
-    let multipleOfFourSizeMagnitude = <i32>(ceil(eightsSizeMagnitude / 4) * 4);
+    let multipleOfFourSizeMagnitude =
+      <i32>ceil(<f64>eightsSizeMagnitude / 4.0) * 4;
     multipleOfFourSizeMagnitude = max(multipleOfFourSizeMagnitude, 8);
     const topLevelShiftNeeded = multipleOfFourSizeMagnitude - 4 + 3;
     return topLevelShiftNeeded;

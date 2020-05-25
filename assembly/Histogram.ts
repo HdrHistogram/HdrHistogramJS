@@ -6,6 +6,7 @@ import ulp from "./ulp";
 import { FloatFormatter, IntegerFormatter } from "./formatters";
 import ByteBuffer from "./ByteBuffer";
 import { encodeIntoByteBuffer } from "./encoding";
+import { PackedArray } from "./packedarray/PackedArray";
 
 export default class Histogram<T, U> extends AbstractHistogramBase<T, U> {
   // "Hot" accessed fields (used in the the value recording code path) are bunched here, such
@@ -910,7 +911,7 @@ export default class Histogram<T, U> extends AbstractHistogramBase<T, U> {
     return buffer.data.slice(0, buffer.position);
   }
 
-  clearCounts(): void {
+   clearCounts(): void {
     // @ts-ignore
     this.counts.clear();
   }
@@ -965,9 +966,4 @@ export class Histogram8 extends Histogram<Uint8Storage, u8> {}
 export class Histogram16 extends Histogram<Uint16Storage, u16> {}
 export class Histogram32 extends Histogram<Uint32Storage, u32> {}
 export class Histogram64 extends Histogram<Uint64Storage, u64> {}
-/*export class PackedHistogram extends Histogram<PackedArray, u64> {
-  resize(newHighestTrackableValue: u64): void {
-    this.establishSize(newHighestTrackableValue);
-    this.counts.setVirtualLength(this.countsArrayLength);
-  }
-}*/
+export class PackedHistogram extends Histogram<PackedArray, u64> {}

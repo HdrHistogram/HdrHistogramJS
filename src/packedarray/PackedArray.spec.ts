@@ -149,6 +149,16 @@ describe("Packed array", () => {
     expect(array.get(7)).toBe(42);
     expect(array.get(pow(2, 19))).toBe(42);
   });
+
+  it("should handle properly big numbers", () => {
+    // given
+    const array = new PackedArray(45056, 16);
+    // when
+    array.set(32768, 1);
+    // then
+    expect(array.get(32768)).toBe(1);
+    expect(array.get(0)).toBe(0);
+  });
 });
 
 describe("Unpacked array", () => {

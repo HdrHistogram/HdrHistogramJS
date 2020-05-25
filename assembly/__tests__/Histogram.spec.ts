@@ -1,4 +1,10 @@
-import { Histogram8, Histogram16, Storage } from "../Histogram";
+import {
+  Histogram8,
+  Histogram16,
+  Storage,
+  PackedHistogram,
+  Histogram64,
+} from "../Histogram";
 
 const buildHistogram = (): Histogram8 =>
   new Histogram8(
@@ -306,20 +312,27 @@ describe("Histogram add & substract", () => {
   });
 });
 
-/*
 describe("Packed Histogram", () => {
-  it("should compute mean value", () => {
+  it("should compute percentiles as the non packed version", () => {
     // given
-    const histogram = new PackedHistogram(
+    const packedHistogram = new PackedHistogram(
       1,
       9007199254740991, // Number.MAX_SAFE_INTEGER
       3
     );
+    const histogram = new Histogram64(
+      1,
+      9007199254740991, // Number.MAX_SAFE_INTEGER
+      3
+    );
+
     // when
-    histogram.recordValue(25);
-    histogram.recordValue(50);
-    histogram.recordValue(75);
+    histogram.recordValue(2199023255552);
+    packedHistogram.recordValue(2199023255552);
+
     // then
-    expect<f64>(histogram.getMean()).toBe(50);
+    expect<u64>(packedHistogram.getValueAtPercentile(90)).toBe(
+      histogram.getValueAtPercentile(90)
+    );
   });
-});*/
+});

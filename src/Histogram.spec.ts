@@ -471,4 +471,34 @@ describe("Histogram clearing support", () => {
     expect(histogram.getValueAtPercentile(99.999)).toBe(0);
     //expect(histogram.getValueAtPercentile(9)).to.be.equal(0);
   });
+
+  it("should behave as new when reseted", () => {
+    // given
+    const histogram = build({
+      lowestDiscernibleValue: 1,
+      highestTrackableValue: Number.MAX_SAFE_INTEGER,
+      numberOfSignificantValueDigits: 5,
+      bitBucketSize: "packed",
+    });
+    const histogram2 = build({
+      lowestDiscernibleValue: 1,
+      highestTrackableValue: Number.MAX_SAFE_INTEGER,
+      numberOfSignificantValueDigits: 5,
+    });
+    histogram.recordValue(1);
+    histogram.recordValue(1000);
+    histogram.recordValue(100000);
+    histogram.recordValue(1000433);
+    histogram.reset();
+    // when
+    histogram.recordValue(1000);
+    histogram.recordValue(1000433);
+    histogram2.recordValue(1000);
+    histogram2.recordValue(1000433);
+
+    // then
+    expect(histogram.outputPercentileDistribution()).toBe(
+      histogram2.outputPercentileDistribution()
+    );
+  });
 });

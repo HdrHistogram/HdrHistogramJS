@@ -138,6 +138,9 @@ class HistogramAdapter<T, U> {
   addHistogram64(otherHistogram: Histogram64): void {
     this._histogram.add(otherHistogram._histogram);
   }
+  addPackedHistogram(otherHistogram: PackedHistogram): void {
+    this._histogram.add(otherHistogram._histogram);
+  }
 
   subtractHistogram8(otherHistogram: Histogram8): void {
     this._histogram.subtract(otherHistogram._histogram);
@@ -149,6 +152,9 @@ class HistogramAdapter<T, U> {
     this._histogram.subtract(otherHistogram._histogram);
   }
   subtractHistogram64(otherHistogram: Histogram64): void {
+    this._histogram.subtract(otherHistogram._histogram);
+  }
+  subtractPackedHistogram(otherHistogram: PackedHistogram): void {
     this._histogram.subtract(otherHistogram._histogram);
   }
 
@@ -211,6 +217,15 @@ export function decodeHistogram64(
   minBarForHighestTrackableValue: f64
 ): HistogramAdapter<Uint64Storage, u64> {
   return decodeHistogram<Uint64Storage, u64>(
+    data,
+    minBarForHighestTrackableValue
+  );
+}
+export function decodePackedHistogram(
+  data: Uint8Array,
+  minBarForHighestTrackableValue: f64
+): HistogramAdapter<PackedArray, u64> {
+  return decodeHistogram<PackedArray, u64>(
     data,
     minBarForHighestTrackableValue
   );

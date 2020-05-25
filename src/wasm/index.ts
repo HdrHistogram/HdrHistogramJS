@@ -37,12 +37,14 @@ export const initWebAssembly = async (): Promise<void> => {
 
 export const webAssemblyReady = () => !!wasm;
 
+type BitBucketSize = 8 | 16 | 32 | 64 | "packed";
+
 interface WasmBuildRequest {
   /**
    * The size in bit of each count bucket
    * Default value is 32
    */
-  bitBucketSize?: 8 | 16 | 32 | 64 | "packed";
+  bitBucketSize?: BitBucketSize;
   /**
    * Control whether or not the histogram can auto-resize and auto-adjust it's
    * highestTrackableValue
@@ -76,8 +78,11 @@ const defaultRequest: WasmBuildRequest = {
   autoResize: true,
   lowestDiscernibleValue: 1,
   highestTrackableValue: 2,
-  numberOfSignificantValueDigits: 3
+  numberOfSignificantValueDigits: 3,
 };
+
+const remoteHistogramClassFor = (size?: BitBucketSize) =>
+  size === "packed" ? "PackedHistogram" : `Histogram${size}`;
 
 export class WasmHistogram implements Histogram {
   tag: string;
@@ -91,10 +96,9 @@ export class WasmHistogram implements Histogram {
 
   static build(request: WasmBuildRequest = defaultRequest) {
     const parameters = Object.assign({}, defaultRequest, request);
-    const remoteHistogramClass =
-      parameters.bitBucketSize === "packed"
-        ? "PackedHistogram"
-        : `Histogram${parameters.bitBucketSize}`;
+    const remoteHistogramClass = remoteHistogramClassFor(
+      parameters.bitBucketSize
+    );
     return new WasmHistogram(
       new wasm[remoteHistogramClass](
         parameters.lowestDiscernibleValue,
@@ -111,8 +115,8 @@ export class WasmHistogram implements Histogram {
     bitBucketSize: 8 | 16 | 32 | 64 | "packed" = 32,
     minBarForHighestTrackableValue: number = 0
   ): Histogram {
-    const decodeFunc = `decodeHistogram${bitBucketSize}`;
-    const remoteHistogramClass = `Histogram${bitBucketSize}`;
+    const remoteHistogramClass = remoteHistogramClassFor(bitBucketSize);
+    const decodeFunc = `decode${remoteHistogramClass}`;
     const ptrArr = wasm.__retain(wasm.__allocArray(wasm.UINT8ARRAY_ID, data));
     const wasmHistogram = new WasmHistogram(
       wasm[remoteHistogramClass].wrap(

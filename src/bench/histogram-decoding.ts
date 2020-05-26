@@ -1,8 +1,8 @@
 import b from "benny";
-import { build, AbstractHistogram } from "../index";
+import { build } from "../index";
 import {
   encodeIntoCompressedBase64,
-  decodeFromCompressedBase64,
+  decodeFromCompressedBase64
 } from "../encoding";
 import { initWebAssembly } from "../wasm";
 initWebAssembly().then(() => {
@@ -32,7 +32,7 @@ initWebAssembly().then(() => {
       () => {
         const histogram = build();
         for (let index = 0; index < 1024; index++) {
-          histogram.recordValue(randomInteger());
+          histogram.recordValueWithCount(randomInteger(), randomInteger(100));
         }
         const b64 = encodeIntoCompressedBase64(histogram);
         histogram.destroy();
@@ -47,7 +47,7 @@ initWebAssembly().then(() => {
       () => {
         const histogram = build();
         for (let index = 0; index < 1024; index++) {
-          histogram.recordValue(randomInteger());
+          histogram.recordValueWithCount(randomInteger(), randomInteger(100));
         }
         const b64 = encodeIntoCompressedBase64(histogram);
         return () => {
@@ -61,10 +61,10 @@ initWebAssembly().then(() => {
       () => {
         const histogram = build({
           bitBucketSize: "packed",
-          useWebAssembly: true,
+          useWebAssembly: true
         });
         for (let index = 0; index < 1024; index++) {
-          histogram.recordValue(randomInteger());
+          histogram.recordValueWithCount(randomInteger(), randomInteger(100));
         }
         const b64 = encodeIntoCompressedBase64(histogram);
         histogram.destroy();

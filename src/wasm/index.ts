@@ -78,7 +78,7 @@ const defaultRequest: WasmBuildRequest = {
   autoResize: true,
   lowestDiscernibleValue: 1,
   highestTrackableValue: 2,
-  numberOfSignificantValueDigits: 3,
+  numberOfSignificantValueDigits: 3
 };
 
 const remoteHistogramClassFor = (size?: BitBucketSize) =>

@@ -4,10 +4,10 @@ import { initWebAssembly } from "../wasm";
 initWebAssembly().then(() => {
   const randomInteger = (max: number = Number.MAX_SAFE_INTEGER) =>
     Math.floor(Math.random() * max);
-  const options = { initCount: 1000 };
+  const options = { initCount: 100 };
 
   b.suite(
-    "Histogram get value at percentile",
+    "Histogram percentile distribution",
     b.add(
       "Int32Histogram",
       () => {
@@ -18,7 +18,7 @@ initWebAssembly().then(() => {
           histogram.recordValueWithCount(randomInteger(), randomInteger(100));
         }
         return () => {
-          histogram.getValueAtPercentile(99);
+          histogram.outputPercentileDistribution();
         };
       },
       options
@@ -35,7 +35,7 @@ initWebAssembly().then(() => {
           histogram.recordValueWithCount(randomInteger(), randomInteger(100));
         }
         return () => {
-          histogram.getValueAtPercentile(99);
+          histogram.outputPercentileDistribution();
         };
       },
       options
@@ -50,7 +50,7 @@ initWebAssembly().then(() => {
           histogram.recordValueWithCount(randomInteger(), randomInteger(100));
         }
         return () => {
-          histogram.getValueAtPercentile(99);
+          histogram.outputPercentileDistribution();
         };
       },
       options
@@ -66,13 +66,13 @@ initWebAssembly().then(() => {
           histogram.recordValueWithCount(randomInteger(), randomInteger(100));
         }
         return () => {
-          histogram.getValueAtPercentile(99);
+          histogram.outputPercentileDistribution();
         };
       },
       options
     ),
 
     b.complete(),
-    b.save({ file: "percentile", format: "chart.html" })
+    b.save({ file: "distribution", format: "chart.html" })
   );
 });

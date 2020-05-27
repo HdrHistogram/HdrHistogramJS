@@ -158,11 +158,7 @@ class RecordedValuesIterator<T, U> {
   incrementSubBucket(): void {
     this.freshSubBucket = true;
     this.currentIndex++;
-    //log<string>("this.currentIndex");
-    //log<i32>(this.currentIndex);
     this.currentValueAtIndex = this.histogram.valueFromIndex(this.currentIndex);
-    //log<string>("this.currentValueAtIndex");
-    //log<u64>(this.currentValueAtIndex);
     this.nextValueAtIndex = this.histogram.valueFromIndex(
       this.currentIndex + 1
     );

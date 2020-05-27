@@ -175,7 +175,7 @@ describe("Histogram resize", () => {
       // when
       histogram.recordValue(900000);
       // then
-      log<u64>(histogram.totalCount);
+      expect<u64>(histogram.totalCount).toBe(1);
     }).not.toThrow();
   });
 

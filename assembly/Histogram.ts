@@ -202,9 +202,6 @@ export default class Histogram<T, U> extends AbstractHistogramBase<T, U> {
 
   recordSingleValue(value: u64): void {
     const countsIndex = this.countsArrayIndex(value);
-    //log<string>("recordSingleValue");
-    //log<u64>(value);
-    //log<i32>(countsIndex);
     if (countsIndex >= this.countsArrayLength) {
       // @ts-ignore
       this.handleRecordException(<U>1, value);
@@ -370,19 +367,10 @@ export default class Histogram<T, U> extends AbstractHistogramBase<T, U> {
     let totalValue = <u64>0;
     while (this.recordedValuesIterator.hasNext()) {
       const iterationValue = this.recordedValuesIterator.next();
-      /*log<string>("iterationValue.valueIteratedTo");
-      log<u64>(iterationValue.valueIteratedTo);
-      log<string>("iterationValue.countAtValueIteratedTo");
-      log<u64>(iterationValue.countAtValueIteratedTo);*/
       totalValue +=
         this.medianEquivalentValue(iterationValue.valueIteratedTo) *
         iterationValue.countAtValueIteratedTo;
     }
-    //log<string>("totalValue");
-    //log<u64>(totalValue);
-
-    //log<string>("this.totalCount");
-    //log<u64>(this.totalCount);
 
     return (<f64>totalValue * <f64>1) / <f64>this.totalCount;
   }
@@ -566,10 +554,6 @@ export default class Histogram<T, U> extends AbstractHistogramBase<T, U> {
   }
 
   valueFromIndex(index: i32): u64 {
-    //log<string>("index");
-    //log<i32>(index);
-    //log<string>("subBucketHalfCountMagnitude");
-    //log<i32>(this.subBucketHalfCountMagnitude);
     let bucketIndex = (index >> this.subBucketHalfCountMagnitude) - 1;
     let subBucketIndex =
       (index & (this.subBucketHalfCount - 1)) + this.subBucketHalfCount;
@@ -577,10 +561,6 @@ export default class Histogram<T, U> extends AbstractHistogramBase<T, U> {
       subBucketIndex -= this.subBucketHalfCount;
       bucketIndex = 0;
     }
-    //log<string>("bucketIndex");
-    //log<i32>(bucketIndex);
-    //log<string>("subBucketIndex");
-    //log<i32>(subBucketIndex);
     return this.valueFromIndexes(bucketIndex, subBucketIndex);
   }
 
@@ -911,7 +891,7 @@ export default class Histogram<T, U> extends AbstractHistogramBase<T, U> {
     return buffer.data.slice(0, buffer.position);
   }
 
-   clearCounts(): void {
+  clearCounts(): void {
     // @ts-ignore
     this.counts.clear();
   }

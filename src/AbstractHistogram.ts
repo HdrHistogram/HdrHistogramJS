@@ -54,8 +54,27 @@ export abstract class AbstractHistogram extends AbstractHistogramBase
   maxValue: number = 0;
   minNonZeroValue: number = Number.MAX_SAFE_INTEGER;
 
-  // Sub-classes will typically add a totalCount field and a counts array field, which will likely be laid out
-  // right around here due to the subclass layout rules in most practical JVM implementations.
+  _totalCount: number;
+
+  incrementTotalCount() {
+    this._totalCount++;
+  }
+
+  addToTotalCount(value: number) {
+    this._totalCount += value;
+  }
+
+  setTotalCount(value: number) {
+    this._totalCount = value;
+  }
+
+  /**
+   * Get the total count of all recorded values in the histogram
+   * @return the total count of all recorded values in the histogram
+   */
+  get totalCount() {
+    return this._totalCount;
+  }
 
   //
   //
@@ -73,27 +92,11 @@ export abstract class AbstractHistogram extends AbstractHistogramBase
 
   abstract setCountAtIndex(index: number, value: number): void;
 
-  abstract setTotalCount(totalCount: number): void;
-
-  abstract incrementTotalCount(): void;
-
-  abstract addToTotalCount(value: number): void;
-
   abstract clearCounts(): void;
 
   protected abstract _getEstimatedFootprintInBytes(): number;
 
   abstract resize(newHighestTrackableValue: number): void;
-
-  /**
-   * Get the total count of all recorded values in the histogram
-   * @return the total count of all recorded values in the histogram
-   */
-  abstract getTotalCount(): number;
-
-  get totalCount() {
-    return this.getTotalCount();
-  }
 
   private updatedMaxValue(value: number): void {
     const internalValue: number = value + this.unitMagnitudeMask;

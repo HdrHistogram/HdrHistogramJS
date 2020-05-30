@@ -5,102 +5,20 @@
  * and released to the public domain, as explained at
  * http://creativecommons.org/publicdomain/zero/1.0/
  */
-import AbstractHistogram from "./AbstractHistogram";
+import TypedArrayHistogram from "./TypedArrayHistogram";
 
-class Int8Histogram extends AbstractHistogram {
-  _counts: Uint8Array;
-  _totalCount: number;
-
+class Int8Histogram extends TypedArrayHistogram {
   constructor(
     lowestDiscernibleValue: number,
     highestTrackableValue: number,
     numberOfSignificantValueDigits: number
   ) {
     super(
+      Uint8Array,
       lowestDiscernibleValue,
       highestTrackableValue,
       numberOfSignificantValueDigits
     );
-    this._totalCount = 0;
-    this._counts = new Uint8Array(this.countsArrayLength);
-  }
-
-  clearCounts() {
-    this._counts.fill(0);
-  }
-
-  incrementCountAtIndex(index: number) {
-    const currentCount = this._counts[index];
-    const newCount = currentCount + 1;
-    if (newCount < 0) {
-      throw newCount + " would overflow short integer count";
-    }
-    this._counts[index] = newCount;
-  }
-
-  addToCountAtIndex(index: number, value: number) {
-    const currentCount = this._counts[index];
-    const newCount = currentCount + value;
-    if (
-      newCount < Number.MIN_SAFE_INTEGER ||
-      newCount > Number.MAX_SAFE_INTEGER
-    ) {
-      throw newCount + " would overflow integer count";
-    }
-    this._counts[index] = newCount;
-  }
-
-  setCountAtIndex(index: number, value: number) {
-    if (value < Number.MIN_SAFE_INTEGER || value > Number.MAX_SAFE_INTEGER) {
-      throw value + " would overflow integer count";
-    }
-    this._counts[index] = value;
-  }
-
-  resize(newHighestTrackableValue: number) {
-    this.establishSize(newHighestTrackableValue);
-    const newCounts = new Uint8Array(this.countsArrayLength);
-    newCounts.set(this._counts);
-    this._counts = newCounts;
-  }
-
-  incrementTotalCount() {
-    this._totalCount++;
-  }
-
-  addToTotalCount(value: number) {
-    this._totalCount += value;
-  }
-
-  setTotalCount(value: number) {
-    this._totalCount = value;
-  }
-
-  getTotalCount() {
-    return this._totalCount;
-  }
-
-  getCountAtIndex(index: number) {
-    return this._counts[index];
-  }
-
-  protected _getEstimatedFootprintInBytes() {
-    return 512 + this._counts.length;
-  }
-
-  copyCorrectedForCoordinatedOmission(
-    expectedIntervalBetweenValueSamples: number
-  ) {
-    const copy = new Int8Histogram(
-      this.lowestDiscernibleValue,
-      this.highestTrackableValue,
-      this.numberOfSignificantValueDigits
-    );
-    copy.addWhileCorrectingForCoordinatedOmission(
-      this,
-      expectedIntervalBetweenValueSamples
-    );
-    return copy;
   }
 }
 

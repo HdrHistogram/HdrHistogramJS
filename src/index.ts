@@ -27,10 +27,6 @@ import {
   webAssemblyReady,
 } from "./wasm";
 
-//const BigIntHistogram = require("./BigIntHistogram").default;
-
-//declare function require(name: string): any;
-
 interface BuildRequest {
   /**
    * The size in bit of each count bucket
@@ -80,15 +76,6 @@ const defaultRequest: BuildRequest = {
   useWebAssembly: false,
 };
 
-/*const bigIntAvailable = (() => {
-  try {
-    eval("123n");
-    return true;
-  } catch (e) {
-    return false;
-  }
-})();*/
-
 const build = (request = defaultRequest): Histogram => {
   const parameters = Object.assign({}, defaultRequest, request);
   if (request.useWebAssembly && webAssemblyAvailable) {
@@ -112,7 +99,6 @@ const build = (request = defaultRequest): Histogram => {
       histogramConstr = PackedHistogram;
       break;
     default:
-      //histogramConstr = bigIntAvailable ? BigIntHistogram : Float64Histogram;
       histogramConstr = Float64Histogram;
   }
 

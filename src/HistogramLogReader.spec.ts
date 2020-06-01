@@ -5,6 +5,7 @@ import AbstractHistogram from "./AbstractHistogram";
 import Int32Histogram from "./Int32Histogram";
 import PackedHistogram from "./PackedHistogram";
 import Histogram from "./Histogram";
+import { initWebAssembly, WasmHistogram } from "./wasm";
 
 const { floor } = Math;
 
@@ -203,32 +204,6 @@ describe("Histogram Log Reader", () => {
     }
   });
 
-  it("should do the whole 9 yards just like the original Java version :-)", () => {
-    // given
-    const reader = new HistogramLogReader(fileContent);
-    const accumulatedHistogram = new Int32Histogram(
-      1,
-      Number.MAX_SAFE_INTEGER,
-      3
-    );
-    let histogram: Histogram | null;
-    let histogramCount = 0;
-    let totalCount = 0;
-
-    // when
-    while ((histogram = reader.nextIntervalHistogram()) != null) {
-      histogramCount++;
-      totalCount += histogram.totalCount;
-      accumulatedHistogram.add(histogram);
-    }
-
-    // then
-    expect(histogramCount).toBe(62);
-    expect(totalCount).toBe(48761);
-    expect(accumulatedHistogram.getValueAtPercentile(99.9)).toBe(1745879039);
-    expect(reader.startTimeSec).toBe(1441812279.474);
-  });
-
   it("should list all the tags of a log file", () => {
     // given
     // when
@@ -250,5 +225,36 @@ Tag=A,0.127,1.007,2.769,HISTFAAAAEV42pNpmSzMwMCgyAABTBDKT4GBgdnNYMcCBvsPEBEJISEu
     const tags = listTags(content);
     // then
     expect(tags).toEqual(["NOT-EMPTY", "A"]);
+  });
+
+  describe("with WASM", () => {
+    let accumulatedHistogram: Histogram;
+    beforeAll(initWebAssembly);
+    afterEach(() => {
+      accumulatedHistogram.destroy();
+    });
+
+    it("should do the whole 9 yards just like the original Java version :-)", () => {
+      // given
+      const reader = new HistogramLogReader(fileContent, 32, true);
+      accumulatedHistogram = WasmHistogram.build();
+      let histogram: Histogram | null;
+      let histogramCount = 0;
+      let totalCount = 0;
+
+      // when
+      while ((histogram = reader.nextIntervalHistogram()) != null) {
+        histogramCount++;
+        totalCount += histogram.totalCount;
+        accumulatedHistogram.add(histogram as any);
+        histogram.destroy();
+      }
+
+      // then
+      expect(histogramCount).toBe(62);
+      expect(totalCount).toBe(48761);
+      expect(accumulatedHistogram.getValueAtPercentile(99.9)).toBe(1745879039);
+      expect(reader.startTimeSec).toBe(1441812279.474);
+    });
   });
 });

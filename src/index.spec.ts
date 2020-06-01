@@ -23,15 +23,15 @@ describe("Histogram builder", () => {
     // when
     const histogram = hdr.build({
       bitBucketSize: 32,
-      numberOfSignificantValueDigits: 2
+      numberOfSignificantValueDigits: 2,
     });
     const expectedHistogram = new hdr.Int32Histogram(1, 2, 2);
     expectedHistogram.autoResize = true;
 
-    histogram.recordValue(12345678);
-    expectedHistogram.recordValue(12345678);
+    histogram.recordValue(12345);
+    expectedHistogram.recordValue(12345);
 
     // then
-    expect(histogram.outputPercentileDistribution()).toBe(expectedHistogram.outputPercentileDistribution());
+    expect(histogram.mean).toBe(expectedHistogram.mean);
   });
 });

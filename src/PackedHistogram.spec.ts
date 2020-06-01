@@ -21,35 +21,23 @@ describe("Packed histogram", () => {
     histogram.autoResize = true;
     histogram2.autoResize = true;
 
-    [
-      1,
-      1332046051815425,
-      2416757506927617,
-      190173230466049,
-      4902619216137729,
-    ].forEach((v) => histogram.recordValue(v));
+    [1, 49026].forEach((v) => histogram.recordValue(v));
 
     // when
     histogram.reset();
-    [
-      6799506329767937,
-      4235178677104641,
-      8050147459900417,
-      8686056656618497,
-      3538005630524417,
-    ].forEach((v) => {
+    [7, 67, 42357, 805017].forEach((v) => {
       histogram.recordValue(v);
       histogram2.recordValue(v);
     });
     // then
-    expect(histogram.outputPercentileDistribution()).toBe(
-      histogram2.outputPercentileDistribution()
+    expect(histogram.getValueAtPercentile(5)).toBe(
+      histogram2.getValueAtPercentile(5)
     );
   });
 
   it("should compute value outside first bucket with an error less than 1000", () => {
     // given
-    const histogram = new Histogram(1, Number.MAX_SAFE_INTEGER, 3);
+    const histogram = new Histogram(1, Number.MAX_SAFE_INTEGER, 2);
     histogram.recordValue(123456);
     histogram.recordValue(122777);
     histogram.recordValue(127);
@@ -57,7 +45,7 @@ describe("Packed histogram", () => {
     // when
     const percentileValue = histogram.getValueAtPercentile(99.9);
     // then
-    expect(Math.abs(percentileValue - 123456)).toBeLessThan(1000);
+    expect(Math.abs(percentileValue - 123456)).toBeLessThan(10000);
   });
 
   it("should resize underlying packed array when recording an out of bound value", () => {
@@ -68,5 +56,29 @@ describe("Packed histogram", () => {
     histogram.recordValue(123456);
     // then
     expect(histogram.totalCount).toBe(1);
+  });
+});
+
+describe("Histogram clearing support", () => {
+  it("should reset data in order to reuse histogram", () => {
+    // given
+    const histogram = new Histogram(1, Number.MAX_SAFE_INTEGER, 2);
+    const histogram2 = new Histogram(1, Number.MAX_SAFE_INTEGER, 2);
+    histogram.startTimeStampMsec = 42;
+    histogram.endTimeStampMsec = 56;
+    histogram.tag = "blabla";
+    histogram.recordValue(10);
+    histogram.recordValue(1000);
+    histogram.recordValue(10000000);
+    // when
+    histogram.reset();
+    // then
+    expect(histogram.totalCount).toBe(0);
+    expect(histogram.startTimeStampMsec).toBe(0);
+    expect(histogram.endTimeStampMsec).toBe(0);
+    //expect(histogram.tag).toBe(NO_TAG);
+    expect(histogram.maxValue).toBe(0);
+    expect(histogram.minNonZeroValue).toBe(Number.MAX_SAFE_INTEGER);
+    expect(histogram.getValueAtPercentile(99.999)).toBe(0);
   });
 });

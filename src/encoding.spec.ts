@@ -16,7 +16,8 @@ import {
 describe("Histogram encoding", () => {
   it("should encode and decode an histogram", () => {
     // given
-    const histogram = new Int32Histogram(1, Number.MAX_SAFE_INTEGER, 3);
+    const histogram = new Int32Histogram(1, 2, 3);
+    histogram.autoResize = true;
     histogram.recordValue(32415482);
     // when
     const b64 = encodeIntoCompressedBase64(histogram);

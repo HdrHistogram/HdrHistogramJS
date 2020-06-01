@@ -5,15 +5,15 @@ import Histogram from "./Int32Histogram";
 describe("Recorded Values Iterator", () => {
   it("should iterate to recorded value", () => {
     // given
-    const histogram = new Histogram(1, Number.MAX_SAFE_INTEGER, 5);
-    histogram.recordValue(12345);
+    const histogram = new Histogram(1, Number.MAX_SAFE_INTEGER, 2);
+    histogram.recordValue(123);
     const iterator = new RecordedValuesIterator(histogram);
     // when
     const iterationValue = iterator.next();
     // then
     expect(iterator.hasNext()).toBe(false);
     expect(iterationValue.totalCountToThisValue).toBe(1);
-    expect(iterationValue.totalValueToThisValue).toBe(12345);
+    expect(iterationValue.totalValueToThisValue).toBe(123);
   });
 
   it("should iterate to all recorded values", () => {

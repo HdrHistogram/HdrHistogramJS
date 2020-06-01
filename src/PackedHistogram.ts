@@ -65,10 +65,6 @@ class PackedHistogram extends AbstractHistogram {
   }
 
   setCountAtIndex(index: number, value: number) {
-    /* TODO move in packed array
-    if (value < Number.MIN_SAFE_INTEGER || value > Number.MAX_SAFE_INTEGER) {
-      throw value + " would overflow integer count";
-    }*/
     this.packedCounts.set(index, value);
   }
 

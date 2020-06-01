@@ -4,6 +4,7 @@ import AbstractHistogram from "./AbstractHistogram";
 import { NO_TAG } from "./AbstractHistogramBase";
 import Int32Histogram from "./Int32Histogram";
 import { initWebAssembly } from "./wasm";
+import Int8Histogram from "./Int8Histogram";
 
 class HistogramForTests extends AbstractHistogram {
   //constructor() {}
@@ -373,11 +374,11 @@ describe("Histogram add & substract", () => {
 
   it("should be equal when another histogram is added then subtracted", () => {
     // given
-    const histogram = new Int32Histogram(1, 1024, 5);
-    const histogram2 = new Int32Histogram(1, Number.MAX_SAFE_INTEGER, 5);
+    const histogram = new Int8Histogram(1, 1024, 3);
+    const histogram2 = new Int8Histogram(1, 1024, 3);
     histogram.autoResize = true;
-    histogram.recordValue(1000);
-    histogram2.recordValue(42000);
+    histogram.recordValue(100);
+    histogram2.recordValue(420);
     const outputBefore = histogram.outputPercentileDistribution();
     // when
     histogram.add(histogram2);
@@ -385,20 +386,6 @@ describe("Histogram add & substract", () => {
     // then
     expect(histogram.outputPercentileDistribution()).toBe(outputBefore);
   });
-  /*it("should be equal when another histogram is added then subtracted", () => {
-    // given
-    const histogram = build({ lowestDiscernibleValue: 1, highestTrackableValue: 1024, numberOfSignificantValueDigits: 5, webAssembly: true });
-    const histogram2 = build({ lowestDiscernibleValue: 1, highestTrackableValue: Number.MAX_SAFE_INTEGER, numberOfSignificantValueDigits: 5, webAssembly: true });
-    histogram.autoResize = true;
-    histogram.recordValue(1000);
-    histogram2.recordValue(42000);
-    const outputBefore = histogram.outputPercentileDistribution();
-    // when
-    histogram.add(histogram2);
-    histogram.subtract(histogram2);
-    // then
-    expect(histogram.outputPercentileDistribution()).to.be.equal(outputBefore);
-  });*/
 
   it("should be equal when another wasm histogram is added then subtracted", () => {
     // given
@@ -417,21 +404,6 @@ describe("Histogram add & substract", () => {
       bitBucketSize: 32,
       useWebAssembly: true,
     });
-    histogram.recordValue(1000);
-    histogram2.recordValue(42000);
-    const outputBefore = histogram.outputPercentileDistribution();
-    // when
-    histogram.add(histogram2);
-    histogram.subtract(histogram2);
-    // then
-    expect(histogram.outputPercentileDistribution()).toBe(outputBefore);
-  });
-
-  it("should be equal when another histogram is added then subtracted with same characteristics", () => {
-    // given
-    const histogram = new Int32Histogram(1, Number.MAX_SAFE_INTEGER, 3);
-    const histogram2 = new Int32Histogram(1, Number.MAX_SAFE_INTEGER, 3);
-    histogram.autoResize = true;
     histogram.recordValue(1000);
     histogram2.recordValue(42000);
     const outputBefore = histogram.outputPercentileDistribution();
@@ -476,25 +448,21 @@ describe("Histogram clearing support", () => {
     // given
     const histogram = build({
       lowestDiscernibleValue: 1,
-      highestTrackableValue: Number.MAX_SAFE_INTEGER,
-      numberOfSignificantValueDigits: 5,
-      bitBucketSize: "packed",
+      highestTrackableValue: 15000,
+      numberOfSignificantValueDigits: 2,
     });
     const histogram2 = build({
       lowestDiscernibleValue: 1,
-      highestTrackableValue: Number.MAX_SAFE_INTEGER,
-      numberOfSignificantValueDigits: 5,
+      highestTrackableValue: 15000,
+      numberOfSignificantValueDigits: 2,
     });
     histogram.recordValue(1);
-    histogram.recordValue(1000);
-    histogram.recordValue(100000);
-    histogram.recordValue(1000433);
+    histogram.recordValue(100);
+    histogram.recordValue(10000);
     histogram.reset();
     // when
     histogram.recordValue(1000);
-    histogram.recordValue(1000433);
     histogram2.recordValue(1000);
-    histogram2.recordValue(1000433);
 
     // then
     expect(histogram.outputPercentileDistribution()).toBe(

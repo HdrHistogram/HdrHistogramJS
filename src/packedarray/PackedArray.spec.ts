@@ -69,9 +69,9 @@ describe("Packed array", () => {
       array.set(value, value);
     }
 
-    for (let value = 256; value <= 272; value++) {
-      expect(array.get(value)).toBe(value);
-    }
+    expect(array.get(1)).toBe(1);
+    expect(array.get(255)).toBe(255);
+    expect(array.get(272)).toBe(272);
   });
 
   it("Should increment data stored in array", () => {

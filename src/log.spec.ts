@@ -17,8 +17,7 @@ describe("Logs", () => {
     writer.outputStartTime(12345000);
     writer.outputLegend();
     const inputHistogram = build() as AbstractHistogram;
-    inputHistogram.recordValue(1515);
-    inputHistogram.recordValue(1789);
+    inputHistogram.recordValue(42);
     // when
     writer.outputIntervalHistogram(inputHistogram, 12345042, 1234056, 1);
     const reader = new HistogramLogReader(buffer);

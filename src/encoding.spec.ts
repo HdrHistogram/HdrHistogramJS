@@ -18,7 +18,7 @@ describe("Histogram encoding", () => {
     // given
     const histogram = new Int32Histogram(1, 2, 3);
     histogram.autoResize = true;
-    histogram.recordValue(32415482);
+    histogram.recordValue(32415);
     // when
     const b64 = encodeIntoCompressedBase64(histogram);
     // then

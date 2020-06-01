@@ -37,15 +37,14 @@ describe("Packed histogram", () => {
 
   it("should compute value outside first bucket with an error less than 1000", () => {
     // given
-    const histogram = new Histogram(1, Number.MAX_SAFE_INTEGER, 2);
-    histogram.recordValue(123456);
-    histogram.recordValue(122777);
+    const histogram = new Histogram(1, 123456, 2);
+    histogram.recordValue(5234);
     histogram.recordValue(127);
     histogram.recordValue(42);
     // when
-    const percentileValue = histogram.getValueAtPercentile(99.9);
+    const percentileValue = histogram.getValueAtPercentile(90);
     // then
-    expect(Math.abs(percentileValue - 123456)).toBeLessThan(10000);
+    expect(Math.abs(percentileValue - 5234)).toBeLessThan(100);
   });
 
   it("should resize underlying packed array when recording an out of bound value", () => {

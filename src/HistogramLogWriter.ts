@@ -1,7 +1,7 @@
-import AbstractHistogram from "./AbstractHistogram";
 import { NO_TAG } from "./AbstractHistogramBase";
 import { encodeIntoCompressedBase64 } from "./encoding";
 import { floatFormatter } from "./formatters";
+import Histogram from "./Histogram";
 
 export interface Writable {
   (c: string): void;
@@ -33,7 +33,7 @@ class HistogramLogWriter {
    * @param maxValueUnitRatio The ratio by which to divide the histogram's max value when reporting on it.
    */
   outputIntervalHistogram(
-    histogram: AbstractHistogram,
+    histogram: Histogram,
     startTimeStampSec = (histogram.startTimeStampMsec - this.baseTime) / 1000,
     endTimeStampSec = (histogram.endTimeStampMsec - this.baseTime) / 1000,
     maxValueUnitRatio = 1000

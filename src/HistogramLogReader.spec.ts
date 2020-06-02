@@ -1,18 +1,15 @@
 import "core-js";
 import * as fs from "fs";
-import HistogramLogReader, { listTags } from "./HistogramLogReader";
-import AbstractHistogram from "./AbstractHistogram";
-import Int32Histogram from "./Int32Histogram";
-import PackedHistogram from "./PackedHistogram";
 import Histogram from "./Histogram";
+import HistogramLogReader, { listTags } from "./HistogramLogReader";
+import PackedHistogram from "./PackedHistogram";
 import { initWebAssembly, WasmHistogram } from "./wasm";
 
 const { floor } = Math;
 
-const checkNotNull = <T>(actual: T | null): actual is T => {
+function checkNotNull<T>(actual: T | null): asserts actual is T {
   expect(actual).not.toBeNull();
-  return true;
-};
+}
 
 describe("Histogram Log Reader", () => {
   let fileContent: string;
@@ -66,7 +63,7 @@ describe("Histogram Log Reader", () => {
     // then
     checkNotNull(histogram);
     // if mean is good, strong probability everything else is good as well
-    expect(floor((histogram as AbstractHistogram).getMean())).toBe(301998);
+    expect(floor(histogram.mean)).toBe(301998);
   });
 
   it("should read encoded histogram and use provided constructor", () => {
@@ -96,10 +93,9 @@ describe("Histogram Log Reader", () => {
     // when
     const histogram = reader.nextIntervalHistogram();
     // then
-    if (checkNotNull(histogram)) {
-      // if mean is good, strong probability everything else is good as well
-      expect(floor(histogram.mean)).toBe(293719);
-    }
+    checkNotNull(histogram);
+    // if mean is good, strong probability everything else is good as well
+    expect(floor(histogram.mean)).toBe(293719);
   });
 
   it("should return null if all histograms are after specified time range", () => {
@@ -137,12 +133,12 @@ describe("Histogram Log Reader", () => {
     const secondHistogram = reader.nextIntervalHistogram(0, 2);
     const thirdHistogram = reader.nextIntervalHistogram(0, 2);
     // then
+    checkNotNull(firstHistogram);
+    checkNotNull(secondHistogram);
     expect(thirdHistogram).toBeNull();
-    if (checkNotNull(firstHistogram) && checkNotNull(secondHistogram)) {
-      // if mean is good, strong probability everything else is good as well
-      expect(floor(firstHistogram.mean)).toBe(301998);
-      expect(floor(secondHistogram.mean)).toBe(293719);
-    }
+    // if mean is good, strong probability everything else is good as well
+    expect(floor(firstHistogram.mean)).toBe(301998);
+    expect(floor(secondHistogram.mean)).toBe(293719);
   });
 
   it("should set start timestamp on histogram", () => {
@@ -151,9 +147,8 @@ describe("Histogram Log Reader", () => {
     // when
     const histogram = reader.nextIntervalHistogram();
     // then
-    if (checkNotNull(histogram)) {
-      expect(histogram.startTimeStampMsec).toBe(1441812279601);
-    }
+    checkNotNull(histogram);
+    expect(histogram.startTimeStampMsec).toBe(1441812279601);
   });
 
   it("should set end timestamp on histogram", () => {
@@ -162,9 +157,8 @@ describe("Histogram Log Reader", () => {
     // when
     const histogram = reader.nextIntervalHistogram();
     // then
-    if (checkNotNull(histogram)) {
-      expect(histogram.endTimeStampMsec).toBe(1441812280608);
-    }
+    checkNotNull(histogram);
+    expect(histogram.endTimeStampMsec).toBe(1441812280608);
   });
 
   it("should parse tagged histogram", () => {
@@ -174,10 +168,9 @@ describe("Histogram Log Reader", () => {
     // when
     const histogram = reader.nextIntervalHistogram();
     // then
-    if (checkNotNull(histogram)) {
-      expect(histogram.tag).toBe("A");
-      expect(floor(histogram.mean)).toBe(301998);
-    }
+    checkNotNull(histogram);
+    expect(histogram.tag).toBe("A");
+    expect(floor(histogram.mean)).toBe(301998);
   });
 
   it("should use basetime to set timestamps on histogram", () => {
@@ -186,10 +179,9 @@ describe("Histogram Log Reader", () => {
     // when
     const histogram = reader.nextIntervalHistogram();
     // then
-    if (checkNotNull(histogram)) {
-      expect(histogram.startTimeStampMsec).toBe(1441812123250);
-      expect(histogram.endTimeStampMsec).toBe(1441812124257);
-    }
+    checkNotNull(histogram);
+    expect(histogram.startTimeStampMsec).toBe(1441812123250);
+    expect(histogram.endTimeStampMsec).toBe(1441812124257);
   });
 
   it("should default startTime using 1st observed time", () => {
@@ -198,10 +190,9 @@ describe("Histogram Log Reader", () => {
     // when
     const histogram = reader.nextIntervalHistogram();
     // then
-    if (checkNotNull(histogram)) {
-      expect(histogram.startTimeStampMsec).toBe(127);
-      expect(histogram.endTimeStampMsec).toBe(1134);
-    }
+    checkNotNull(histogram);
+    expect(histogram.startTimeStampMsec).toBe(127);
+    expect(histogram.endTimeStampMsec).toBe(1134);
   });
 
   it("should list all the tags of a log file", () => {

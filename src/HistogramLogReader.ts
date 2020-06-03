@@ -6,10 +6,8 @@
  * http://creativecommons.org/publicdomain/zero/1.0/
  */
 import { NO_TAG } from "./AbstractHistogramBase";
-import AbstractHistogram, { HistogramConstructor } from "./AbstractHistogram";
-import Int32Histogram from "./Int32Histogram";
 import { decodeFromCompressedBase64 } from "./encoding";
-import Histogram from "./Histogram";
+import Histogram, { BitBucketSize } from "./Histogram";
 
 const TAG_PREFIX = "Tag=";
 const TAG_PREFIX_LENGTH = "Tag=".length;
@@ -61,12 +59,12 @@ class HistogramLogReader {
 
   lines: string[];
   currentLineIndex: number;
-  bitBucketSize: 8 | 16 | 32 | 64 | "packed";
+  bitBucketSize: BitBucketSize;
   useWebAssembly: boolean;
 
   constructor(
     logContent: string,
-    bitBucketSize: 8 | 16 | 32 | 64 | "packed" = 32,
+    bitBucketSize: BitBucketSize = 32,
     useWebAssembly: boolean = false
   ) {
     this.lines = splitLines(logContent);

@@ -8,6 +8,7 @@
 import * as fc from "fast-check";
 import * as hdr from "./index";
 import { initWebAssembly } from "./wasm";
+import { BitBucketSize } from "./Histogram";
 
 const runFromStryker = __dirname.includes("stryker");
 
@@ -15,8 +16,6 @@ const runnerOptions = {
   numRuns: runFromStryker ? 10 : 1000,
   verbose: true,
 };
-
-type BucketSize = 8 | 16 | 32 | 64 | "packed";
 
 describe("Histogram percentile computation", () => {
   const numberOfSignificantValueDigits = 3;
@@ -51,7 +50,7 @@ describe("Histogram percentile computation", () => {
 describe("Histogram percentile computation", () => {
   const numberOfSignificantValueDigits = 3;
   [true, false].forEach((useWebAssembly) =>
-    [8, 16, 32, 64, "packed"].forEach((bitBucketSize: BucketSize) =>
+    [8, 16, 32, 64, "packed"].forEach((bitBucketSize: BitBucketSize) =>
       it(`Histogram ${bitBucketSize} (wasm: ${useWebAssembly}) should be accurate according to its significant figures`, async () => {
         await initWebAssembly();
 
@@ -107,7 +106,7 @@ describe.only("Histogram percentile computation (packed vs classic)", () => {
 describe("Histogram encoding/decoding", () => {
   const numberOfSignificantValueDigits = 3;
   [true, false].forEach((useWebAssembly) =>
-    [8, 16, 32, 64, "packed"].forEach((bitBucketSize: BucketSize) => {
+    [8, 16, 32, 64, "packed"].forEach((bitBucketSize: BitBucketSize) => {
       it(`Histogram ${bitBucketSize} (wasm: ${useWebAssembly}) should keep all data after an encoding/decoding roundtrip`, async () => {
         await initWebAssembly();
         fc.assert(

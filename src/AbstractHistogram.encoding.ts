@@ -18,6 +18,7 @@ import Float64Histogram from "./Float64Histogram";
 import * as pako from "pako";
 // @ts-ignore
 import * as base64 from "base64-js";
+import { BitBucketSize } from "./Histogram";
 
 const { max } = Math;
 
@@ -183,9 +184,7 @@ export function decompress(data: Uint8Array): Uint8Array {
   return uncompressedBuffer;
 }
 
-function ctrFromBucketSize(
-  bitBucketSize: 8 | 16 | 32 | 64 | "packed"
-): HistogramConstructor {
+function ctrFromBucketSize(bitBucketSize: BitBucketSize): HistogramConstructor {
   switch (bitBucketSize) {
     case "packed":
       return PackedHistogram;
@@ -204,7 +203,7 @@ function ctrFromBucketSize(
 
 export function doDecode(
   data: Uint8Array,
-  bitBucketSize: 8 | 16 | 32 | 64 | "packed" = 32,
+  bitBucketSize: BitBucketSize = 32,
   minBarForHighestTrackableValue: number = 0
 ) {
   const buffer = new ByteBuffer(data);

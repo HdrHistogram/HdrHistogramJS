@@ -238,3 +238,11 @@ export interface BuildRequest {
    */
   numberOfSignificantValueDigits?: 1 | 2 | 3 | 4 | 5;
 }
+
+export interface HistogramConstructor {
+  new (
+    lowestDiscernibleValue: number,
+    highestTrackableValue: number,
+    numberOfSignificantValueDigits: number
+  ): Histogram;
+}

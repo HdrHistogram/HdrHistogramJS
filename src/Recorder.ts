@@ -7,9 +7,9 @@
  */
 
 import Int32Histogram from "./Int32Histogram";
-import AbstractHistogram, { HistogramConstructor } from "./AbstractHistogram";
+import AbstractHistogram from "./JsHistogram";
 import PackedHistogram from "./PackedHistogram";
-import Histogram from "./Histogram";
+import Histogram, { HistogramConstructor } from "./Histogram";
 
 interface HistogramWithId extends Histogram {
   containingInstanceId?: number;

@@ -5,14 +5,14 @@
  * and released to the public domain, as explained at
  * http://creativecommons.org/publicdomain/zero/1.0/
  */
-import AbstractHistogram from "./AbstractHistogram";
+import JsHistogram from "./JsHistogram";
 import HistogramIterationValue from "./HistogramIterationValue";
 
 /**
  * Used for iterating through histogram values.
  */
-abstract class AbstractHistogramIterator /* implements Iterator<HistogramIterationValue> */ {
-  histogram: AbstractHistogram;
+abstract class JsHistogramIterator /* implements Iterator<HistogramIterationValue> */ {
+  histogram: JsHistogram;
   savedHistogramTotalRawCount: number;
   currentIndex: number;
   currentValueAtIndex: number;
@@ -28,7 +28,7 @@ abstract class AbstractHistogramIterator /* implements Iterator<HistogramIterati
 
   currentIterationValue: HistogramIterationValue = new HistogramIterationValue();
 
-  resetIterator(histogram: AbstractHistogram) {
+  resetIterator(histogram: JsHistogram) {
     this.histogram = histogram;
     this.savedHistogramTotalRawCount = histogram.totalCount;
     this.arrayTotalCount = histogram.totalCount;
@@ -136,4 +136,4 @@ abstract class AbstractHistogramIterator /* implements Iterator<HistogramIterati
   }
 }
 
-export default AbstractHistogramIterator;
+export default JsHistogramIterator;

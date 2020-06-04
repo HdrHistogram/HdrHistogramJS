@@ -6,21 +6,21 @@
  * http://creativecommons.org/publicdomain/zero/1.0/
  */
 
-import AbstractHistogram from "./AbstractHistogram";
-import AbstractHistogramIterator from "./AbstractHistogramIterator";
+import JsHistogram from "./JsHistogram";
+import JsHistogramIterator from "./JsHistogramIterator";
 
 /**
  * Used for iterating through all recorded histogram values using the finest granularity steps supported by the
  * underlying representation. The iteration steps through all non-zero recorded value counts, and terminates when
  * all recorded histogram values are exhausted.
  */
-class RecordedValuesIterator extends AbstractHistogramIterator {
+class RecordedValuesIterator extends JsHistogramIterator {
   visitedIndex: number;
 
   /**
    * @param histogram The histogram this iterator will operate on
    */
-  constructor(histogram: AbstractHistogram) {
+  constructor(histogram: JsHistogram) {
     super();
     this.doReset(histogram);
   }
@@ -32,7 +32,7 @@ class RecordedValuesIterator extends AbstractHistogramIterator {
     this.doReset(this.histogram);
   }
 
-  private doReset(histogram: AbstractHistogram) {
+  private doReset(histogram: JsHistogram) {
     super.resetIterator(histogram);
     this.visitedIndex = -1;
   }

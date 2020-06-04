@@ -5,20 +5,15 @@
  * and released to the public domain, as explained at
  * http://creativecommons.org/publicdomain/zero/1.0/
  */
-import ByteBuffer from "./ByteBuffer";
-import { AbstractHistogram, HistogramConstructor } from "./AbstractHistogram";
-import ZigZagEncoding from "./ZigZagEncoding";
-import PackedHistogram from "./PackedHistogram";
-import Int8Histogram from "./Int8Histogram";
-import Int16Histogram from "./Int16Histogram";
-import Int32Histogram from "./Int32Histogram";
-import Float64Histogram from "./Float64Histogram";
-
-// @ts-ignore
-import * as pako from "pako";
 // @ts-ignore
 import * as base64 from "base64-js";
+// @ts-ignore
+import * as pako from "pako";
+import { JsHistogram } from "./JsHistogram";
+import ByteBuffer from "./ByteBuffer";
 import { BitBucketSize } from "./Histogram";
+import { constructorFromBucketSize } from "./JsHistogramFactory";
+import ZigZagEncoding from "./ZigZagEncoding";
 
 const { max } = Math;
 
@@ -28,10 +23,7 @@ const V2maxWordSizeInBytes = 9; // LEB128-64b9B + ZigZag require up to 9 bytes p
 const encodingCookie = V2EncodingCookieBase | 0x10; // LSBit of wordsize byte indicates TLZE Encoding
 const compressedEncodingCookie = V2CompressedEncodingCookieBase | 0x10; // LSBit of wordsize byte indicates TLZE Encoding
 
-function fillBufferFromCountsArray(
-  self: AbstractHistogram,
-  buffer: ByteBuffer
-) {
+function fillBufferFromCountsArray(self: JsHistogram, buffer: ByteBuffer) {
   const countsLimit = self.countsArrayIndex(self.maxValue) + 1;
   let srcIndex = 0;
 
@@ -75,7 +67,7 @@ function fillBufferFromCountsArray(
  * @param buffer The buffer to encode into
  * @return The number of bytes written to the buffer
  */
-function encodeIntoByteBuffer(self: AbstractHistogram, buffer: ByteBuffer) {
+function encodeIntoByteBuffer(self: JsHistogram, buffer: ByteBuffer) {
   const initialPosition = buffer.position;
   buffer.putInt32(encodingCookie);
   buffer.putInt32(0); // Placeholder for payload length in bytes.
@@ -98,7 +90,7 @@ function encodeIntoByteBuffer(self: AbstractHistogram, buffer: ByteBuffer) {
 }
 
 function fillCountsArrayFromSourceBuffer(
-  self: AbstractHistogram,
+  self: JsHistogram,
   sourceBuffer: ByteBuffer,
   lengthInBytes: number,
   wordSizeInBytes: number
@@ -184,23 +176,6 @@ export function decompress(data: Uint8Array): Uint8Array {
   return uncompressedBuffer;
 }
 
-function ctrFromBucketSize(bitBucketSize: BitBucketSize): HistogramConstructor {
-  switch (bitBucketSize) {
-    case "packed":
-      return PackedHistogram;
-    case 8:
-      return Int8Histogram;
-    case 16:
-      return Int16Histogram;
-    case 32:
-      return Int32Histogram;
-    case 64:
-      return Float64Histogram;
-    default:
-      throw new Error("Incorrect parameter bitBucketSize");
-  }
-}
-
 export function doDecode(
   data: Uint8Array,
   bitBucketSize: BitBucketSize = 32,
@@ -237,7 +212,7 @@ export function doDecode(
     minBarForHighestTrackableValue
   );
 
-  const histogramConstr = ctrFromBucketSize(bitBucketSize);
+  const histogramConstr = constructorFromBucketSize(bitBucketSize);
 
   const histogram = new histogramConstr(
     lowestTrackableUnitValue,
@@ -261,7 +236,7 @@ function doEncodeIntoCompressedBase64(compressionLevel?: number): string {
   const compressionOptions = compressionLevel
     ? { level: compressionLevel }
     : {};
-  const self: AbstractHistogram = this as any;
+  const self: JsHistogram = this as any;
 
   const targetBuffer = ByteBuffer.allocate();
   targetBuffer.putInt32(compressedEncodingCookie);
@@ -282,18 +257,18 @@ function doEncodeIntoCompressedBase64(compressionLevel?: number): string {
   return base64.fromByteArray(targetBuffer.data);
 }
 
-declare module "./AbstractHistogram" {
-  namespace AbstractHistogram {
+declare module "./JsHistogram" {
+  namespace JsHistogram {
     export let decode: typeof doDecode;
   }
 }
 
-AbstractHistogram.decode = doDecode;
+JsHistogram.decode = doDecode;
 
-declare module "./AbstractHistogram" {
-  interface AbstractHistogram {
+declare module "./JsHistogram" {
+  interface JsHistogram {
     encodeIntoCompressedBase64: typeof doEncodeIntoCompressedBase64;
   }
 }
 
-AbstractHistogram.prototype.encodeIntoCompressedBase64 = doEncodeIntoCompressedBase64;
+JsHistogram.prototype.encodeIntoCompressedBase64 = doEncodeIntoCompressedBase64;

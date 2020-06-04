@@ -1,5 +1,5 @@
-import AbstractHistogram from "./AbstractHistogram";
-import AbstractHistogramIterator from "./AbstractHistogramIterator";
+import AbstractHistogram from "./JsHistogram";
+import JsHistogramIterator from "./JsHistogramIterator";
 
 const { pow, floor, log2 } = Math;
 
@@ -9,7 +9,7 @@ const { pow, floor, log2 } = Math;
  * <i>percentileTicksPerHalfDistance</i> parameter, ultimately reaching 100% when all recorded histogram
  * values are exhausted.
  */
-class PercentileIterator extends AbstractHistogramIterator {
+class PercentileIterator extends JsHistogramIterator {
   percentileTicksPerHalfDistance: number;
   percentileLevelToIterateTo: number;
   percentileLevelToIterateFrom: number;
@@ -91,7 +91,7 @@ class PercentileIterator extends AbstractHistogramIterator {
       return false;
     }
     const currentPercentile =
-      100 * this.totalCountToCurrentIndex / this.arrayTotalCount;
+      (100 * this.totalCountToCurrentIndex) / this.arrayTotalCount;
     return currentPercentile >= this.percentileLevelToIterateTo;
   }
 

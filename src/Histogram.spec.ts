@@ -1,12 +1,12 @@
 import "core-js";
 import { build } from ".";
-import AbstractHistogram from "./AbstractHistogram";
+import JsHistogram from "./JsHistogram";
 import { NO_TAG } from "./AbstractHistogramBase";
 import Int32Histogram from "./Int32Histogram";
 import { initWebAssembly } from "./wasm";
 import Int8Histogram from "./Int8Histogram";
 
-class HistogramForTests extends AbstractHistogram {
+class HistogramForTests extends JsHistogram {
   //constructor() {}
 
   clearCounts() {}
@@ -47,7 +47,7 @@ class HistogramForTests extends AbstractHistogram {
 }
 
 describe("Histogram initialization", () => {
-  let histogram: AbstractHistogram;
+  let histogram: JsHistogram;
   beforeEach(() => {
     histogram = new HistogramForTests(1, Number.MAX_SAFE_INTEGER, 3);
   });

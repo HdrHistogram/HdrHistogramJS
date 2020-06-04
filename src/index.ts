@@ -5,25 +5,29 @@
  * and released to the public domain, as explained at
  * http://creativecommons.org/publicdomain/zero/1.0/
  */
+import AbstractHistogram from "./JsHistogram";
 import ByteBuffer from "./ByteBuffer";
-import Histogram, { BuildRequest as HistogramBuildRequest } from "./Histogram";
-import Int8Histogram from "./Int8Histogram";
-import Int16Histogram from "./Int16Histogram";
-import Int32Histogram from "./Int32Histogram";
-import Float64Histogram from "./Float64Histogram";
-import PackedHistogram from "./PackedHistogram";
-import AbstractHistogram, { HistogramConstructor } from "./AbstractHistogram";
-import HistogramLogReader, { listTags } from "./HistogramLogReader";
-import HistogramLogWriter from "./HistogramLogWriter";
 import {
   decodeFromCompressedBase64,
   encodeIntoCompressedBase64,
 } from "./encoding";
+import Float64Histogram from "./Float64Histogram";
+import Histogram, {
+  BitBucketSize,
+  BuildRequest as HistogramBuildRequest,
+} from "./Histogram";
+import HistogramLogReader, { listTags } from "./HistogramLogReader";
+import HistogramLogWriter from "./HistogramLogWriter";
+import Int16Histogram from "./Int16Histogram";
+import Int32Histogram from "./Int32Histogram";
+import Int8Histogram from "./Int8Histogram";
+import { constructorFromBucketSize } from "./JsHistogramFactory";
+import PackedHistogram from "./PackedHistogram";
 import Recorder from "./Recorder";
 import {
+  initWebAssembly,
   WasmHistogram,
   webAssemblyAvailable,
-  initWebAssembly,
   webAssemblyReady,
 } from "./wasm";
 
@@ -52,23 +56,10 @@ const build = (request = defaultRequest): Histogram => {
     }
     return WasmHistogram.build(parameters);
   }
-  let histogramConstr: HistogramConstructor;
-  switch (parameters.bitBucketSize) {
-    case 8:
-      histogramConstr = Int8Histogram;
-      break;
-    case 16:
-      histogramConstr = Int16Histogram;
-      break;
-    case 32:
-      histogramConstr = Int32Histogram;
-      break;
-    case "packed":
-      histogramConstr = PackedHistogram;
-      break;
-    default:
-      histogramConstr = Float64Histogram;
-  }
+
+  const histogramConstr = constructorFromBucketSize(
+    parameters.bitBucketSize as BitBucketSize
+  );
 
   const histogram = new histogramConstr(
     parameters.lowestDiscernibleValue as number,

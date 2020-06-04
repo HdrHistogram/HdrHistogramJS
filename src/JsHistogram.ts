@@ -15,15 +15,7 @@ import Histogram from "./Histogram";
 
 const { pow, floor, ceil, log2, max, min } = Math;
 
-export interface HistogramConstructor {
-  new (
-    lowestDiscernibleValue: number,
-    highestTrackableValue: number,
-    numberOfSignificantValueDigits: number
-  ): AbstractHistogram;
-}
-
-export abstract class AbstractHistogram extends AbstractHistogramBase
+export abstract class JsHistogram extends AbstractHistogramBase
   implements Histogram {
   // "Hot" accessed fields (used in the the value recording code path) are bunched here, such
   // that they will have a good chance of ending up in the same cache line as the totalCounts and
@@ -822,7 +814,7 @@ export abstract class AbstractHistogram extends AbstractHistogramBase
    * @throws ArrayIndexOutOfBoundsException (may throw) if values exceed highestTrackableValue
    */
   addWhileCorrectingForCoordinatedOmission(
-    otherHistogram: AbstractHistogram,
+    otherHistogram: JsHistogram,
     expectedIntervalBetweenValueSamples: number
   ) {
     const toHistogram = this;
@@ -863,7 +855,7 @@ export abstract class AbstractHistogram extends AbstractHistogramBase
    */
   abstract copyCorrectedForCoordinatedOmission(
     expectedIntervalBetweenValueSamples: number
-  ): AbstractHistogram;
+  ): JsHistogram;
 
   /**
    * Add the contents of another histogram to this one.
@@ -876,7 +868,7 @@ export abstract class AbstractHistogram extends AbstractHistogramBase
    * higher than highestTrackableValue.
    */
   add(otherHistogram: Histogram) {
-    if (!(otherHistogram instanceof AbstractHistogram)) {
+    if (!(otherHistogram instanceof JsHistogram)) {
       throw new Error(
         "Cannot add webAssembly histogram to non webAssembly histogram"
       );
@@ -967,7 +959,7 @@ export abstract class AbstractHistogram extends AbstractHistogramBase
    * @throws ArrayIndexOutOfBoundsException (may throw) if values in otherHistogram's are higher than highestTrackableValue.
    *
    */
-  subtract(otherHistogram: AbstractHistogram) {
+  subtract(otherHistogram: JsHistogram) {
     const highestRecordableValue = this.valueFromIndex(
       this.countsArrayLength - 1
     );
@@ -1064,4 +1056,4 @@ export abstract class AbstractHistogram extends AbstractHistogramBase
   }
 }
 
-export { AbstractHistogram as default };
+export { JsHistogram as default };

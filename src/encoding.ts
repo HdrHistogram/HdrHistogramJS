@@ -5,8 +5,8 @@
  * and released to the public domain, as explained at
  * http://creativecommons.org/publicdomain/zero/1.0/
  */
-import "./AbstractHistogram.encoding";
-import { AbstractHistogram } from "./AbstractHistogram";
+import "./JsHistogram.encoding";
+import { JsHistogram } from "./JsHistogram";
 import ByteBuffer from "./ByteBuffer";
 import Histogram from "./Histogram";
 import { WasmHistogram } from "./wasm";
@@ -73,7 +73,7 @@ export const decodeFromCompressedBase64 = (
       minBarForHighestTrackableValue
     );
   }
-  return AbstractHistogram.decode(
+  return JsHistogram.decode(
     uncompressedData,
     bitBucketSize,
     minBarForHighestTrackableValue
@@ -116,7 +116,7 @@ export const encodeIntoCompressedBase64 = (
   if (histogram instanceof WasmHistogram) {
     return histogram.encodeIntoCompressedBase64(compressionLevel);
   }
-  if (histogram instanceof AbstractHistogram) {
+  if (histogram instanceof JsHistogram) {
     return histogram.encodeIntoCompressedBase64(compressionLevel);
   }
   throw new Error("Unsupported Histogram implementation");

@@ -1,8 +1,12 @@
 import Recorder from "./Recorder";
 import Int32Histogram from "./Int32Histogram";
 import PackedHistogram from "./PackedHistogram";
+import JsHistogram from "./JsHistogram";
+import { initWebAssembly, WasmHistogram } from "./wasm";
 
 describe("Recorder", () => {
+  beforeAll(initWebAssembly);
+
   it("should record value", () => {
     // given
     const recorder = new Recorder();
@@ -15,12 +19,38 @@ describe("Recorder", () => {
 
   it("should record value in a packed histogram", () => {
     // given
-    const recorder = new Recorder(5, true);
+    const recorder = new Recorder({
+      numberOfSignificantValueDigits: 5,
+      bitBucketSize: "packed",
+    });
     // when
     recorder.recordValue(123);
     // then
-    expect(recorder.getIntervalHistogram() instanceof PackedHistogram).toBe(true);
-    expect(recorder.getIntervalHistogram() instanceof PackedHistogram).toBe(true);
+    expect(recorder.getIntervalHistogram() instanceof PackedHistogram).toBe(
+      true
+    );
+    expect(recorder.getIntervalHistogram() instanceof PackedHistogram).toBe(
+      true
+    );
+  });
+
+  it("should record value in a WASM histogram", () => {
+    // given
+    const recorder = new Recorder({
+      numberOfSignificantValueDigits: 5,
+      bitBucketSize: "packed",
+      useWebAssembly: true,
+    });
+    try {
+      // when
+      recorder.recordValue(123);
+      // then
+      expect(recorder.getIntervalHistogram() instanceof WasmHistogram).toBe(
+        true
+      );
+    } finally {
+      recorder.destroy();
+    }
   });
 
   it("should record value with count", () => {
@@ -45,7 +75,7 @@ describe("Recorder", () => {
 
   it("should record value in a packed histogram", () => {
     // given
-    const recorder = new Recorder(3, true);
+    const recorder = new Recorder({ bitBucketSize: "packed" });
     recorder.recordValue(42);
     // when
     const histogram = recorder.getIntervalHistogram();
@@ -78,13 +108,15 @@ describe("Recorder", () => {
 
   it("should return interval histograms with expected significant digits", () => {
     // given
-    const recorder = new Recorder(4);
+    const recorder = new Recorder({ numberOfSignificantValueDigits: 4 });
     const firstHistogram = recorder.getIntervalHistogram();
     const secondHistogram = recorder.getIntervalHistogram();
     // when
     const thirdHistogram = recorder.getIntervalHistogram();
     // then
-    expect(thirdHistogram.numberOfSignificantValueDigits).toBe(4);
+    expect((thirdHistogram as JsHistogram).numberOfSignificantValueDigits).toBe(
+      4
+    );
   });
 
   it("should return recycled histograms when asking for interval histogram", () => {
@@ -122,7 +154,7 @@ describe("Recorder", () => {
     // given
     let currentTime = 42;
     let clock = () => currentTime;
-    const recorder = new Recorder(3, false, clock);
+    const recorder = new Recorder({}, clock);
     // when
     currentTime = 123;
     const histogram = recorder.getIntervalHistogram();
@@ -135,7 +167,7 @@ describe("Recorder", () => {
     // given
     let currentTime = 42;
     let clock = () => currentTime;
-    const recorder = new Recorder(3, false, clock);
+    const recorder = new Recorder({}, clock);
     currentTime = 51;
     const firstHistogram = recorder.getIntervalHistogram();
     // when
@@ -150,7 +182,7 @@ describe("Recorder", () => {
     // given
     let currentTime = 42;
     let clock = () => currentTime;
-    const recorder = new Recorder(4, false, clock);
+    const recorder = new Recorder({ numberOfSignificantValueDigits: 4 }, clock);
     recorder.recordValue(123);
     // when
     const histogram = new Int32Histogram(1, Number.MAX_SAFE_INTEGER, 3);
@@ -166,7 +198,7 @@ describe("Recorder", () => {
     // given
     let currentTime = 42;
     let clock = () => currentTime;
-    const recorder = new Recorder(4, false, clock);
+    const recorder = new Recorder({ numberOfSignificantValueDigits: 4 }, clock);
     recorder.recordValue(123);
     // when
     currentTime = 55;

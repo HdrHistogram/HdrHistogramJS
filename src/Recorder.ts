@@ -6,10 +6,8 @@
  * http://creativecommons.org/publicdomain/zero/1.0/
  */
 
-import Int32Histogram from "./Int32Histogram";
-import AbstractHistogram from "./JsHistogram";
-import PackedHistogram from "./PackedHistogram";
 import Histogram, { HistogramConstructor } from "./Histogram";
+import { build, BuildRequest, defaultRequest } from "./HistogramBuilder";
 
 interface HistogramWithId extends Histogram {
   containingInstanceId?: number;
@@ -32,29 +30,19 @@ class Recorder {
   static idGenerator = 0;
   private activeHistogram: HistogramWithId;
   private inactiveHistogram: HistogramWithId | null | undefined;
-  private histogramConstr: HistogramConstructor;
 
   /**
    * Construct an auto-resizing {@link Recorder} with a lowest discernible value of
    * 1 and an auto-adjusting highestTrackableValue. Can auto-resize up to track values up to Number.MAX_SAFE_INTEGER.
    *
-   * @param numberOfSignificantValueDigits Specifies the precision to use. This is the number of significant
-   *                                       decimal digits to which the histogram will maintain value resolution
-   *                                       and separation. Must be a non-negative integer between 0 and 5.
-   * @param packed Specifies whether the recorder will uses a packed internal representation or not.
+   * @param histogramBuildRequest parameters used to build histograms while using this recorder.
    * @param clock (for testing purpose) an action that give current time in ms since 1970
    */
   constructor(
-    private numberOfSignificantValueDigits = 3,
-    private packed = false,
+    private histogramBuildRequest: BuildRequest = defaultRequest,
     private clock = () => new Date().getTime()
   ) {
-    this.histogramConstr = packed ? PackedHistogram : Int32Histogram;
-    this.activeHistogram = new this.histogramConstr(
-      1,
-      Number.MAX_SAFE_INTEGER,
-      numberOfSignificantValueDigits
-    );
+    this.activeHistogram = build(this.histogramBuildRequest);
 
     Recorder.idGenerator++;
     this.activeHistogram.containingInstanceId = Recorder.idGenerator;
@@ -135,9 +123,7 @@ class Recorder {
    *                           copy operations.
    * @return a histogram containing the value counts accumulated since the last interval histogram was taken.
    */
-  getIntervalHistogram(
-    histogramToRecycle?: AbstractHistogram
-  ): AbstractHistogram {
+  getIntervalHistogram(histogramToRecycle?: Histogram): Histogram {
     if (histogramToRecycle) {
       const histogramToRecycleWithId: HistogramWithId = histogramToRecycle;
       if (
@@ -152,7 +138,7 @@ class Recorder {
     this.performIntervalSample();
     const sampledHistogram = this.inactiveHistogram;
     this.inactiveHistogram = null; // Once we expose the sample, we can't reuse it internally until it is recycled
-    return sampledHistogram as AbstractHistogram;
+    return sampledHistogram as Histogram;
   }
 
   /**
@@ -164,7 +150,7 @@ class Recorder {
    *
    * @param targetHistogram the histogram into which the interval histogram's data should be copied
    */
-  getIntervalHistogramInto(targetHistogram: AbstractHistogram) {
+  getIntervalHistogramInto(targetHistogram: Histogram) {
     this.performIntervalSample();
     if (this.inactiveHistogram) {
       targetHistogram.add(this.inactiveHistogram);
@@ -183,11 +169,7 @@ class Recorder {
 
   private performIntervalSample() {
     if (!this.inactiveHistogram) {
-      this.inactiveHistogram = new this.histogramConstr(
-        1,
-        Number.MAX_SAFE_INTEGER,
-        this.numberOfSignificantValueDigits
-      );
+      this.inactiveHistogram = build(this.histogramBuildRequest);
       this.inactiveHistogram.containingInstanceId = this.activeHistogram.containingInstanceId;
     }
     this.inactiveHistogram.reset();
@@ -198,6 +180,16 @@ class Recorder {
     const currentTimeInMs = this.clock();
     this.inactiveHistogram.endTimeStampMsec = currentTimeInMs;
     this.activeHistogram.startTimeStampMsec = currentTimeInMs;
+  }
+
+  /**
+   * Release memory associated to this recorder by destroying
+   * histograms used under the cover.
+   * Useful when webassembly histograms are used.
+   */
+  destroy() {
+    this.activeHistogram.destroy();
+    this.inactiveHistogram?.destroy();
   }
 }
 

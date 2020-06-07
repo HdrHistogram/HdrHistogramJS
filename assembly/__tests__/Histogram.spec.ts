@@ -237,6 +237,15 @@ describe("Histogram correcting coordinated omissions", () => {
     expect(histogram.maxValue).toBe(207);
   });
 
+  it("should not generate additional values when recording without ommission", () => {
+    // given
+    const histogram = buildHistogram();
+    // when
+    histogram.recordSingleValueWithExpectedInterval(99, 100);
+    // then
+    expect(histogram.totalCount).toBe(1);
+  });
+
   it("should generate additional values when correcting after recording", () => {
     // given
     const histogram = buildHistogram();

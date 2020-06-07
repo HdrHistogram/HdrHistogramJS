@@ -440,7 +440,10 @@ export default class Histogram<T, U> extends AbstractHistogramBase<T, U> {
     expectedIntervalBetweenValueSamples: u64
   ): void {
     this.recordSingleValue(value);
-    if (expectedIntervalBetweenValueSamples <= 0) {
+    if (
+      expectedIntervalBetweenValueSamples <= 0 ||
+      value <= expectedIntervalBetweenValueSamples
+    ) {
       return;
     }
     for (
@@ -458,7 +461,10 @@ export default class Histogram<T, U> extends AbstractHistogramBase<T, U> {
     expectedIntervalBetweenValueSamples: u64
   ): void {
     this.recordCountAtValue(count, value);
-    if (value <= expectedIntervalBetweenValueSamples) {
+    if (
+      expectedIntervalBetweenValueSamples <= 0 ||
+      value <= expectedIntervalBetweenValueSamples
+    ) {
       return;
     }
 

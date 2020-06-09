@@ -60,7 +60,7 @@ initWebAssembly().then(() => {
       "WASM Int32Histogram",
       () => {
         const histogram = build({
-          useWebAssembly: true,
+          useWebAssembly: true
         });
         return () => {
           histogram.recordValueWithExpectedInterval(randomInteger(), 100000);
@@ -73,7 +73,7 @@ initWebAssembly().then(() => {
       "WASM Int32Histogram no correction needed",
       () => {
         const histogram = build({
-          useWebAssembly: true,
+          useWebAssembly: true
         });
         return () => {
           histogram.recordValueWithExpectedInterval(
@@ -90,7 +90,7 @@ initWebAssembly().then(() => {
       () => {
         const histogram = build({
           useWebAssembly: true,
-          bitBucketSize: "packed",
+          bitBucketSize: "packed"
         });
         return () => {
           histogram.recordValueWithExpectedInterval(randomInteger(), 100000);
@@ -104,7 +104,7 @@ initWebAssembly().then(() => {
       () => {
         const histogram = build({
           useWebAssembly: true,
-          bitBucketSize: "packed",
+          bitBucketSize: "packed"
         });
         return () => {
           histogram.recordValueWithExpectedInterval(

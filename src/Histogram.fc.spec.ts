@@ -8,7 +8,7 @@
 import * as fc from "fast-check";
 import * as hdr from "./index";
 import { initWebAssembly } from "./wasm";
-import { BitBucketSize } from "./Histogram";
+import Histogram, { BitBucketSize } from "./Histogram";
 
 const runFromStryker = __dirname.includes("stryker");
 
@@ -18,39 +18,11 @@ const runnerOptions = {
 };
 
 describe("Histogram percentile computation", () => {
+  beforeAll(initWebAssembly);
+
   const numberOfSignificantValueDigits = 3;
   [true, false].forEach((useWebAssembly) =>
-    [32, "packed"].forEach((bitBucketSize: any) =>
-      it(`Histogram ${bitBucketSize} (wasm: ${useWebAssembly}) should be accurate according to its significant figures`, async () => {
-        await initWebAssembly();
-        const histogram = hdr.build({
-          bitBucketSize,
-          numberOfSignificantValueDigits,
-          useWebAssembly,
-          autoResize: false,
-          highestTrackableValue: Number.MAX_SAFE_INTEGER,
-        });
-        fc.assert(
-          fc.property(arbData(2000), (numbers) => {
-            histogram.reset();
-            numbers.forEach((n) => histogram.recordValue(n));
-            const actual = quantile(numbers, 90);
-            const got = histogram.getValueAtPercentile(90);
-            const relativeError = Math.abs(1 - got / actual);
-            const variation = Math.pow(10, -numberOfSignificantValueDigits);
-            return relativeError < variation;
-          }),
-          runnerOptions
-        );
-        histogram.destroy();
-      })
-    )
-  );
-});
-describe("Histogram percentile computation", () => {
-  const numberOfSignificantValueDigits = 3;
-  [true, false].forEach((useWebAssembly) =>
-    [8, 16, 32, 64, "packed"].forEach((bitBucketSize: BitBucketSize) =>
+    [16, "packed"].forEach((bitBucketSize: BitBucketSize) =>
       it(`Histogram ${bitBucketSize} (wasm: ${useWebAssembly}) should be accurate according to its significant figures`, async () => {
         await initWebAssembly();
 
@@ -76,7 +48,7 @@ describe("Histogram percentile computation", () => {
   );
 });
 
-describe.only("Histogram percentile computation (packed vs classic)", () => {
+describe("Histogram percentile computation (packed vs classic)", () => {
   const numberOfSignificantValueDigits = 3;
   const classicHistogram = hdr.build({
     numberOfSignificantValueDigits,
@@ -103,12 +75,58 @@ describe.only("Histogram percentile computation (packed vs classic)", () => {
   });
 });
 
+describe("Histogram percentile computation with CO correction (wasm vs js)", () => {
+  beforeAll(initWebAssembly);
+
+  let jsHistogram: Histogram;
+  let wasmHistogram: Histogram;
+
+  beforeEach(() => {
+    jsHistogram = hdr.build({
+      useWebAssembly: false,
+    });
+    wasmHistogram = hdr.build({
+      useWebAssembly: true,
+    });
+  });
+
+  afterEach(() => {
+    jsHistogram.destroy();
+    wasmHistogram.destroy();
+  });
+
+  it(`should be accurate according to its significant figures`, () => {
+    fc.assert(
+      fc.property(arbData(1, 100 * 1000), (numbers) => {
+        jsHistogram.reset();
+        wasmHistogram.reset();
+        numbers.forEach((n) => {
+          jsHistogram.recordValueWithExpectedInterval(n, 1000);
+        });
+        numbers.forEach((n) => {
+          wasmHistogram.recordValueWithExpectedInterval(n, 1000);
+        });
+        const js = jsHistogram.getValueAtPercentile(90);
+        const wasm = wasmHistogram.getValueAtPercentile(90);
+        const relativeError = Math.abs(1 - js / wasm);
+        const variation = Math.pow(10, -3);
+        if (relativeError >= variation) {
+          console.log({ js, wasm });
+        }
+        return relativeError < variation;
+      }),
+      runnerOptions
+    );
+  });
+});
+
 describe("Histogram encoding/decoding", () => {
+  beforeAll(initWebAssembly);
+
   const numberOfSignificantValueDigits = 3;
   [true, false].forEach((useWebAssembly) =>
     [8, 16, 32, 64, "packed"].forEach((bitBucketSize: BitBucketSize) => {
-      it(`Histogram ${bitBucketSize} (wasm: ${useWebAssembly}) should keep all data after an encoding/decoding roundtrip`, async () => {
-        await initWebAssembly();
+      it(`Histogram ${bitBucketSize} (wasm: ${useWebAssembly}) should keep all data after an encoding/decoding roundtrip`, () => {
         fc.assert(
           fc.property(arbData(1), fc.double(50, 100), (numbers, percentile) => {
             const histogram = hdr.build({
@@ -134,8 +152,8 @@ describe("Histogram encoding/decoding", () => {
   );
 });
 
-const arbData = (size: number) =>
-  fc.array(fc.integer(1, Number.MAX_SAFE_INTEGER), size, size);
+const arbData = (size: number, max: number = Number.MAX_SAFE_INTEGER) =>
+  fc.array(fc.integer(1, max), size, size);
 
 // reference implementation
 const quantile = (inputData: number[], percentile: number) => {

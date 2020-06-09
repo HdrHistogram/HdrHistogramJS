@@ -5,6 +5,7 @@ import { NO_TAG } from "./AbstractHistogramBase";
 import Int32Histogram from "./Int32Histogram";
 import { initWebAssembly } from "./wasm";
 import Int8Histogram from "./Int8Histogram";
+import Histogram from "./Histogram";
 
 class HistogramForTests extends JsHistogram {
   //constructor() {}
@@ -285,7 +286,57 @@ describe("Histogram correcting coordinated omissions", () => {
     expect(correctedHistogram.maxValue).toBe(207);
   });
 
-  it("should generate additional values when correcting after recording bis", () => {
+  it("should not generate additional values when correcting after recording", () => {
+    // given
+    histogram.reset();
+    histogram.recordValue(207);
+    histogram.recordValue(207);
+    // when
+    const correctedHistogram = histogram.copyCorrectedForCoordinatedOmission(
+      1000
+    );
+    // then
+    expect(correctedHistogram.totalCount).toBe(2);
+    expect(correctedHistogram.minNonZeroValue).toBe(207);
+    expect(correctedHistogram.maxValue).toBe(207);
+  });
+});
+describe("WASM Histogram correcting coordinated omissions", () => {
+  let histogram: Histogram;
+
+  beforeAll(initWebAssembly);
+  beforeEach(() => {
+    histogram = build({ useWebAssembly: true });
+  });
+  afterEach(() => histogram.destroy());
+
+  it("should generate additional values when recording", () => {
+    // given
+    histogram.reset();
+    // when
+    histogram.recordValueWithExpectedInterval(207, 100);
+    // then
+    expect(histogram.totalCount).toBe(2);
+    expect(histogram.minNonZeroValue).toBe(107);
+    expect(histogram.maxValue).toBe(207);
+  });
+
+  it("should generate additional values when correcting after recording", () => {
+    // given
+    histogram.reset();
+    histogram.recordValue(207);
+    histogram.recordValue(207);
+    // when
+    const correctedHistogram = histogram.copyCorrectedForCoordinatedOmission(
+      100
+    );
+    // then
+    expect(correctedHistogram.totalCount).toBe(4);
+    expect(correctedHistogram.minNonZeroValue).toBe(107);
+    expect(correctedHistogram.maxValue).toBe(207);
+  });
+
+  it("should not generate additional values when correcting after recording", () => {
     // given
     histogram.reset();
     histogram.recordValue(207);

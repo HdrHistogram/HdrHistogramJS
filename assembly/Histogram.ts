@@ -113,7 +113,7 @@ export default class Histogram<T, U> extends AbstractHistogramBase<T, U> {
     this.counts = instantiate<T>(this.countsArrayLength);
 
     this.leadingZeroCountBase =
-      53 - this.unitMagnitude - this.subBucketHalfCountMagnitude - 1;
+      64 - this.unitMagnitude - this.subBucketHalfCountMagnitude - 1;
     this.percentileIterator = new PercentileIterator(this, 1);
     this.recordedValuesIterator = new RecordedValuesIterator(this);
   }
@@ -258,17 +258,17 @@ export default class Histogram<T, U> extends AbstractHistogramBase<T, U> {
     // Calculates the number of powers of two by which the value is greater than the biggest value that fits in
     // bucket 0. This is the bucket index since each successive bucket can hold a value 2x greater.
     // The mask maps small values to bucket 0.
-
     // return this.leadingZeroCountBase - Long.numberOfLeadingZeros(value | subBucketMask);
-    return <i32>(
+
+    return this.leadingZeroCountBase - <i32>clz(value | this.subBucketMask);
+    /*return <i32>(
       max(
         floor(Math.log2(<f64>value)) -
           this.subBucketHalfCountMagnitude -
           this.unitMagnitude,
         0
       )
-    );
-    return 0;
+    );*/
   }
 
   getSubBucketIndex(value: u64, bucketIndex: i32): i32 {
@@ -441,8 +441,8 @@ export default class Histogram<T, U> extends AbstractHistogramBase<T, U> {
   ): void {
     this.recordSingleValue(value);
     if (
-      expectedIntervalBetweenValueSamples <= 0 ||
-      value <= expectedIntervalBetweenValueSamples
+      value < expectedIntervalBetweenValueSamples ||
+      expectedIntervalBetweenValueSamples === 0
     ) {
       return;
     }

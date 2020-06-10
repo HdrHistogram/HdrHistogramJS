@@ -1,5 +1,5 @@
 /*
- * This is a TypeScript port of the original Java version, which was written by
+ * This is a AssemblyScript port of the original Java version, which was written by
  * Gil Tene as described in
  * https://github.com/HdrHistogram/HdrHistogram
  * and released to the public domain, as explained at

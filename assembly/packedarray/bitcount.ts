@@ -1,3 +1,11 @@
+/*
+ * This is a AssemblyScript port of the original Java version, which was written by
+ * Gil Tene as described in
+ * https://github.com/HdrHistogram/HdrHistogram
+ * and released to the public domain, as explained at
+ * http://creativecommons.org/publicdomain/zero/1.0/
+ */
+
 export const bitCount = (n: u64): u8 => {
   let bits: u8 = 0;
   while (n !== 0) {

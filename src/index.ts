@@ -5,7 +5,6 @@
  * and released to the public domain, as explained at
  * http://creativecommons.org/publicdomain/zero/1.0/
  */
-import AbstractHistogram from "./JsHistogram";
 import ByteBuffer from "./ByteBuffer";
 import {
   decodeFromCompressedBase64,
@@ -30,7 +29,6 @@ export {
   Int32Histogram,
   Float64Histogram,
   PackedHistogram,
-  AbstractHistogram,
   Histogram,
   HistogramLogReader,
   listTags,

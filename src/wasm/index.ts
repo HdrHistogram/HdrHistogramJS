@@ -60,6 +60,9 @@ export class WasmHistogram implements Histogram {
   }
 
   static build(request: BuildRequest = defaultRequest) {
+    if (!webAssemblyReady()) {
+      throw new Error("WebAssembly is not ready yet!");
+    }
     const parameters = Object.assign({}, defaultRequest, request);
     const remoteHistogramClass = remoteHistogramClassFor(
       parameters.bitBucketSize
@@ -80,6 +83,9 @@ export class WasmHistogram implements Histogram {
     bitBucketSize: 8 | 16 | 32 | 64 | "packed" = 32,
     minBarForHighestTrackableValue: number = 0
   ): Histogram {
+    if (!webAssemblyReady()) {
+      throw new Error("WebAssembly is not ready yet!");
+    }
     const remoteHistogramClass = remoteHistogramClassFor(bitBucketSize);
     const decodeFunc = `decode${remoteHistogramClass}`;
     const ptrArr = wasm.__retain(wasm.__allocArray(wasm.UINT8ARRAY_ID, data));

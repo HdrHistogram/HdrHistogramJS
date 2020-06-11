@@ -53,9 +53,6 @@ export const defaultRequest: BuildRequest = {
 export const build = (request = defaultRequest): Histogram => {
   const parameters = Object.assign({}, defaultRequest, request);
   if (request.useWebAssembly && webAssemblyAvailable) {
-    if (!webAssemblyReady()) {
-      throw new Error("WebAssembly is not ready yet!");
-    }
     return WasmHistogram.build(parameters);
   }
 

@@ -3,7 +3,7 @@ import { build } from ".";
 import JsHistogram from "./JsHistogram";
 import { NO_TAG } from "./AbstractHistogramBase";
 import Int32Histogram from "./Int32Histogram";
-import { initWebAssembly } from "./wasm";
+import { initWebAssembly, WasmHistogram } from "./wasm";
 import Int8Histogram from "./Int8Histogram";
 import Histogram from "./Histogram";
 
@@ -301,6 +301,19 @@ describe("Histogram correcting coordinated omissions", () => {
     expect(correctedHistogram.maxValue).toBe(207);
   });
 });
+
+describe("WASM Histogram not initialized", () => {
+  it("should throw a clear error message", () => {
+    expect(() => build({ useWebAssembly: true })).toThrow(
+      "WebAssembly is not ready yet"
+    );
+    expect(() => WasmHistogram.build()).toThrow("WebAssembly is not ready yet");
+    expect(() => WasmHistogram.decode(null as any)).toThrow(
+      "WebAssembly is not ready yet"
+    );
+  });
+});
+
 describe("WASM Histogram correcting coordinated omissions", () => {
   let histogram: Histogram;
 

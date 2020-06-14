@@ -613,8 +613,7 @@ export default class Histogram<T, U> extends AbstractHistogramBase<T, U> {
 
   getCountAtIndex(index: i32): u64 {
     // @ts-ignore
-    //return unchecked(<u64>this.counts[index]);
-    return <u64>this.counts[index];
+    return unchecked(<u64>this.counts[index]);
   }
 
   resize(newHighestTrackableValue: u64): void {

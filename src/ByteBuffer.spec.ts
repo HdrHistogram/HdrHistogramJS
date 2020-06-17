@@ -1,4 +1,3 @@
-import "core-js";
 import ByteBuffer from "./ByteBuffer";
 
 describe("ByteBuffer", () => {

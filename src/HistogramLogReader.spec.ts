@@ -1,4 +1,3 @@
-import "core-js";
 import * as fs from "fs";
 import Histogram from "./Histogram";
 import HistogramLogReader, { listTags } from "./HistogramLogReader";

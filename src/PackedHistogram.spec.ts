@@ -1,4 +1,3 @@
-import "core-js";
 import Histogram from "./PackedHistogram";
 
 describe("Packed histogram", () => {

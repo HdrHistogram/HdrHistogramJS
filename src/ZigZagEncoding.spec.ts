@@ -1,4 +1,3 @@
-import "core-js";
 import ByteBuffer from "./ByteBuffer";
 import ZigZagEncoding from "./ZigZagEncoding";
 
@@ -48,7 +47,7 @@ describe("Zig Zag Encoding", () => {
       128,
       128,
       128,
-      4
+      4,
     ]);
   });
 

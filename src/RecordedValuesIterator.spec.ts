@@ -1,4 +1,3 @@
-import "core-js";
 import RecordedValuesIterator from "./RecordedValuesIterator";
 import Histogram from "./Int32Histogram";
 

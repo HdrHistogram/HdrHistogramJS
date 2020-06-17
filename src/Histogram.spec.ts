@@ -1,4 +1,3 @@
-import "core-js";
 import { build } from ".";
 import JsHistogram from "./JsHistogram";
 import { NO_TAG } from "./Histogram";

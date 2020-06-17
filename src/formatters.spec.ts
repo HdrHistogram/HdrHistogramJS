@@ -1,4 +1,3 @@
-import "core-js";
 import { integerFormatter, floatFormatter } from "./formatters";
 
 describe("Integer formatter", () => {

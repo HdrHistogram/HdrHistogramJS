@@ -39,9 +39,6 @@ class ByteBuffer {
   put(value: u8): void {
     if (this.position === this.data.length) {
       const oldArray = this.data;
-      // TODO remove this workaround
-      // @ts-ignore
-      __retain(changetype<usize>(oldArray));
       this.data = new Uint8Array(this.data.length << 1);
       this.data.set(oldArray);
     }
@@ -52,9 +49,6 @@ class ByteBuffer {
   putInt32(value: u32): void {
     if (this.data.length - this.position < 4) {
       const oldArray = this.data;
-      // TODO remove this workaround
-      // @ts-ignore
-      __retain(changetype<usize>(oldArray));
       this.data = new Uint8Array((this.data.length << 1) + 4);
       this.data.set(oldArray);
     }
@@ -66,8 +60,6 @@ class ByteBuffer {
   putInt64(value: u64): void {
     if (this.data.length - this.position < 8) {
       const oldArray = this.data;
-      // @ts-ignore
-      __retain(changetype<usize>(oldArray));
       this.data = new Uint8Array((this.data.length << 1) + 8);
       this.data.set(oldArray);
     }
@@ -79,9 +71,6 @@ class ByteBuffer {
   putArray(array: Uint8Array): void {
     if (this.data.length - this.position < array.byteLength) {
       const oldArray = this.data;
-      // TODO remove this workaround
-      // @ts-ignore
-      __retain(changetype<usize>(oldArray));
       this.data = new Uint8Array(this.position + array.byteLength);
       this.data.set(oldArray);
     }

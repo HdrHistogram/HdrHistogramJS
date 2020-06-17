@@ -1,10 +1,4 @@
-import {
-  HistogramLogWriter,
-  HistogramLogReader,
-  build,
-  AbstractHistogram,
-  Histogram,
-} from ".";
+import { build, Histogram, HistogramLogReader, HistogramLogWriter } from ".";
 
 describe("Logs", () => {
   it("should give same result after been written then read", () => {
@@ -16,7 +10,7 @@ describe("Logs", () => {
     writer.outputLogFormatVersion();
     writer.outputStartTime(12345000);
     writer.outputLegend();
-    const inputHistogram = build() as AbstractHistogram;
+    const inputHistogram = build();
     inputHistogram.recordValue(42);
     // when
     writer.outputIntervalHistogram(inputHistogram, 12345042, 1234056, 1);

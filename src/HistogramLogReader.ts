@@ -5,7 +5,7 @@
  * and released to the public domain, as explained at
  * http://creativecommons.org/publicdomain/zero/1.0/
  */
-import { NO_TAG } from "./AbstractHistogramBase";
+import { NO_TAG } from "./Histogram";
 import { decodeFromCompressedBase64 } from "./encoding";
 import Histogram, { BitBucketSize } from "./Histogram";
 

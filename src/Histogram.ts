@@ -66,7 +66,7 @@ export default interface Histogram {
    * entries in the histogram are either larger than or equivalent to.
    * <p>
    * Note that two values are "equivalent" in this statement if
-   * {@link org.HdrHistogram.AbstractHistogram#valuesAreEquivalent} would return true.
+   * {@link org.HdrHistogram.JsHistogram#valuesAreEquivalent} would return true.
    *
    * @param percentile  The percentile for which to return the associated value
    * @return The value that the given percentage of the overall recorded value entries in the

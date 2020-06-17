@@ -5,7 +5,7 @@
  * and released to the public domain, as explained at
  * http://creativecommons.org/publicdomain/zero/1.0/
  */
-import AbstractHistogram from "./JsHistogram";
+import JsHistogram from "./JsHistogram";
 
 type TypedArray = ArrayLike<number> & {
   readonly BYTES_PER_ELEMENT: number;
@@ -14,7 +14,7 @@ type TypedArray = ArrayLike<number> & {
   set(other: TypedArray): void;
 };
 
-class TypedArrayHistogram extends AbstractHistogram {
+class TypedArrayHistogram extends JsHistogram {
   _counts: TypedArray;
   _totalCount: number;
 

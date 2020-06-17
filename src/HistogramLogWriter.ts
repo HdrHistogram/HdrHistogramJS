@@ -1,4 +1,4 @@
-import { NO_TAG } from "./AbstractHistogramBase";
+import { NO_TAG } from "./Histogram";
 import { encodeIntoCompressedBase64 } from "./encoding";
 import { floatFormatter } from "./formatters";
 import Histogram from "./Histogram";

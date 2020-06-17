@@ -17,6 +17,7 @@ import HistogramLogWriter from "./HistogramLogWriter";
 import Int16Histogram from "./Int16Histogram";
 import Int32Histogram from "./Int32Histogram";
 import Int8Histogram from "./Int8Histogram";
+import JsHistogram from "./JsHistogram";
 import PackedHistogram from "./PackedHistogram";
 import Recorder from "./Recorder";
 import { initWebAssembly, WasmHistogram } from "./wasm";
@@ -41,4 +42,5 @@ export {
   HistogramLogWriter,
   Recorder,
   WasmHistogram,
+  JsHistogram,
 };

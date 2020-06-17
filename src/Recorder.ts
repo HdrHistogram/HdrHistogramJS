@@ -6,7 +6,7 @@
  * http://creativecommons.org/publicdomain/zero/1.0/
  */
 
-import Histogram, { HistogramConstructor } from "./Histogram";
+import Histogram from "./Histogram";
 import { build, BuildRequest, defaultRequest } from "./HistogramBuilder";
 
 interface HistogramWithId extends Histogram {
@@ -77,7 +77,7 @@ class Recorder {
    * interval between value samples, Histogram will auto-generate an additional series of decreasingly-smaller
    * (down to the expectedIntervalBetweenValueSamples) value records.
    * <p>
-   * See related notes {@link AbstractHistogram#recordValueWithExpectedInterval(long, long)}
+   * See related notes {@link Histogram#recordValueWithExpectedInterval(long, long)}
    * for more explanations about coordinated omission and expected interval correction.
    *      *
    * @param value The value to record

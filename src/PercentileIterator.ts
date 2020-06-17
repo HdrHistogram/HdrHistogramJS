@@ -1,4 +1,4 @@
-import AbstractHistogram from "./JsHistogram";
+import JsHistogram from "./JsHistogram";
 import JsHistogramIterator from "./JsHistogramIterator";
 
 const { pow, floor, log2 } = Math;
@@ -20,7 +20,7 @@ class PercentileIterator extends JsHistogramIterator {
    * @param percentileTicksPerHalfDistance The number of equal-sized iteration steps per half-distance to 100%.
    */
   public constructor(
-    histogram: AbstractHistogram,
+    histogram: JsHistogram,
     percentileTicksPerHalfDistance: number
   ) {
     super();
@@ -41,7 +41,7 @@ class PercentileIterator extends JsHistogramIterator {
   }
 
   private doReset(
-    histogram: AbstractHistogram,
+    histogram: JsHistogram,
     percentileTicksPerHalfDistance: number
   ) {
     super.resetIterator(histogram);

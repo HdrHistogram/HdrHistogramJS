@@ -1,7 +1,7 @@
 import "core-js";
 import { build } from ".";
 import JsHistogram from "./JsHistogram";
-import { NO_TAG } from "./AbstractHistogramBase";
+import { NO_TAG } from "./Histogram";
 import Int32Histogram from "./Int32Histogram";
 import { initWebAssembly, WasmHistogram } from "./wasm";
 import Int8Histogram from "./Int8Histogram";

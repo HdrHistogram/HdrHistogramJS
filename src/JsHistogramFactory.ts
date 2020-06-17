@@ -4,19 +4,19 @@ import Int8Histogram from "./Int8Histogram";
 import Int16Histogram from "./Int16Histogram";
 import Int32Histogram from "./Int32Histogram";
 import Float64Histogram from "./Float64Histogram";
-import AbstractHistogram from "./JsHistogram";
+import JsHistogram from "./JsHistogram";
 
-export interface AbstractHistogramConstructor {
+export interface JsHistogramConstructor {
   new (
     lowestDiscernibleValue: number,
     highestTrackableValue: number,
     numberOfSignificantValueDigits: number
-  ): AbstractHistogram;
+  ): JsHistogram;
 }
 
 export function constructorFromBucketSize(
   bitBucketSize: BitBucketSize
-): AbstractHistogramConstructor {
+): JsHistogramConstructor {
   switch (bitBucketSize) {
     case "packed":
       return PackedHistogram;

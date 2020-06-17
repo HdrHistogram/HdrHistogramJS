@@ -5,7 +5,7 @@
  * and released to the public domain, as explained at
  * http://creativecommons.org/publicdomain/zero/1.0/
  */
-import AbstractHistogram from "./JsHistogram";
+import JsHistogram from "./JsHistogram";
 import { PackedArray } from "./packedarray/PackedArray";
 /**
  * <h3>A High Dynamic Range (HDR) Histogram that uses a packed internal representation</h3>
@@ -35,7 +35,7 @@ import { PackedArray } from "./packedarray/PackedArray";
  * incurs allocation and copying of internal data structures.
  * <p>
  */
-class PackedHistogram extends AbstractHistogram {
+class PackedHistogram extends JsHistogram {
   packedCounts: PackedArray;
 
   constructor(

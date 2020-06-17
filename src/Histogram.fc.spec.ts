@@ -133,7 +133,7 @@ describe("Histogram encoding/decoding", () => {
               bitBucketSize,
               numberOfSignificantValueDigits,
               useWebAssembly,
-            }) as hdr.AbstractHistogram;
+            });
             numbers.forEach((n) => histogram.recordValue(n));
             const encodedHistogram = hdr.encodeIntoCompressedBase64(histogram);
             const decodedHistogram = hdr.decodeFromCompressedBase64(

@@ -5,18 +5,43 @@
  * and released to the public domain, as explained at
  * http://creativecommons.org/publicdomain/zero/1.0/
  */
-import { AbstractHistogramBase, NO_TAG } from "./AbstractHistogramBase";
 import RecordedValuesIterator from "./RecordedValuesIterator";
 import PercentileIterator from "./PercentileIterator";
 import HistogramIterationValue from "./HistogramIterationValue";
 import { integerFormatter, floatFormatter } from "./formatters";
 import ulp from "./ulp";
-import Histogram from "./Histogram";
+import Histogram, { NO_TAG } from "./Histogram";
 
 const { pow, floor, ceil, log2, max, min } = Math;
 
-export abstract class JsHistogram extends AbstractHistogramBase
-  implements Histogram {
+export abstract class JsHistogram implements Histogram {
+  static identityBuilder: number;
+
+  identity: number;
+  autoResize: boolean = false;
+
+  highestTrackableValue: number;
+  lowestDiscernibleValue: number;
+  numberOfSignificantValueDigits: number;
+
+  bucketCount: number;
+  /**
+   * Power-of-two length of linearly scaled array slots in the counts array. Long enough to hold the first sequence of
+   * entries that must be distinguished by a single unit (determined by configured precision).
+   */
+  subBucketCount: number;
+  countsArrayLength: number;
+  wordSizeInBytes: number;
+
+  startTimeStampMsec: number = Number.MAX_SAFE_INTEGER;
+  endTimeStampMsec: number = 0;
+  tag: string = NO_TAG;
+
+  integerToDoubleValueConversionRatio: number = 1.0;
+
+  percentileIterator: PercentileIterator;
+  recordedValuesIterator: RecordedValuesIterator;
+
   // "Hot" accessed fields (used in the the value recording code path) are bunched here, such
   // that they will have a good chance of ending up in the same cache line as the totalCounts and
   // counts array reference fields that subclass implementations will typically add.
@@ -120,7 +145,14 @@ export abstract class JsHistogram extends AbstractHistogramBase
     highestTrackableValue: number,
     numberOfSignificantValueDigits: number
   ) {
-    super();
+    this.identity = 0;
+    this.highestTrackableValue = 0;
+    this.lowestDiscernibleValue = 0;
+    this.numberOfSignificantValueDigits = 0;
+    this.bucketCount = 0;
+    this.subBucketCount = 0;
+    this.countsArrayLength = 0;
+    this.wordSizeInBytes = 0;
     // Verify argument validity
     if (lowestDiscernibleValue < 1) {
       throw new Error("lowestDiscernibleValue must be >= 1");
@@ -136,7 +168,7 @@ export abstract class JsHistogram extends AbstractHistogramBase
     ) {
       throw new Error("numberOfSignificantValueDigits must be between 0 and 5");
     }
-    this.identity = AbstractHistogramBase.identityBuilder++;
+    this.identity = JsHistogram.identityBuilder++;
 
     this.init(
       lowestDiscernibleValue,
@@ -371,7 +403,7 @@ export abstract class JsHistogram extends AbstractHistogramBase
    * entries in the histogram are either larger than or equivalent to.
    * <p>
    * Note that two values are "equivalent" in this statement if
-   * {@link org.HdrHistogram.AbstractHistogram#valuesAreEquivalent} would return true.
+   * {@link org.HdrHistogram.JsHistogram#valuesAreEquivalent} would return true.
    *
    * @param percentile  The percentile for which to return the associated value
    * @return The value that the given percentage of the overall recorded value entries in the

@@ -5,12 +5,13 @@
  * and released to the public domain, as explained at
  * http://creativecommons.org/publicdomain/zero/1.0/
  */
-import { Int32Histogram, Histogram, WasmHistogram } from "./index";
+import { Int32Histogram, WasmHistogram } from "./index";
 import { initWebAssembly } from "./wasm";
 import {
   encodeIntoCompressedBase64,
   decodeFromCompressedBase64,
 } from "./encoding";
+import Histogram from "./Histogram";
 
 describe("Histogram encoding", () => {
   it("should encode and decode an histogram", () => {

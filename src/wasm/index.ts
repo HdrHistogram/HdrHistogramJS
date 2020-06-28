@@ -6,7 +6,7 @@ import * as base64 from "base64-js";
 import * as pako from "pako";
 // @ts-ignore
 import * as loader from "@assemblyscript/loader";
-import { BuildRequest } from "..";
+import { BuildRequest } from "../HistogramBuilder";
 
 const isNode = typeof process !== "undefined" && process.version;
 export const webAssemblyAvailable = (() => {

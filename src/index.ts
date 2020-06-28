@@ -11,7 +11,6 @@ import {
   encodeIntoCompressedBase64,
 } from "./encoding";
 import Float64Histogram from "./Float64Histogram";
-import Histogram from "./Histogram";
 import HistogramLogReader, { listTags } from "./HistogramLogReader";
 import HistogramLogWriter from "./HistogramLogWriter";
 import Int16Histogram from "./Int16Histogram";
@@ -21,7 +20,7 @@ import JsHistogram from "./JsHistogram";
 import PackedHistogram from "./PackedHistogram";
 import Recorder from "./Recorder";
 import { initWebAssembly, WasmHistogram } from "./wasm";
-import { BuildRequest, build, defaultRequest } from "./HistogramBuilder";
+import { build } from "./HistogramBuilder";
 
 export {
   initWebAssembly,
@@ -30,11 +29,8 @@ export {
   Int32Histogram,
   Float64Histogram,
   PackedHistogram,
-  Histogram,
   HistogramLogReader,
   listTags,
-  BuildRequest,
-  defaultRequest,
   build,
   ByteBuffer,
   decodeFromCompressedBase64,

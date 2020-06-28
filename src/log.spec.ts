@@ -1,4 +1,4 @@
-import { build, Histogram, HistogramLogReader, HistogramLogWriter } from ".";
+import { build, HistogramLogReader, HistogramLogWriter } from ".";
 
 describe("Logs", () => {
   it("should give same result after been written then read", () => {
@@ -18,6 +18,7 @@ describe("Logs", () => {
     const outputHistogram = reader.nextIntervalHistogram();
     // then
     expect(outputHistogram).not.toBeNull();
-    expect((outputHistogram as Histogram).mean).toBe(inputHistogram.mean);
+    // @ts-ignore
+    expect(outputHistogram.mean).toBe(inputHistogram.mean);
   });
 });

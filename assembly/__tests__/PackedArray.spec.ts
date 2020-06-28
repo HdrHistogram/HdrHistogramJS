@@ -10,10 +10,6 @@ import { PackedArray } from "../packedarray/PackedArray";
 import { Histogram32, Uint8Storage } from "../Histogram";
 
 describe("Packed Array", () => {
-  it("should", () => {
-    expect(offsetof<Uint8Storage>()).toBe(42);
-  });
-
   it("should store a byte without extending array", () => {
     // given
     const packed = new PackedArray(1024);

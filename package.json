@@ -9,8 +9,7 @@
   "scripts": {
     "tsc": "tsc --skipLibCheck --outDir dist --declaration true --sourceMap true",
     "test": "jest",
-    "build": "yarn tsc && webpack --debug && webpack -p",
-    "prepare-publish": "tsc --outDir . --declaration true --sourceMap true && webpack --debug && webpack -p",
+    "build": "npm run tsc && npm run rollup",
     "prettier": "prettier --parser typescript -l src/**/*.ts",
     "prettier:fix": "prettier --write --parser typescript -l src/**/*.ts",
     "astest": "asp --verbose",

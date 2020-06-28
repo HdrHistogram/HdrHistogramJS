@@ -43,7 +43,7 @@ const defaultRequest: BuildRequest = {
   autoResize: true,
   lowestDiscernibleValue: 1,
   highestTrackableValue: 2,
-  numberOfSignificantValueDigits: 3
+  numberOfSignificantValueDigits: 3,
 };
 
 const remoteHistogramClassFor = (size?: BitBucketSize) =>
@@ -179,6 +179,9 @@ export class WasmHistogram implements Histogram {
     useCsvFormat = false
   ): string {
     // TODO csv
+    if (useCsvFormat) {
+      throw new Error("CSV output not supported by wasm histograms");
+    }
     return wasm.__getString(
       this._wasmHistogram.outputPercentileDistribution(
         percentileTicksPerHalfDistance,

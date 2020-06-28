@@ -92,6 +92,13 @@ class HistogramAdapter<T, U> {
     return <f64>this._histogram.getMean();
   }
 
+  public get estimatedFootprintInBytes(): f64 {
+    return <f64>(
+      (offsetof<HistogramAdapter<T, U>>() +
+        this._histogram.estimatedFootprintInBytes)
+    );
+  }
+
   recordValue(value: f64): void {
     this._histogram.recordSingleValue(<u64>value);
   }

@@ -141,7 +141,7 @@ export class WasmHistogram implements Histogram {
     return this._wasmHistogram.mean;
   }
   public get estimatedFootprintInBytes(): number {
-    return this._wasmHistogram.estimatedFootprintInBytes;
+    return 192 + this._wasmHistogram.estimatedFootprintInBytes;
   }
 
   public get minNonZeroValue(): number {

@@ -312,6 +312,18 @@ describe("WASM Histogram not initialized", () => {
     );
   });
 });
+describe("WASM estimated memory footprint", () => {
+  let wasmHistogram: Histogram;
+  beforeAll(initWebAssembly);
+  afterEach(() => wasmHistogram.destroy());
+
+  it("should be a little bit more than js footprint for packed histograms", () => {
+    wasmHistogram = build({ useWebAssembly: true, bitBucketSize: "packed" });
+    expect(wasmHistogram.estimatedFootprintInBytes).toBeGreaterThan(
+      build({ bitBucketSize: "packed" }).estimatedFootprintInBytes
+    );
+  });
+});
 
 describe("WASM Histogram correcting coordinated omissions", () => {
   let histogram: Histogram;

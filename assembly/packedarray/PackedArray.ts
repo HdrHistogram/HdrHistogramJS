@@ -222,6 +222,11 @@ export class PackedArray {
     return this.arrayContext.physicalLength;
   }
 
+  public get estimatedFootprintInBytes(): i32 {
+    // @ts-ignore
+    return offsetof<PackedArray>() + this.getPhysicalLength();
+  }
+
   /**
    * Get the (virtual) length of the array
    * @return the (virtual) length of the array

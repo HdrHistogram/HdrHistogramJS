@@ -904,6 +904,11 @@ export default class Histogram<T, U> extends AbstractHistogramBase<T, U> {
     return buffer.data.slice(0, buffer.position);
   }
 
+  public get estimatedFootprintInBytes(): i32 {
+    // @ts-ignore
+    return offsetof<Histogram<T, U>>() + this.counts.estimatedFootprintInBytes;
+  }
+
   clearCounts(): void {
     // @ts-ignore
     this.counts.clear();
@@ -925,6 +930,11 @@ export class Storage<T, U> {
   array: T;
   constructor(size: i32) {
     this.array = instantiate<T>(size);
+  }
+
+  public get estimatedFootprintInBytes(): i32 {
+    // @ts-ignore
+    return offsetof<Storage<T, U>>() + this.array.byteLength;
   }
 
   resize(newSize: i32): Storage<T, U> {

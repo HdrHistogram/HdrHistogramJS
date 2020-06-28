@@ -726,10 +726,6 @@ export abstract class JsHistogram implements Histogram {
    *
    * @return a (conservatively high) estimate of the Histogram's total footprint in bytes
    */
-  getEstimatedFootprintInBytes() {
-    return this._getEstimatedFootprintInBytes();
-  }
-
   get estimatedFootprintInBytes() {
     return this._getEstimatedFootprintInBytes();
   }

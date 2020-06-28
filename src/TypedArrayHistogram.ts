@@ -77,7 +77,7 @@ class TypedArrayHistogram extends JsHistogram {
   }
 
   protected _getEstimatedFootprintInBytes() {
-    return 512 + this._counts.BYTES_PER_ELEMENT * this._counts.length;
+    return 1024 + this._counts.BYTES_PER_ELEMENT * this._counts.length;
   }
 
   copyCorrectedForCoordinatedOmission(

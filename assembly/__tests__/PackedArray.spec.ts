@@ -7,7 +7,6 @@
  */
 
 import { PackedArray } from "../packedarray/PackedArray";
-import { Histogram32, Uint8Storage } from "../Histogram";
 
 describe("Packed Array", () => {
   it("should store a byte without extending array", () => {

@@ -219,7 +219,14 @@ const encodedString = "HISTFAAAAB542pNpmSzMwMDAxAABzFCaEUoz2X+AMIKZAEARAtM=";
 const histogram = hdr.decodeFromCompressedBase64(encodedString);
 ```
 
-Note: right now only HdrHistogram V2 format is supported (the latest one). If you need support for older formats, do not hesitate to raise a github issue.
+In the above code fragment, 'histogram' is a regular 32b bucket histogram. Other types of histograms can be specified using additionnal parameters. Below a code fragment where a WebAssembly packed histogram is used:
+
+```
+import * as hdr from "hdr-histogram-js"
+
+const encodedString = "HISTFAAAAB542pNpmSzMwMDAxAABzFCaEUoz2X+AMIKZAEARAtM=";
+const histogram = hdr.decodeFromCompressedBase64(encodedString, 'packed', true);
+```
 
 If you want to use this feature along with the UMD package, you need to add external dependency
 "pako". "pako" is used for zlib compression. Using npm you should get

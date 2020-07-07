@@ -43,11 +43,20 @@ const defaultRequest: BuildRequest = {
   autoResize: true,
   lowestDiscernibleValue: 1,
   highestTrackableValue: 2,
-  numberOfSignificantValueDigits: 3
+  numberOfSignificantValueDigits: 3,
 };
 
 const remoteHistogramClassFor = (size?: BitBucketSize) =>
   size === "packed" ? "PackedHistogram" : `Histogram${size}`;
+
+const destroyedWasmHistogram = new Proxy(
+  {},
+  {
+    get: function(obj, prop) {
+      throw new Error("Cannot use a destroyed histogram");
+    },
+  }
+);
 
 export class WasmHistogram implements Histogram {
   tag: string;
@@ -239,6 +248,6 @@ export class WasmHistogram implements Histogram {
 
   destroy(): void {
     wasm.__release(this._wasmHistogram);
-    this._wasmHistogram = NO_TAG;
+    this._wasmHistogram = destroyedWasmHistogram;
   }
 }

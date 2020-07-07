@@ -312,6 +312,18 @@ describe("WASM Histogram not initialized", () => {
     );
   });
 });
+
+describe("WASM Histogram already destroyed", () => {
+  beforeEach(initWebAssembly);
+  it("should throw a clear error message", () => {
+    const destroyedHistogram = build({ useWebAssembly: true });
+    destroyedHistogram.destroy();
+    expect(() => destroyedHistogram.recordValue(42)).toThrow(
+      "Cannot use a destroyed histogram"
+    );
+  });
+});
+
 describe("WASM estimated memory footprint", () => {
   let wasmHistogram: Histogram;
   beforeAll(initWebAssembly);

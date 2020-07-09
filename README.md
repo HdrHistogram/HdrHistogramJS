@@ -319,7 +319,7 @@ histogram.recordValue(...);
 # Migrating from V1 to v2
 
 For most users, migration from HdrHistogramJS v1 to v2 should be smooth. However since HdrHistogramJS v2 does not stick anymore with HdrHistogram Java API, you might run into some breaking changes.  
-Prior to v2, _hdr.build()_ was returning an _AbstractHistogram_ instance. _AbstractHistogram_ does not exist anymore and has been replaced by an _Histogram_ interface. Most methods from _AbstractHistogram_ still exist in new _Histogram_, however getter methods such as _getMean()_ or getTotalCount()\_ have been replaced by JS properties:
+Prior to v2, _hdr.build()_ was returning an _AbstractHistogram_ instance. _AbstractHistogram_ does not exist anymore and has been replaced by an _Histogram_ interface. Most methods from _AbstractHistogram_ still exist in new _Histogram_, however getter methods such as _getMean()_ or _getTotalCount()_ have been replaced by JS properties:
 
 ```
 // HdrHistogramJS v1

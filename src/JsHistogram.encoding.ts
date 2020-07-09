@@ -141,19 +141,19 @@ function findDeflateFunction() {
   try {
     return eval('require("zlib").deflateSync');
   } catch (error) {
-    return pako.deflate;
+    return !!pako ? pako.deflate : () => { throw new Error('pako library is mandatory for encoding/deconding on the browser side') };
   }
 }
 function findInflateFunction() {
   try {
     return eval('require("zlib").inflateSync');
   } catch (error) {
-    return pako.inflate;
+    return !!pako ? pako.inflate : () => { throw new Error('pako library is mandatory for encoding/deconding on the browser side') };
   }
 }
 
-const deflate = findDeflateFunction();
-const inflate = findInflateFunction();
+export const deflate = findDeflateFunction();
+export const inflate = findInflateFunction();
 
 export function decompress(data: Uint8Array): Uint8Array {
   const buffer = new ByteBuffer(data);

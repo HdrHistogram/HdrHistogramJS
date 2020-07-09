@@ -5,7 +5,6 @@
  * and released to the public domain, as explained at
  * http://creativecommons.org/publicdomain/zero/1.0/
  */
-import "./JsHistogram.encoding";
 import { JsHistogram } from "./JsHistogram";
 import ByteBuffer from "./ByteBuffer";
 import Histogram from "./Histogram";
@@ -13,29 +12,10 @@ import { WasmHistogram } from "./wasm";
 
 // @ts-ignore
 import * as base64 from "base64-js";
-// @ts-ignore
-import * as pako from "pako";
+import { inflate, deflate } from "./JsHistogram.encoding";
 
 const V2CompressedEncodingCookieBase = 0x1c849304;
 const compressedEncodingCookie = V2CompressedEncodingCookieBase | 0x10; // LSBit of wordsize byte indicates TLZE Encoding
-
-function findDeflateFunction() {
-  try {
-    return eval('require("zlib").deflateSync');
-  } catch (error) {
-    return pako.deflate;
-  }
-}
-function findInflateFunction() {
-  try {
-    return eval('require("zlib").inflateSync');
-  } catch (error) {
-    return pako.inflate;
-  }
-}
-
-const deflate = findDeflateFunction();
-const inflate = findInflateFunction();
 
 export function decompress(data: Uint8Array): Uint8Array {
   const buffer = new ByteBuffer(data);

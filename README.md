@@ -318,13 +318,36 @@ histogram.recordValue(...);
 
 # Migrating from V1 to v2
 
-For most users, migration from HdrHistogramJS v1 to v2 should be smooth. However module paths change a little bit with v2. Hence if you were importing specific modules as described in previous section, you need to change a little bit your code:
+For most users, migration from HdrHistogramJS v1 to v2 should be smooth. However since HdrHistogramJS v2 does not stick anymore with HdrHistogram Java API, you might run into some breaking changes.  
+Prior to v2, _hdr.build()_ was returning an _AbstractHistogram_ instance. _AbstractHistogram_ does not exist anymore and has been replaced by an _Histogram_ interface. Most methods from _AbstractHistogram_ still exist in new _Histogram_, however getter methods such as _getMean()_ or getTotalCount()\_ have been replaced by JS properties:
 
 ```
 // HdrHistogramJS v1
+const histogram: AbstractHistogram = hdr.build();
+const statistics = {
+  count: histogram.getTotalCount(),
+  mean: histogram.getMean(),
+  p99: histogram.getValueAtPercentile(99),
+}
+
+// HdrHistogramJS v2
+const histogram: Histogram = hdr.build();
+const statistics = {
+  count: histogram.totalCount,
+  mean: histogram.mean,
+  p99: histogram.getValueAtPercentile(99),
+}
+```
+
+Module paths change a little bit with v2. Hence if you were importing specific modules as described in tree shaking section, you need to change a little bit your code as below:
+
+```
+// HdrHistogramJS v1
+import AbstractHistogram from "hdr-histogram-js/AbstractHistogram"
 import Int32Histogram from "hdr-histogram-js/Int32Histogram"
 
 // becomes with HdrHistogramJS v2
+import Histogram from "hdr-histogram-js/dist/Histogram"
 import Int32Histogram from "hdr-histogram-js/dist/Int32Histogram"
 ```
 

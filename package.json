@@ -1,8 +1,8 @@
 {
   "name": "hdr-histogram-js",
-  "version": "2.0.0-beta1",
+  "version": "2.0.0-beta2",
   "description": "TypeScript port of HdrHistogram",
-  "main": "dist/index.js",
+  "main": "dist/hdrhistogram.cjs.js",
   "module": "dist/hdrhistogram.esm.js",
   "browser": "dist/hdrhistogram.umd.js",
   "types": "dist/index.d.ts",

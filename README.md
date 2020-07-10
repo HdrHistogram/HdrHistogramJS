@@ -163,7 +163,8 @@ const correctedHistogram
 
 ## Boosting performances with WebAssembly (since HdrHistogramJS v2)
 
-Since version 2, HdrHistogramJS can leverage on WebAssembly to speed up computations. Depending on the use case, the performance boost can be as high as twice as fast :)  
+Since version 2, HdrHistogramJS leverages on WebAssembly to speed up computations. Depending on the use case, the performance boost can be as high as twice as fast :)  
+Everything has been done to make your life easier when using HdrHistogramJS WebAssembly impelmentation, but since the usage a little bit different WebAssembly is not enabled by default.  
 To benefit from WebAssembly performance boost, there are three things to take care of:
 
 - Bootstrap the HdrHistogramJS WebAssembly module at application startup
@@ -316,7 +317,7 @@ histogram.recordValue(...);
 
 ```
 
-# Migrating from V1 to v2
+# Migrating from v1 to v2
 
 For most users, migration from HdrHistogramJS v1 to v2 should be smooth. However since HdrHistogramJS v2 does not stick anymore with HdrHistogram Java API, you might run into some breaking changes.  
 Prior to v2, _hdr.build()_ was returning an _AbstractHistogram_ instance. _AbstractHistogram_ does not exist anymore and has been replaced by an _Histogram_ interface. Most methods from _AbstractHistogram_ still exist in new _Histogram_, however getter methods such as _getMean()_ or _getTotalCount()_ have been replaced by JS properties:
@@ -330,7 +331,7 @@ const statistics = {
   p99: histogram.getValueAtPercentile(99),
 }
 
-// HdrHistogramJS v2
+// becomes with HdrHistogramJS v2
 const histogram: Histogram = hdr.build();
 const statistics = {
   count: histogram.totalCount,
@@ -339,7 +340,7 @@ const statistics = {
 }
 ```
 
-Module paths change a little bit with v2. Hence if you were importing specific modules as described in tree shaking section, you need to change a little bit your code as below:
+Module paths also change a little bit with v2. Hence if you were importing specific modules as described in the tree shaking section, you need to change a little bit your code as below:
 
 ```
 // HdrHistogramJS v1

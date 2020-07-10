@@ -36,13 +36,13 @@ You can also use HdrHistogramJS as a commonjs NodeJS module.
 Using npm you can get HdrHIstogramJS with the following command:
 
 ```
-  npm i hdr-histogram-js
+  npm i hdr-histogram-js@2.0.0-beta4
 ```
 
 Or if you like yarn better:
 
 ```
-  yarn add hdr-histogram-js
+  yarn add hdr-histogram-js@2.0.0-beta4
 ```
 
 Note for TypeScript developers: since HdrHistogramJS has been written in TypeScript, definition files are embedded, no additional task is needed to get them.

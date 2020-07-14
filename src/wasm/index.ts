@@ -9,6 +9,8 @@ import * as loader from "@assemblyscript/loader";
 import { BuildRequest } from "../HistogramBuilder";
 
 const isNode = typeof process !== "undefined" && process.version;
+// @ts-ignore
+const isWorker = typeof importScripts === "function";
 export const webAssemblyAvailable = (() => {
   let available = false;
   if (isNode) {
@@ -17,7 +19,7 @@ export const webAssemblyAvailable = (() => {
   } else {
     // browser
     // @ts-ignore
-    available = "WebAssembly" in window;
+    available = isWorker || "WebAssembly" in window;
   }
   return available;
 })();
@@ -43,7 +45,7 @@ const defaultRequest: BuildRequest = {
   autoResize: true,
   lowestDiscernibleValue: 1,
   highestTrackableValue: 2,
-  numberOfSignificantValueDigits: 3
+  numberOfSignificantValueDigits: 3,
 };
 
 const remoteHistogramClassFor = (size?: BitBucketSize) =>
@@ -54,7 +56,7 @@ const destroyedWasmHistogram = new Proxy(
   {
     get: function(obj, prop) {
       throw new Error("Cannot use a destroyed histogram");
-    }
+    },
   }
 );
 

@@ -45,7 +45,7 @@ const defaultRequest: BuildRequest = {
   autoResize: true,
   lowestDiscernibleValue: 1,
   highestTrackableValue: 2,
-  numberOfSignificantValueDigits: 3,
+  numberOfSignificantValueDigits: 3
 };
 
 const remoteHistogramClassFor = (size?: BitBucketSize) =>
@@ -56,7 +56,7 @@ const destroyedWasmHistogram = new Proxy(
   {
     get: function(obj, prop) {
       throw new Error("Cannot use a destroyed histogram");
-    },
+    }
   }
 );
 

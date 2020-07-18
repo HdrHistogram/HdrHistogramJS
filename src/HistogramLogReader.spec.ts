@@ -73,7 +73,7 @@ describe("Histogram Log Reader", () => {
     // then
     checkNotNull(histogram);
     // if mean is good, strong probability everything else is good as well
-    expect(floor((histogram as PackedHistogram).getMean())).toBe(301998);
+    expect(floor(histogram.mean)).toBe(301998);
   });
 
   it("should return null if no histogram in the logs", () => {

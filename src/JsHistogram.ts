@@ -37,8 +37,6 @@ export abstract class JsHistogram implements Histogram {
   endTimeStampMsec: number = 0;
   tag: string = NO_TAG;
 
-  integerToDoubleValueConversionRatio: number = 1.0;
-
   percentileIterator: PercentileIterator;
   recordedValuesIterator: RecordedValuesIterator;
 
@@ -130,16 +128,6 @@ export abstract class JsHistogram implements Histogram {
     this.minNonZeroValue = internalValue;
   }
 
-  private resetMinNonZeroValue(minNonZeroValue: number) {
-    const internalValue =
-      floor(minNonZeroValue / this.lowestDiscernibleValueRounded) *
-      this.lowestDiscernibleValueRounded;
-    this.minNonZeroValue =
-      minNonZeroValue === Number.MAX_SAFE_INTEGER
-        ? minNonZeroValue
-        : internalValue;
-  }
-
   constructor(
     lowestDiscernibleValue: number,
     highestTrackableValue: number,
@@ -173,21 +161,18 @@ export abstract class JsHistogram implements Histogram {
     this.init(
       lowestDiscernibleValue,
       highestTrackableValue,
-      numberOfSignificantValueDigits,
-      1.0
+      numberOfSignificantValueDigits
     );
   }
 
   init(
     lowestDiscernibleValue: number,
     highestTrackableValue: number,
-    numberOfSignificantValueDigits: number,
-    integerToDoubleValueConversionRatio: number
+    numberOfSignificantValueDigits: number
   ) {
     this.lowestDiscernibleValue = lowestDiscernibleValue;
     this.highestTrackableValue = highestTrackableValue;
     this.numberOfSignificantValueDigits = numberOfSignificantValueDigits;
-    this.integerToDoubleValueConversionRatio = integerToDoubleValueConversionRatio;
 
     /*
      * Given a 3 decimal point accuracy, the expectation is obviously for "+/- 1 unit at 1000". It also means that
@@ -537,7 +522,7 @@ export abstract class JsHistogram implements Histogram {
    *
    * @return the mean value (in value units) of the histogram data
    */
-  getMean() {
+  get mean() {
     if (this.totalCount === 0) {
       return 0;
     }
@@ -552,20 +537,16 @@ export abstract class JsHistogram implements Histogram {
     return (totalValue * 1.0) / this.totalCount;
   }
 
-  get mean() {
-    return this.getMean();
-  }
-
   /**
    * Get the computed standard deviation of all recorded values in the histogram
    *
    * @return the standard deviation (in value units) of the histogram data
    */
-  getStdDeviation() {
+  get stdDeviation() {
     if (this.totalCount === 0) {
       return 0;
     }
-    const mean = this.getMean();
+    const mean = this.mean;
     let geometric_deviation_total = 0.0;
     this.recordedValuesIterator.reset();
     while (this.recordedValuesIterator.hasNext()) {
@@ -579,10 +560,6 @@ export abstract class JsHistogram implements Histogram {
       geometric_deviation_total / this.totalCount
     );
     return std_deviation;
-  }
-
-  get stdDeviation() {
-    return this.getStdDeviation();
   }
 
   /**
@@ -702,9 +679,9 @@ export abstract class JsHistogram implements Histogram {
       // deviation metric is a useless indicator.
       //
       const formatter = floatFormatter(12, this.numberOfSignificantValueDigits);
-      const mean = formatter(this.getMean() / outputValueUnitScalingRatio);
+      const mean = formatter(this.mean / outputValueUnitScalingRatio);
       const std_deviation = formatter(
-        this.getStdDeviation() / outputValueUnitScalingRatio
+        this.stdDeviation / outputValueUnitScalingRatio
       );
       const max = formatter(this.maxValue / outputValueUnitScalingRatio);
       const intFormatter = integerFormatter(12);

@@ -156,23 +156,6 @@ describe("Histogram recording values", () => {
     // then
     expect(histogram.highestTrackableValue).toBeGreaterThan(9000);
   });
-
-  /*
-  it("should bench", () => {
-    const histogram = new HistogramForTests(1, Number.MAX_SAFE_INTEGER, 3);
-    for (var i = 0; i < 1000; i++) {
-       histogram.recordValue(Math.floor(Math.random() * 100000));
-    }
-    const start = new Date().getTime();
-    const nbLoop = 100000;
-    for (var i = 0; i < nbLoop; i++) {
-       histogram.recordValue(Math.floor(Math.random() * 100000));
-    }
-    const end = new Date().getTime();
-    console.log("avg", (end - start)/nbLoop );
-
-  }) 
-*/
 });
 
 describe("Histogram computing statistics", () => {
@@ -186,7 +169,7 @@ describe("Histogram computing statistics", () => {
     histogram.recordValue(50);
     histogram.recordValue(75);
     // then
-    expect(histogram.getMean()).toBe(50);
+    expect(histogram.mean).toBe(50);
   });
 
   it("should compute standard deviation", () => {
@@ -197,8 +180,8 @@ describe("Histogram computing statistics", () => {
     histogram.recordValue(50);
     histogram.recordValue(75);
     // then
-    expect(histogram.getStdDeviation()).toBeGreaterThan(20.4124);
-    expect(histogram.getStdDeviation()).toBeLessThan(20.4125);
+    expect(histogram.stdDeviation).toBeGreaterThan(20.4124);
+    expect(histogram.stdDeviation).toBeLessThan(20.4125);
   });
 
   it("should compute percentile distribution", () => {
@@ -430,7 +413,7 @@ describe("Histogram add & substract", () => {
     histogram.add(histogram2);
     // then
     expect(histogram.totalCount).toBe(2);
-    expect(histogram.getMean()).toBe(100);
+    expect(histogram.mean).toBe(100);
   });
 
   it("should add histograms of different sizes & precisions", () => {
@@ -472,7 +455,7 @@ describe("Histogram add & substract", () => {
     histogram.add(histogram2);
     // then
     expect(histogram.totalCount).toBe(2);
-    expect(Math.floor(histogram.getMean() / 100)).toBe(215);
+    expect(Math.floor(histogram.mean / 100)).toBe(215);
   });
   it("should add histograms of different sizes b", () => {
     // given
@@ -485,7 +468,7 @@ describe("Histogram add & substract", () => {
     histogram.add(histogram2);
     // then
     expect(histogram.totalCount).toBe(2);
-    expect(Math.floor(histogram.getMean() / 100)).toBe(215);
+    expect(Math.floor(histogram.mean / 100)).toBe(215);
   });
 
   it("should be equal when another histogram is added then subtracted", () => {

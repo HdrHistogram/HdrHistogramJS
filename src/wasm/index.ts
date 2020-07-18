@@ -225,12 +225,24 @@ export class WasmHistogram implements Histogram {
   }
 
   add(otherHistogram: WasmHistogram): void {
+    if (!(otherHistogram instanceof WasmHistogram)) {
+      // should be impossible to be in this situation but actually
+      // TypeScript has some flaws...
+      throw new Error("Cannot add a regular JS histogram to a WASM histogram");
+    }
     this._wasmHistogram[`add${otherHistogram._remoteHistogramClass}`](
       otherHistogram._wasmHistogram
     );
   }
 
   subtract(otherHistogram: WasmHistogram): void {
+    if (!(otherHistogram instanceof WasmHistogram)) {
+      // should be impossible to be in this situation but actually
+      // TypeScript has some flaws...
+      throw new Error(
+        "Cannot subtract a regular JS histogram to a WASM histogram"
+      );
+    }
     this._wasmHistogram[`subtract${otherHistogram._remoteHistogramClass}`](
       otherHistogram._wasmHistogram
     );

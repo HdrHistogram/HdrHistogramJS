@@ -895,11 +895,11 @@ export abstract class JsHistogram implements Histogram {
    * @throws (may throw) if values in fromHistogram's are
    * higher than highestTrackableValue.
    */
-  add(otherHistogram: Histogram) {
+  add(otherHistogram: JsHistogram) {
     if (!(otherHistogram instanceof JsHistogram)) {
-      throw new Error(
-        "Cannot add webAssembly histogram to non webAssembly histogram"
-      );
+      // should be impossible to be in this situation but actually
+      // TypeScript has some flaws...
+      throw new Error("Cannot add a WASM histogram to a regular JS histogram");
     }
     const highestRecordableValue = this.highestEquivalentValue(
       this.valueFromIndex(this.countsArrayLength - 1)
@@ -991,6 +991,13 @@ export abstract class JsHistogram implements Histogram {
     const highestRecordableValue = this.valueFromIndex(
       this.countsArrayLength - 1
     );
+    if (!(otherHistogram instanceof JsHistogram)) {
+      // should be impossible to be in this situation but actually
+      // TypeScript has some flaws...
+      throw new Error(
+        "Cannot subtract a WASM histogram to a regular JS histogram"
+      );
+    }
     if (highestRecordableValue < otherHistogram.maxValue) {
       if (!this.autoResize) {
         throw new Error(

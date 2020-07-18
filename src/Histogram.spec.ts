@@ -313,13 +313,42 @@ describe("WASM Histogram not initialized", () => {
   });
 });
 
-describe("WASM Histogram already destroyed", () => {
+describe("WASM Histogram not happy path", () => {
   beforeEach(initWebAssembly);
-  it("should throw a clear error message", () => {
+  it("should throw a clear error message when used after destroy", () => {
     const destroyedHistogram = build({ useWebAssembly: true });
     destroyedHistogram.destroy();
     expect(() => destroyedHistogram.recordValue(42)).toThrow(
       "Cannot use a destroyed histogram"
+    );
+  });
+  it("should throw a clear error message when added to a JS regular Histogram", () => {
+    const wasmHistogram = build({ useWebAssembly: true });
+    const jsHistogram = build({ useWebAssembly: false });
+    expect(() => jsHistogram.add(wasmHistogram)).toThrow(
+      "Cannot add a WASM histogram to a regular JS histogram"
+    );
+  });
+  it("should throw a clear error message when trying to add a JS regular Histogram", () => {
+    const wasmHistogram = build({ useWebAssembly: true });
+    const jsHistogram = build({ useWebAssembly: false });
+    expect(() => wasmHistogram.add(jsHistogram)).toThrow(
+      "Cannot add a regular JS histogram to a WASM histogram"
+    );
+  });
+
+  it("should throw a clear error message when substracted to a JS regular Histogram", () => {
+    const wasmHistogram = build({ useWebAssembly: true });
+    const jsHistogram = build({ useWebAssembly: false });
+    expect(() => jsHistogram.subtract(wasmHistogram)).toThrow(
+      "Cannot subtract a WASM histogram to a regular JS histogram"
+    );
+  });
+  it("should throw a clear error message when trying to add a JS regular Histogram", () => {
+    const wasmHistogram = build({ useWebAssembly: true });
+    const jsHistogram = build({ useWebAssembly: false });
+    expect(() => wasmHistogram.subtract(jsHistogram)).toThrow(
+      "Cannot subtract a regular JS histogram to a WASM histogram"
     );
   });
 });

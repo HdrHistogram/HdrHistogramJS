@@ -237,6 +237,18 @@ describe("Histogram computing statistics", () => {
       histogram.outputPercentileDistribution(undefined, undefined, true)
     ).toBe(expectedResult);
   });
+
+  it("should compute percentile distribution in JSON format with rounding according to number of significant digits", () => {
+    // given
+    histogram.reset();
+    // when
+    histogram.recordValue(25042);
+    histogram.recordValue(50042);
+    histogram.recordValue(75042);
+    // then
+    const serializedHistogramData = JSON.parse(JSON.stringify(histogram));
+    expect(serializedHistogramData.p50).toEqual(50000);
+  });
 });
 
 describe("Histogram correcting coordinated omissions", () => {

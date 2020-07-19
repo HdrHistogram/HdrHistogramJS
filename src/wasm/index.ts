@@ -1,5 +1,10 @@
 import { BINARY } from "./generated-wasm";
-import Histogram, { NO_TAG, BitBucketSize } from "../Histogram";
+import Histogram, {
+  NO_TAG,
+  BitBucketSize,
+  toJSON,
+  HistogramSummary
+} from "../Histogram";
 // @ts-ignore
 import * as base64 from "base64-js";
 // @ts-ignore
@@ -110,6 +115,10 @@ export class WasmHistogram implements Histogram {
     return wasmHistogram;
   }
 
+  public get numberOfSignificantValueDigits(): number {
+    return this._wasmHistogram.numberOfSignificantValueDigits;
+  }
+
   public get autoResize(): boolean {
     return !!this._wasmHistogram.autoResize;
   }
@@ -199,6 +208,22 @@ export class WasmHistogram implements Histogram {
         outputValueUnitScalingRatio
       )
     );
+  }
+
+  toJSON(): HistogramSummary {
+    return toJSON(this);
+  }
+
+  toString() {
+    return `WASM ${this._remoteHistogramClass} ${JSON.stringify(
+      this,
+      null,
+      2
+    )}`;
+  }
+
+  inspect() {
+    return this.toString();
   }
 
   addWhileCorrectingForCoordinatedOmission(

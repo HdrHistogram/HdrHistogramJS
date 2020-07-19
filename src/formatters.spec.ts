@@ -1,4 +1,8 @@
-import { integerFormatter, floatFormatter } from "./formatters";
+import {
+  integerFormatter,
+  floatFormatter,
+  keepSignificantDigits,
+} from "./formatters";
 
 describe("Integer formatter", () => {
   it("should format integer as a string", () => {
@@ -17,6 +21,26 @@ describe("Integer formatter", () => {
     const result = formatter(123);
     // then
     expect(result).toBe("  123");
+  });
+});
+
+describe("Integer processor", () => {
+  it("should keep value unchanged when value small enough comapred to number of value digits", () => {
+    // given
+    const processor = keepSignificantDigits(3);
+    // when
+    const result = processor(421);
+    // then
+    expect(result).toBe(421);
+  });
+
+  it("should lower value when value has more digits than what is needed", () => {
+    // given
+    const processor = keepSignificantDigits(3);
+    // when
+    const result = processor(123456);
+    // then
+    expect(result).toBe(123000);
   });
 });
 

@@ -95,6 +95,10 @@ class PackedHistogram extends JsHistogram {
     );
     return copy;
   }
+
+  toString() {
+    return `PackedHistogram ${JSON.stringify(this, null, 2)}`;
+  }
 }
 
 export default PackedHistogram;

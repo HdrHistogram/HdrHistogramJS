@@ -23,9 +23,7 @@ describe("Histogram encoding", () => {
     const b64 = encodeIntoCompressedBase64(histogram);
     // then
     const decodedHistogram = decodeFromCompressedBase64(b64);
-    expect(decodedHistogram.getValueAtPercentile(50)).toBe(
-      histogram.getValueAtPercentile(50)
-    );
+    expect(decodedHistogram.toJSON()).toStrictEqual(histogram.toJSON());
   });
 
   it("should decode and decompress reading a base64 string", () => {

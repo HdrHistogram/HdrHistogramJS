@@ -1,6 +1,21 @@
+import { keepSignificantDigits } from "./formatters";
+
 export const NO_TAG = "NO TAG";
 
 export type BitBucketSize = 8 | 16 | 32 | 64 | "packed";
+
+export interface HistogramSummary {
+  p50: number;
+  p75: number;
+  p90: number;
+  p97_5: number;
+  p99: number;
+  p99_9: number;
+  p99_99: number;
+  p99_999: number;
+  max: number;
+  totalCount: number;
+}
 
 export default interface Histogram {
   /**
@@ -36,6 +51,8 @@ export default interface Histogram {
   readonly maxValue: number;
 
   readonly minNonZeroValue: number;
+
+  readonly numberOfSignificantValueDigits: number;
 
   startTimeStampMsec: number;
   endTimeStampMsec: number;
@@ -93,6 +110,8 @@ export default interface Histogram {
     outputValueUnitScalingRatio?: number,
     useCsvFormat?: false
   ): string;
+
+  toJSON(): HistogramSummary;
 
   /**
    * Record a value in the histogram.
@@ -212,3 +231,20 @@ export interface HistogramConstructor {
     numberOfSignificantValueDigits: number
   ): Histogram;
 }
+
+export const toJSON = (histogram: Histogram): HistogramSummary => {
+  const { totalCount, maxValue, numberOfSignificantValueDigits } = histogram;
+  const round = keepSignificantDigits(numberOfSignificantValueDigits);
+  return {
+    p50: round(histogram.getValueAtPercentile(50)),
+    p75: round(histogram.getValueAtPercentile(75)),
+    p90: round(histogram.getValueAtPercentile(90)),
+    p97_5: round(histogram.getValueAtPercentile(97.5)),
+    p99: round(histogram.getValueAtPercentile(99)),
+    p99_9: round(histogram.getValueAtPercentile(99.9)),
+    p99_99: round(histogram.getValueAtPercentile(99.99)),
+    p99_999: round(histogram.getValueAtPercentile(99.999)),
+    max: maxValue,
+    totalCount,
+  };
+};

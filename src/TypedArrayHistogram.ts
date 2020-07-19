@@ -95,6 +95,14 @@ class TypedArrayHistogram extends JsHistogram {
     );
     return copy;
   }
+
+  toString() {
+    return `Histogram ${this._counts.BYTES_PER_ELEMENT * 8}b ${JSON.stringify(
+      this,
+      null,
+      2
+    )}`;
+  }
 }
 
 export default TypedArrayHistogram;

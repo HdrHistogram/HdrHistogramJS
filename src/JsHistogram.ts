@@ -534,7 +534,7 @@ export abstract class JsHistogram implements Histogram {
         this.medianEquivalentValue(iterationValue.valueIteratedTo) *
         iterationValue.countAtValueIteratedTo;
     }
-    return (totalValue * 1.0) / this.totalCount;
+    return totalValue / this.totalCount;
   }
 
   private getStdDeviation(mean: number = this.mean) {

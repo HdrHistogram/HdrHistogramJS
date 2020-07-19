@@ -10,7 +10,7 @@ import PercentileIterator from "./PercentileIterator";
 import HistogramIterationValue from "./HistogramIterationValue";
 import { integerFormatter, floatFormatter } from "./formatters";
 import ulp from "./ulp";
-import Histogram, { NO_TAG } from "./Histogram";
+import Histogram, { NO_TAG, toJSON } from "./Histogram";
 
 const { pow, floor, ceil, log2, max, min } = Math;
 
@@ -537,6 +537,25 @@ export abstract class JsHistogram implements Histogram {
     return (totalValue * 1.0) / this.totalCount;
   }
 
+  private getStdDeviation(mean: number = this.mean) {
+    if (this.totalCount === 0) {
+      return 0;
+    }
+    let geometric_deviation_total = 0.0;
+    this.recordedValuesIterator.reset();
+    while (this.recordedValuesIterator.hasNext()) {
+      const iterationValue = this.recordedValuesIterator.next();
+      const deviation =
+        this.medianEquivalentValue(iterationValue.valueIteratedTo) - mean;
+      geometric_deviation_total +=
+        deviation * deviation * iterationValue.countAddedInThisIterationStep;
+    }
+    const std_deviation = Math.sqrt(
+      geometric_deviation_total / this.totalCount
+    );
+    return std_deviation;
+  }
+
   /**
    * Get the computed standard deviation of all recorded values in the histogram
    *
@@ -679,9 +698,10 @@ export abstract class JsHistogram implements Histogram {
       // deviation metric is a useless indicator.
       //
       const formatter = floatFormatter(12, this.numberOfSignificantValueDigits);
-      const mean = formatter(this.mean / outputValueUnitScalingRatio);
+      const _mean = this.mean;
+      const mean = formatter(_mean / outputValueUnitScalingRatio);
       const std_deviation = formatter(
-        this.stdDeviation / outputValueUnitScalingRatio
+        this.getStdDeviation(_mean) / outputValueUnitScalingRatio
       );
       const max = formatter(this.maxValue / outputValueUnitScalingRatio);
       const intFormatter = integerFormatter(12);
@@ -696,6 +716,10 @@ export abstract class JsHistogram implements Histogram {
     }
 
     return result;
+  }
+
+  toJSON() {
+    return toJSON(this);
   }
 
   /**

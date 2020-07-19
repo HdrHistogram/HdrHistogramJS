@@ -9,16 +9,9 @@
 import RecordedValuesIterator from "./RecordedValuesIterator";
 import PercentileIterator from "./PercentileIterator";
 
-//import { EncodableHistogram } from "./EncodableHistogram";
-//import RecordedValuesIterator from "./RecordedValuesIterator";
-//import PercentileIterator from "./PercentileIterator";
-
 export const NO_TAG = "NO TAG";
 
-export abstract class AbstractHistogramBase<
-  T,
-  U
-> /* extends EncodableHistogram */ {
+export abstract class AbstractHistogramBase<T, U> {
   static identityBuilder: number;
 
   identity: f64;
@@ -47,7 +40,6 @@ export abstract class AbstractHistogramBase<
   recordedValuesIterator: RecordedValuesIterator<T, U>;
 
   constructor() {
-    //super();
     this.identity = 0;
     this.highestTrackableValue = 0;
     this.lowestDiscernibleValue = 0;

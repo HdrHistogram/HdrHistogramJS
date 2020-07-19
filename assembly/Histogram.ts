@@ -383,16 +383,10 @@ export default class Histogram<T, U> extends AbstractHistogramBase<T, U> {
     return (<f64>totalValue * <f64>1) / <f64>this.totalCount;
   }
 
-  /**
-   * Get the computed standard deviation of all recorded values in the histogram
-   *
-   * @return the standard deviation (in value units) of the histogram data
-   */
-  getStdDeviation(): f64 {
+  computeStdDeviation(mean: f64): f64 {
     if (this.totalCount === 0) {
       return 0;
     }
-    const mean = this.getMean();
     let geometric_deviation_total: f64 = 0.0;
     this.recordedValuesIterator.reset();
     while (this.recordedValuesIterator.hasNext()) {
@@ -408,6 +402,19 @@ export default class Histogram<T, U> extends AbstractHistogramBase<T, U> {
       geometric_deviation_total / <f64>this.totalCount
     );
     return std_deviation;
+  }
+
+  /**
+   * Get the computed standard deviation of all recorded values in the histogram
+   *
+   * @return the standard deviation (in value units) of the histogram data
+   */
+  getStdDeviation(): f64 {
+    if (this.totalCount === 0) {
+      return 0;
+    }
+    const mean = this.getMean();
+    return this.computeStdDeviation(mean);
   }
 
   private updatedMaxValue(value: u64): void {
@@ -864,9 +871,10 @@ export default class Histogram<T, U> extends AbstractHistogramBase<T, U> {
       12,
       this.numberOfSignificantValueDigits
     );
-    const mean = formatter.format(this.getMean() / outputValueUnitScalingRatio);
+    const _mean = this.getMean();
+    const mean = formatter.format(_mean / outputValueUnitScalingRatio);
     const std_deviation = formatter.format(
-      this.getStdDeviation() / outputValueUnitScalingRatio
+      this.computeStdDeviation(_mean) / outputValueUnitScalingRatio
     );
     const max = formatter.format(
       <f64>this.maxValue / outputValueUnitScalingRatio

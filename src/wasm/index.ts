@@ -226,6 +226,10 @@ export class WasmHistogram implements Histogram {
     return this.toString();
   }
 
+  [Symbol.for("nodejs.util.inspect.custom")]() {
+    return this.toString();
+  }
+
   addWhileCorrectingForCoordinatedOmission(
     otherHistogram: WasmHistogram,
     expectedIntervalBetweenValueSamples: number

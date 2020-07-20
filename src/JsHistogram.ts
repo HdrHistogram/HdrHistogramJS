@@ -726,6 +726,10 @@ export abstract class JsHistogram implements Histogram {
     return this.toString();
   }
 
+  [Symbol.for("nodejs.util.inspect.custom")]() {
+    return this.toString();
+  }
+
   /**
    * Provide a (conservatively high) estimate of the Histogram's total footprint in bytes
    *

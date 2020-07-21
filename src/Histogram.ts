@@ -44,6 +44,11 @@ export default interface Histogram {
   readonly mean: number;
 
   /**
+   * Main percentiles, max value and total number of recorded values
+   */
+  readonly summary: HistogramSummary;
+
+  /**
    * A (conservatively high) estimate of the Histogram's total footprint in bytes
    */
   readonly estimatedFootprintInBytes: number;
@@ -232,7 +237,7 @@ export interface HistogramConstructor {
   ): Histogram;
 }
 
-export const toJSON = (histogram: Histogram): HistogramSummary => {
+export const toSummary = (histogram: Histogram): HistogramSummary => {
   const { totalCount, maxValue, numberOfSignificantValueDigits } = histogram;
   const round = keepSignificantDigits(numberOfSignificantValueDigits);
   return {

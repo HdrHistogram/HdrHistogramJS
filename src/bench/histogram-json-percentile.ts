@@ -1,7 +1,7 @@
 import b from "benny";
 import { build } from "../index";
 import { initWebAssembly } from "../wasm";
-import { toJSON } from "../Histogram";
+import { toSummary } from "../Histogram";
 initWebAssembly().then(() => {
   const randomInteger = (max: number = Number.MAX_SAFE_INTEGER) =>
     Math.floor(Math.random() * max);
@@ -19,7 +19,7 @@ initWebAssembly().then(() => {
           histogram.recordValueWithCount(randomInteger(), randomInteger(100));
         }
         return () => {
-          toJSON(histogram);
+          toSummary(histogram);
         };
       },
       options
@@ -36,7 +36,7 @@ initWebAssembly().then(() => {
           histogram.recordValueWithCount(randomInteger(), randomInteger(100));
         }
         return () => {
-          toJSON(histogram);
+          toSummary(histogram);
         };
       },
       options
@@ -51,7 +51,7 @@ initWebAssembly().then(() => {
           histogram.recordValueWithCount(randomInteger(), randomInteger(100));
         }
         return () => {
-          toJSON(histogram);
+          toSummary(histogram);
         };
       },
       options
@@ -67,7 +67,7 @@ initWebAssembly().then(() => {
           histogram.recordValueWithCount(randomInteger(), randomInteger(100));
         }
         return () => {
-          toJSON(histogram);
+          toSummary(histogram);
         };
       },
       options

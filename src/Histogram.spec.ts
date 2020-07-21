@@ -246,8 +246,8 @@ describe("Histogram computing statistics", () => {
     histogram.recordValue(50042);
     histogram.recordValue(75042);
     // then
-    const serializedHistogramData = JSON.parse(JSON.stringify(histogram));
-    expect(serializedHistogramData.p50).toEqual(50000);
+    const { summary } = histogram;
+    expect(summary.p50).toEqual(50000);
   });
 });
 
@@ -316,6 +316,11 @@ describe("WASM Histogram not happy path", () => {
     expect(() => destroyedHistogram.recordValue(42)).toThrow(
       "Cannot use a destroyed histogram"
     );
+  });
+  it("should not crash when displayed after destroy", () => {
+    const destroyedHistogram = build({ useWebAssembly: true });
+    destroyedHistogram.destroy();
+    expect(destroyedHistogram + "").toEqual("Destroyed WASM histogram");
   });
   it("should throw a clear error message when added to a JS regular Histogram", () => {
     const wasmHistogram = build({ useWebAssembly: true });

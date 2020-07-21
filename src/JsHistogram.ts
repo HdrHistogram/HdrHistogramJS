@@ -10,7 +10,7 @@ import PercentileIterator from "./PercentileIterator";
 import HistogramIterationValue from "./HistogramIterationValue";
 import { integerFormatter, floatFormatter } from "./formatters";
 import ulp from "./ulp";
-import Histogram, { NO_TAG, toJSON, HistogramSummary } from "./Histogram";
+import Histogram, { NO_TAG, toSummary, HistogramSummary } from "./Histogram";
 
 const { pow, floor, ceil, log2, max, min } = Math;
 
@@ -718,8 +718,12 @@ export abstract class JsHistogram implements Histogram {
     return result;
   }
 
+  get summary(): HistogramSummary {
+    return toSummary(this);
+  }
+
   toJSON(): HistogramSummary {
-    return toJSON(this);
+    return this.summary;
   }
 
   inspect() {

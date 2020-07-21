@@ -2,7 +2,7 @@ import { BINARY } from "./generated-wasm";
 import Histogram, {
   NO_TAG,
   BitBucketSize,
-  toJSON,
+  toSummary,
   HistogramSummary
 } from "../Histogram";
 // @ts-ignore
@@ -210,11 +210,22 @@ export class WasmHistogram implements Histogram {
     );
   }
 
+  private isDestroyed() {
+    return this._wasmHistogram === destroyedWasmHistogram;
+  }
+
+  get summary(): HistogramSummary {
+    return toSummary(this);
+  }
+
   toJSON(): HistogramSummary {
-    return toJSON(this);
+    return this.summary;
   }
 
   toString() {
+    if (this.isDestroyed()) {
+      return "Destroyed WASM histogram";
+    }
     return `WASM ${this._remoteHistogramClass} ${JSON.stringify(
       this,
       null,

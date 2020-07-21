@@ -198,8 +198,13 @@ The code fragment below shows how to instantiate a resizable 32 bits WebAssembly
 ```
 import * as hdr from "hdr-histogram-js"
 
-// load HdrHistogramJS WASM module
+// If you are on the browser side, you need to
+// load asynchronously HdrHistogramJS WASM module
 await hdr.initWebAssembly();
+
+// If you are on the server side, you can
+// load synchronously HdrHistogramJS WASM module
+hdr.initWebAssemblySync();
 
 const histogram = hdr.build({ useWebAssembly: true });
 

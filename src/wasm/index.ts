@@ -43,6 +43,11 @@ export const initWebAssembly = async (): Promise<void> => {
     .then((w: any) => (wasm = w.exports || w));
 };
 
+export const initWebAssemblySync = () => {
+  const w = loader.instantiateSync(pako.inflate(base64.toByteArray(BINARY)));
+  wasm = w.exports || w;
+};
+
 export const webAssemblyReady = () => !!wasm;
 
 const defaultRequest: BuildRequest = {

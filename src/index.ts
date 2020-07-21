@@ -19,11 +19,12 @@ import Int8Histogram from "./Int8Histogram";
 import JsHistogram from "./JsHistogram";
 import PackedHistogram from "./PackedHistogram";
 import Recorder from "./Recorder";
-import { initWebAssembly, WasmHistogram } from "./wasm";
+import { initWebAssembly, initWebAssemblySync, WasmHistogram } from "./wasm";
 import { build } from "./HistogramBuilder";
 
 export {
   initWebAssembly,
+  initWebAssemblySync,
   Int8Histogram,
   Int16Histogram,
   Int32Histogram,

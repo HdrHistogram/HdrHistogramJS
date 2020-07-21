@@ -2,7 +2,7 @@ import { build } from ".";
 import JsHistogram from "./JsHistogram";
 import { NO_TAG } from "./Histogram";
 import Int32Histogram from "./Int32Histogram";
-import { initWebAssembly, WasmHistogram } from "./wasm";
+import { initWebAssembly, WasmHistogram, initWebAssemblySync } from "./wasm";
 import Int8Histogram from "./Int8Histogram";
 import Histogram from "./Histogram";
 
@@ -309,7 +309,7 @@ describe("WASM Histogram not initialized", () => {
 });
 
 describe("WASM Histogram not happy path", () => {
-  beforeEach(initWebAssembly);
+  beforeEach(initWebAssemblySync);
   it("should throw a clear error message when used after destroy", () => {
     const destroyedHistogram = build({ useWebAssembly: true });
     destroyedHistogram.destroy();

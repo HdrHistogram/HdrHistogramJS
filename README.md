@@ -3,7 +3,7 @@
 # HdrHistogramJS
 
 TypeScript port of HdrHistogram for NodeJS and web browsers.  
-Since version 2, HdrHistogramJS comes in 2 flavors: the good old TypeScript implementation and a new WebAssembly implementation. This new WebAssembly impelmentation leverages on AssemblyScript and brings a significant performance boost. Since some caution must be taken using this WebAssembly implementation it is not enabled by default. Check out the WebAssembly section for more details on this topic.
+Since version 2, HdrHistogramJS comes in 2 flavors: the good old TypeScript implementation and a brand new WebAssembly implementation. This new WebAssembly implementation leverages on AssemblyScript to bring a significant performance boost. Since some caution must be taken using this WebAssembly implementation it is not enabled by default. Check out the [WebAssembly section](#boosting-performances-with-webassembly-since-hdrhistogramjs-v2) for more details on this topic.
 Most features from Java original HdrHistogram implementations are implemented, including the following ones:
 
 - regular latency recording
@@ -27,7 +27,7 @@ This library is packaged as a UMD module, hence you can use it directly
 from JavaScript within a browser. To do so, you can simply include HdrHistogramJS file from github's release page:
 
 ```
-<script src="https://github.com/HdrHistogram/HdrHistogramJS/releases/download/v2.0.0-beta4/hdrhistogram.umd.js"></script>
+<script src="https://github.com/HdrHistogram/HdrHistogramJS/releases/download/v2.0.0-beta6/hdrhistogram.umd.js"></script>
 ```
 
 Then you will have access to classes and functions of the APIs using "hdr" prefix.
@@ -36,13 +36,13 @@ You can also use HdrHistogramJS as a commonjs NodeJS module.
 Using npm you can get HdrHIstogramJS with the following command:
 
 ```
-  npm i hdr-histogram-js@2.0.0-beta4
+  npm i hdr-histogram-js@2.0.0-beta6
 ```
 
 Or if you like yarn better:
 
 ```
-  yarn add hdr-histogram-js@2.0.0-beta4
+  yarn add hdr-histogram-js@2.0.0-beta6
 ```
 
 Note for TypeScript developers: since HdrHistogramJS has been written in TypeScript, definition files are embedded, no additional task is needed to get them.
@@ -190,7 +190,7 @@ To benefit from WebAssembly performance boost, there are three things to take ca
 
 - Bootstrap the HdrHistogramJS WebAssembly module at application startup
 - Build a WebAssembly histogram setting the useWebAssembly flag to true
-- Explicitely ask to free up memory by calling histogram.destroy() once an histogram is not needed anymore.
+- Explicitely ask to free up memory by calling _histogram.destroy()_ once an histogram is not needed anymore.
 
 Even if under the cover a WebAssembly histogram is very different from a regular JS based histogram, both provide exactly the same interface.  
 The code fragment below shows how to instantiate a resizable 32 bits WebAssembly histogram:

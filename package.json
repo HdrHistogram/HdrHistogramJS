@@ -5,6 +5,14 @@
   "main": "dist/index.js",
   "browser": "dist/hdrhistogram.umd.js",
   "types": "dist/index.d.ts",
+  "keywords": [
+    "hdr-histogram",
+    "hdr-histogram-js",
+    "percentiles",
+    "monitoring",
+    "latency",
+    "performance"
+  ],
   "scripts": {
     "tsc": "tsc --skipLibCheck --outDir dist --declaration true --sourceMap true",
     "test": "jest",

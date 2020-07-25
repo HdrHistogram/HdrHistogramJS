@@ -10,6 +10,8 @@ import {
   decodeFromCompressedBase64,
   encodeIntoCompressedBase64,
 } from "./encoding";
+import type Histogram from "./Histogram";
+import type { HistogramSummary, BitBucketSize } from "./Histogram";
 import Float64Histogram from "./Float64Histogram";
 import HistogramLogReader, { listTags } from "./HistogramLogReader";
 import HistogramLogWriter from "./HistogramLogWriter";
@@ -20,11 +22,15 @@ import JsHistogram from "./JsHistogram";
 import PackedHistogram from "./PackedHistogram";
 import Recorder from "./Recorder";
 import { initWebAssembly, initWebAssemblySync, WasmHistogram } from "./wasm";
+import type { BuildRequest } from "./HistogramBuilder";
 import { build } from "./HistogramBuilder";
 
 export {
   initWebAssembly,
   initWebAssemblySync,
+  Histogram,
+  BitBucketSize,
+  HistogramSummary,
   Int8Histogram,
   Int16Histogram,
   Int32Histogram,
@@ -33,6 +39,7 @@ export {
   HistogramLogReader,
   listTags,
   build,
+  BuildRequest,
   ByteBuffer,
   decodeFromCompressedBase64,
   encodeIntoCompressedBase64,

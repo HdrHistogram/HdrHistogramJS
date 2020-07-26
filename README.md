@@ -305,17 +305,17 @@ while ((histogram = reader.nextIntervalHistogram()) != null) {
 HdrHistogramJS stores values in memory buckets. Memory footprint of an histogram heavily depends on 3 things:
 
 - the bucket size. A bucket can take 8, 16, 32 or 64 bits of memory. 32 bits buckets is the default.
-- the precision of the histogram (i.e. the number of significant value digits). You can have up to 5 value digits, 3 value digits should be enough for most use cases.
-- the allowed range of values. You can tunned this range with constructor/builder parameters _lowestDiscernibleValue_ and _highestTrackableValue_. If you are not sure of these values, the best option is to keep flag _autoResize_ set to true.
+- the precision of the histogram (i.e. the number of significant value digits). You can have up to 5 value digits, 3 value digits (default) should be enough for most use cases.
+- the allowed range of values. You can tunned this range with constructor/builder parameters _lowestDiscernibleValue_ and _highestTrackableValue_. If you are not sure of these values, the best option is to use flag _autoResize_, set to true by default.
 
-While tunning memory footprint, 'estimatedFootprintInBytes' histogram property can get quite useful since it gives you a clear indicator of the memory cost:
+While tunning memory footprint, _estimatedFootprintInBytes_ histogram property can get quite useful since it gives you a clear indicator of the memory cost:
 
 ```
 const histogram = hdr.build();
 console.log(histogram.estimatedFootprintInBytes);
 ```
 
-If you are willing some CPU cycles in favor of memory, 'packed' bucket size is highly recommended. Available since HdrHistogramJS v1.2.0, this mode enables a very effective memory compression algorithm:
+If in your context saving memory is more important than saving CPU cycles, 'packed' bucket size is highly recommended. Available since HdrHistogramJS v1.2.0, this mode enables a very effective memory compression algorithm:
 
 ```
 const histogram = hdr.build({ bitBucketSize: "packed" });

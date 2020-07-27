@@ -27,7 +27,7 @@ This library is packaged as a UMD module, hence you can use it directly
 from JavaScript within a browser. To do so, you can simply include HdrHistogramJS file from github's release page:
 
 ```
-<script src="https://github.com/HdrHistogram/HdrHistogramJS/releases/download/v2.0.0-beta6/hdrhistogram.umd.js"></script>
+<script src="https://github.com/HdrHistogram/HdrHistogramJS/releases/download/v2.0.0/hdrhistogram.umd.js"></script>
 ```
 
 Then you will have access to classes and functions of the APIs using "hdr" prefix.
@@ -36,13 +36,13 @@ You can also use HdrHistogramJS as a commonjs NodeJS module.
 Using npm you can get HdrHIstogramJS with the following command:
 
 ```
-  npm i hdr-histogram-js@2.0.0-beta6
+  npm i hdr-histogram-js
 ```
 
 Or if you like yarn better:
 
 ```
-  yarn add hdr-histogram-js@2.0.0-beta6
+  yarn add hdr-histogram-js
 ```
 
 Note for TypeScript developers: since HdrHistogramJS has been written in TypeScript, definition files are embedded, no additional task is needed to get them.

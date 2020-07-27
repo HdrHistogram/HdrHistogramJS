@@ -3,7 +3,9 @@
 # HdrHistogramJS
 
 TypeScript port of HdrHistogram for NodeJS and web browsers.  
-Since version 2, HdrHistogramJS comes in 2 flavors: the good old TypeScript implementation and a brand new WebAssembly implementation. This new WebAssembly implementation leverages on AssemblyScript to bring a significant performance boost. Since some caution must be taken using this WebAssembly implementation it is not enabled by default. Check out the [WebAssembly section](#boosting-performances-with-webassembly-since-hdrhistogramjs-v2) for more details on this topic.
+Since version 2, HdrHistogramJS comes in 2 flavors: the good old TypeScript implementation and a brand new WebAssembly implementation!  
+This new WebAssembly implementation leverages on AssemblyScript to bring a significant performance boost. Since some caution must be taken using this WebAssembly implementation it is not enabled by default.  
+Check out the [WebAssembly section](#boosting-performances-with-webassembly-since-hdrhistogramjs-v2) for more details on this topic.
 Most features from Java original HdrHistogram implementations are implemented, including the following ones:
 
 - regular latency recording
@@ -182,10 +184,10 @@ const correctedHistogram
   = histogram.copyCorrectedForCoordinatedOmission(100);
 ```
 
-## Boosting performances with WebAssembly (since HdrHistogramJS v2)
+## Boosting performances with WebAssembly
 
 Since version 2, HdrHistogramJS leverages on WebAssembly to speed up computations. Depending on the use case, the performance boost can be as high as twice as fast :)  
-Everything has been done to make your life easier when using HdrHistogramJS WebAssembly impelmentation, but since the usage a little bit different WebAssembly is not enabled by default.  
+Everything has been done to make your life easier when using HdrHistogramJS WebAssembly implementation, but since the usage a little bit different WebAssembly is not enabled by default.  
 To benefit from WebAssembly performance boost, there are three things to take care of:
 
 - Bootstrap the HdrHistogramJS WebAssembly module at application startup

@@ -5,15 +5,14 @@
 TypeScript port of HdrHistogram for NodeJS and web browsers.  
 Since version 2, HdrHistogramJS comes in 2 flavors: the good old TypeScript implementation and a brand new WebAssembly implementation!  
 This new WebAssembly implementation leverages on AssemblyScript to bring a significant performance boost. Since some caution must be taken using this WebAssembly implementation it is not enabled by default.  
-Check out the [WebAssembly section](#boosting-performances-with-webassembly-since-hdrhistogramjs-v2) for more details on this topic.
-Most features from Java original HdrHistogram implementations are implemented, including the following ones:
+Check out the [WebAssembly section](#boosting-performances-with-webassembly-since-hdrhistogramjs-v2) for more details on this topic.  
+Most features from original Java HdrHistogram implementation are implemented, including the following ones:
 
 - regular latency recording
 - latency recording with coordinated omissions correction
 - resizable bucket based histograms
-- memory efficient packed histograms
+- memory optimized packed histograms
 - add and substract histograms
-- plain text or csv histograms outputs
 - encoding and decoding compressed histograms
 
 # Dataviz

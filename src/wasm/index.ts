@@ -44,6 +44,9 @@ export const initWebAssembly = async (): Promise<void> => {
 };
 
 export const initWebAssemblySync = () => {
+  if (!!wasm) {
+    return;
+  }
   const w = loader.instantiateSync(pako.inflate(base64.toByteArray(BINARY)));
   wasm = w.exports || w;
 };

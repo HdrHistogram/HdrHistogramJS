@@ -474,60 +474,35 @@ describe("Histogram add & substract", () => {
     expect(histogram.totalCount).toBe(2);
     expect(Math.floor(histogram.mean / 100)).toBe(215);
   });
-  it("should add histograms of different sizes b", () => {
-    // given
-    const histogram = new Int32Histogram(1, Number.MAX_SAFE_INTEGER, 2);
-    const histogram2 = new Int32Histogram(1, 1024, 2);
-    histogram2.autoResize = true;
-    histogram.recordValue(42000);
-    histogram2.recordValue(1000);
-    // when
-    histogram.add(histogram2);
-    // then
-    expect(histogram.totalCount).toBe(2);
-    expect(Math.floor(histogram.mean / 100)).toBe(215);
-  });
 
-  it("should be equal when another histogram is added then subtracted", () => {
+  it("should be equal when another histogram of lower precision is added then subtracted", () => {
     // given
-    const histogram = new Int8Histogram(1, 1024, 3);
-    const histogram2 = new Int8Histogram(1, 1024, 3);
-    histogram.autoResize = true;
+    const histogram = build({ numberOfSignificantValueDigits: 5 });
+    const histogram2 = build({ numberOfSignificantValueDigits: 3 });
     histogram.recordValue(100);
-    histogram2.recordValue(420);
-    const outputBefore = histogram.outputPercentileDistribution();
+    histogram2.recordValue(42000);
     // when
+    const before = histogram.summary;
     histogram.add(histogram2);
     histogram.subtract(histogram2);
     // then
-    expect(histogram.outputPercentileDistribution()).toBe(outputBefore);
+    expect(histogram.summary).toStrictEqual(before);
   });
 
-  it("should be equal when another wasm histogram is added then subtracted", () => {
+  it("should update percentiles when another histogram of same characteristics is substracted", () => {
     // given
-    const histogram = build({
-      lowestDiscernibleValue: 1,
-      highestTrackableValue: 1024,
-      autoResize: true,
-      numberOfSignificantValueDigits: 5,
-      bitBucketSize: 32,
-      useWebAssembly: true,
-    });
-    const histogram2 = build({
-      lowestDiscernibleValue: 1,
-      highestTrackableValue: Number.MAX_SAFE_INTEGER,
-      numberOfSignificantValueDigits: 5,
-      bitBucketSize: 32,
-      useWebAssembly: true,
-    });
-    histogram.recordValue(1000);
-    histogram2.recordValue(42000);
-    const outputBefore = histogram.outputPercentileDistribution();
+    const histogram = build({ numberOfSignificantValueDigits: 3 });
+    const histogram2 = build({ numberOfSignificantValueDigits: 3 });
+    histogram.recordValueWithCount(100, 2);
+    histogram2.recordValueWithCount(100, 1);
+    histogram.recordValueWithCount(200, 2);
+    histogram2.recordValueWithCount(200, 1);
+    histogram.recordValueWithCount(300, 2);
+    histogram2.recordValueWithCount(300, 1);
     // when
-    histogram.add(histogram2);
     histogram.subtract(histogram2);
     // then
-    expect(histogram.outputPercentileDistribution()).toBe(outputBefore);
+    expect(histogram.getValueAtPercentile(50)).toBe(200);
   });
 });
 

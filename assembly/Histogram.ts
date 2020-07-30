@@ -672,7 +672,10 @@ export default class Histogram<T, U> extends AbstractHistogramBase<T, U> {
         otherHistogram.maxValue
       );
       let otherCount = otherHistogram.getCountAtIndex(otherMaxIndex);
-      this.recordCountAtValue(otherCount, otherHistogram.maxValue);
+      this.recordCountAtValue(
+        otherCount,
+        otherHistogram.valueFromIndex(otherMaxIndex)
+      );
 
       // Record the remaining values, up to but not including the max value:
       for (let i = 0; i < otherMaxIndex; i++) {
@@ -756,12 +759,15 @@ export default class Histogram<T, U> extends AbstractHistogramBase<T, U> {
     ) {
       // optim
       // Counts arrays are of the same length and meaning, so we can just iterate and add directly:
+      let observedOtherTotalCount: u64 = 0;
       for (let i = 0; i < otherHistogram.countsArrayLength; i++) {
         const otherCount = otherHistogram.getCountAtIndex(i);
         if (otherCount > 0) {
           this.addToCountAtIndex(i, -otherCount);
+          observedOtherTotalCount += otherCount;
         }
       }
+      this.totalCount = this.totalCount - observedOtherTotalCount;
     } else {
       for (let i = 0; i < otherHistogram.countsArrayLength; i++) {
         const otherCount = otherHistogram.getCountAtIndex(i);

@@ -285,7 +285,7 @@ describe("Histogram correcting coordinated omissions", () => {
   });
 });
 
-describe("Histogram add & substract", () => {
+describe("Histogram add & subtract", () => {
   it("should add histograms of same size", () => {
     // given
     const histogram = buildHistogram();
@@ -317,11 +317,28 @@ describe("Histogram add & substract", () => {
     // given
     const histogram = buildHistogram();
     const histogram2 = buildHistogram();
-    histogram.autoResize = true;
-    histogram.recordValue(1000);
-    histogram2.recordValue(42000);
+    histogram.recordCountAtValue(2, 100);
+    histogram2.recordCountAtValue(1, 100);
+    histogram.recordCountAtValue(2, 200);
+    histogram2.recordCountAtValue(1, 200);
+    histogram.recordCountAtValue(2, 300);
+    histogram2.recordCountAtValue(1, 300);
     const outputBefore = histogram.outputPercentileDistribution();
     // when
+    histogram.add<Storage<Uint8Array, u8>, u8>(histogram2);
+    histogram.subtract<Storage<Uint8Array, u8>, u8>(histogram2);
+    // then
+    expect(histogram.outputPercentileDistribution()).toBe(outputBefore);
+  });
+
+  it("should be equal when another histogram of lower precision is added then subtracted", () => {
+    // given
+    const histogram = new Histogram8(1, 1000000000, 5);
+    const histogram2 = new Histogram8(1, 1000000000, 3);
+    histogram.recordValue(10);
+    histogram2.recordValue(100000);
+    // when
+    const outputBefore = histogram.outputPercentileDistribution();
     histogram.add<Storage<Uint8Array, u8>, u8>(histogram2);
     histogram.subtract<Storage<Uint8Array, u8>, u8>(histogram2);
     // then

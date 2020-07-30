@@ -6,8 +6,6 @@
  * http://creativecommons.org/publicdomain/zero/1.0/
  */
 
-import { bitCount } from "./bitcount";
-
 /**
  * A packed-value, sparse array context used for storing 64 bit signed values.
  *
@@ -238,8 +236,8 @@ export class PackedArrayContext {
     const insertedSlotMask =
       packedSlotsIndicators ^ previousVersionPackedSlotsIndicators; // the only bit that differs
     const slotsBelowBitNumber = packedSlotsIndicators & (insertedSlotMask - 1);
-    const insertedSlotIndex = bitCount(slotsBelowBitNumber);
-    const numberOfSlotsInEntry = bitCount(packedSlotsIndicators);
+    const insertedSlotIndex = popcnt(slotsBelowBitNumber);
+    const numberOfSlotsInEntry = popcnt(packedSlotsIndicators);
 
     // Copy the entry slots from previous version, skipping the newly inserted slot in the target:
     let sourceSlot = 0;
@@ -282,7 +280,7 @@ export class PackedArrayContext {
     let packedSlotIndicators =
       (<i32>this.getAtShortIndex(existingEntryIndex)) & 0xffff;
     packedSlotIndicators |= insertedSlotMask;
-    const numberOfslotsInExpandedEntry = bitCount(packedSlotIndicators);
+    const numberOfslotsInExpandedEntry = popcnt(packedSlotIndicators);
 
     if (insertedSlotIndex >= <i32>numberOfslotsInExpandedEntry) {
       throw new Error(
@@ -394,7 +392,7 @@ export class PackedArrayContext {
       const slotBitNumber = (virtualIndex >>> indexShift) & 0xf;
       const slotMask = 1 << slotBitNumber;
       const slotsBelowBitNumber = packedSlotIndicators & (slotMask - 1);
-      const slotNumber = bitCount(slotsBelowBitNumber);
+      const slotNumber = popcnt(slotsBelowBitNumber);
 
       if ((packedSlotIndicators & slotMask) === 0) {
         // The entryIndex slot does not have the contents we want
@@ -512,7 +510,7 @@ export class PackedArrayContext {
     const packedSlotIndicators = other.getPackedSlotIndicators(
       otherLevelEntryIndex
     );
-    const numberOfSlots = bitCount(packedSlotIndicators);
+    const numberOfSlots = popcnt(packedSlotIndicators);
     const sizeOfEntry = NON_LEAF_ENTRY_HEADER_SIZE_IN_SHORTS + numberOfSlots;
     const entryIndex = this.newEntry(sizeOfEntry);
 
@@ -599,7 +597,7 @@ export class PackedArrayContext {
       toHex(packedSlotIndicators) +
       ", prevVersionIndex: 0: [ ";
 
-    const numberOfslotsInEntry = bitCount(packedSlotIndicators);
+    const numberOfslotsInEntry = popcnt(packedSlotIndicators);
     for (let i: u8 = 0; i < numberOfslotsInEntry; i++) {
       output += this.getIndexAtEntrySlot(entryIndex, i).toString();
       if (i < numberOfslotsInEntry - 1) {

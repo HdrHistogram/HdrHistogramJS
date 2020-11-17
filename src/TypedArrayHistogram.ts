@@ -18,6 +18,8 @@ class TypedArrayHistogram extends JsHistogram {
   _counts: TypedArray;
   _totalCount: number;
 
+  maxBucketSize: number;
+
   constructor(
     private arrayCtr: new (size: number) => TypedArray,
     lowestDiscernibleValue: number,
@@ -31,6 +33,7 @@ class TypedArrayHistogram extends JsHistogram {
     );
     this._totalCount = 0;
     this._counts = new arrayCtr(this.countsArrayLength);
+    this.maxBucketSize = 2**(this._counts.BYTES_PER_ELEMENT * 8) - 1;
   }
 
   clearCounts() {
@@ -40,8 +43,8 @@ class TypedArrayHistogram extends JsHistogram {
   incrementCountAtIndex(index: number) {
     const currentCount = this._counts[index];
     const newCount = currentCount + 1;
-    if (newCount < 0) {
-      throw newCount + " would overflow short integer count";
+    if (newCount > this.maxBucketSize) {
+      throw newCount + " would overflow " + this._counts.BYTES_PER_ELEMENT * 8 + "bits integer count";
     }
     this._counts[index] = newCount;
   }

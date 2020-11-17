@@ -67,3 +67,26 @@ import Float64Histogram from "./Float64Histogram";
     });
   }
 );
+
+
+describe("Histogram bucket size overflow", () => {
+  [Int8Histogram, Int16Histogram].forEach(
+    (Histogram) => {
+      it("should fail when recording more than 'maxBucketSize' times the same value", () => {
+        //given
+        const histogram = new Histogram(1, Number.MAX_SAFE_INTEGER, 3);
+        
+        //when //then
+        try {
+          let i = 0;
+          for (i; i <= histogram.maxBucketSize; i++) {
+            histogram.recordValue(1); 
+          }
+          fail(`should have failed due to ${histogram._counts.BYTES_PER_ELEMENT * 8}bits integer overflow (bucket size: ${i})`);
+        } catch (e) {
+          //ok
+          expect(histogram.getCountAtIndex(1)).toBe(histogram.maxBucketSize);
+        }
+      });
+    })
+});

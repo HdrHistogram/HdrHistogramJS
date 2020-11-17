@@ -589,9 +589,11 @@ export default class Histogram<T, U> extends AbstractHistogramBase<T, U> {
     // @ts-ignore
     const currentCount = unchecked(this.counts[index]);
     const newCount = currentCount + 1;
-    if (newCount < 0) {
+    if (newCount < currentCount) {
+      const bitSize = <u8>(sizeof<U>() * 8);
+      const overflowAt = (<u64>currentCount + 1); 
       throw new Error(
-        newCount.toString() + " would overflow short integer count"
+        overflowAt.toString() + " would overflow " + bitSize.toString() + "bits integer count"
       );
     }
     // @ts-ignore

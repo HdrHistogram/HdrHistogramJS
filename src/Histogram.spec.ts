@@ -557,3 +557,30 @@ describe("Histogram clearing support", () => {
     expect(histogram.mean).toBe(histogram2.mean);
   });
 });
+
+describe("WASM Histogram bucket size overflow", () => {
+  let wasmHistogram: Histogram;
+  beforeAll(initWebAssembly);
+  afterEach(() => wasmHistogram.destroy());
+
+  [8 as const, 16 as const].forEach(
+    (bitBucketSize) => {
+      it("should fail when recording more than 'bitBucketSize' times the same value", () => {
+        //given
+        wasmHistogram = build({ useWebAssembly: true, bitBucketSize });
+        const overflowAt = (2**bitBucketSize) - 1;
+
+        //when //then
+        try {
+          let i = 0;
+          for (i; i <= overflowAt; i++) {
+            wasmHistogram.recordValue(1); 
+          }
+          fail(`should have failed due to ${bitBucketSize}bits integer overflow (bucket size : ${i})`);
+        } catch (e) {
+          //ok
+        }
+      });
+    })
+});
+

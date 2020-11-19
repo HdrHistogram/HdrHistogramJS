@@ -69,7 +69,6 @@ import { decodeFromCompressedBase64 } from "./encoding";
   }
 );
 
-
 describe("Histogram bucket size overflow", () => {
   [Int8Histogram, Int16Histogram].forEach(
     (Histogram) => {
@@ -99,26 +98,17 @@ describe("Histogram bucket size overflow", () => {
         histogram2.recordValueWithCount(1, maxBucketSize);
         
         //when //then
-        try {
-          histogram1.add(histogram2);
-          fail(`should have failed due to ${bitBucketSize}bits integer overflow`);
-        } catch (e) {
-          //ok
-        }
+        expect(() => histogram1.add(histogram2)).toThrow();
       });
     });
     it("should fail when decoding an Int32 histogram with one bucket couunt greater than 16bits", () => {
       //given
       const int32Histogram = new Int32Histogram(1, Number.MAX_SAFE_INTEGER, 3);
       int32Histogram.recordValueWithCount(1, 2**32 - 1);
+      const encodedInt32Histogram = int32Histogram.encodeIntoCompressedBase64();
       
       //when //then
-      try {
-        const encodedInt32Histogram = int32Histogram.encodeIntoCompressedBase64();
-        decodeFromCompressedBase64(encodedInt32Histogram, 16);
-        fail(`should have failed due to bits integer overflow`);
-      } catch (e) {
-        //ok
-      }
+      expect(() => decodeFromCompressedBase64(encodedInt32Histogram, 16)).toThrow();
+
     });
 });

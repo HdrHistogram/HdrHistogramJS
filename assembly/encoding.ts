@@ -111,9 +111,9 @@ function fillCountsArrayFromSourceBuffer<T, U>(
   const endPosition = sourceBuffer.position + lengthInBytes;
   while (sourceBuffer.position < endPosition) {
     let zerosCount: i32 = 0;
-    let count = <i32>ZigZagEncoding.decode(sourceBuffer);
+    let count = <i64>ZigZagEncoding.decode(sourceBuffer);
     if (count < 0) {
-      zerosCount = -count;
+      zerosCount = <i32>-count;
       dstIndex += zerosCount; // No need to set zeros in array. Just skip them.
     } else {
       self.setCountAtIndex(dstIndex++, count);

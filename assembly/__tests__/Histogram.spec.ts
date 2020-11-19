@@ -326,9 +326,9 @@ describe("Histogram add & subtract", () => {
     const outputBefore = histogram.outputPercentileDistribution();
     // when
     histogram.add<Storage<Uint8Array, u8>, u8>(histogram2);
-    //histogram.subtract<Storage<Uint8Array, u8>, u8>(histogram2);
+    histogram.subtract<Storage<Uint8Array, u8>, u8>(histogram2);
     // then
-   //expect(histogram.outputPercentileDistribution()).toBe(outputBefore);
+    expect(histogram.outputPercentileDistribution()).toBe(outputBefore);
   });
 
   it("should be equal when another histogram of lower precision is added then subtracted", () => {

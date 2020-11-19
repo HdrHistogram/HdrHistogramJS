@@ -606,6 +606,13 @@ export default class Histogram<T, U> extends AbstractHistogramBase<T, U> {
 
   setCountAtIndex(index: i32, value: u64): void {
     // @ts-ignore
+    if ((<u64>value) as number > this.maxBucketSize) {
+      const bitSize = <u8>(sizeof<U>() * 8);
+      throw new Error(
+        value.toString() + " would overflow " + bitSize.toString() + "bits integer count"
+      );
+    }
+    // @ts-ignore
     unchecked((this.counts[index] = <U>value));
   }
 

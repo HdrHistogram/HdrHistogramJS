@@ -559,16 +559,13 @@ describe("Histogram clearing support", () => {
 });
 
 describe("WASM Histogram bucket size overflow", () => {
-  let wasmHistogram: Histogram;
   beforeAll(initWebAssembly);
-  afterEach(() => wasmHistogram.destroy());
-
   [8 as const, 16 as const].forEach(
     (bitBucketSize) => {
       const maxBucketSize = (2 ** bitBucketSize) - 1;
       it(`should fail when recording more than ${maxBucketSize} times the same value`, () => {
         //given
-        wasmHistogram = build({ useWebAssembly: true, bitBucketSize });
+        const wasmHistogram = build({ useWebAssembly: true, bitBucketSize });
 
         //when //then
         try {
@@ -577,42 +574,37 @@ describe("WASM Histogram bucket size overflow", () => {
             wasmHistogram.recordValue(1); 
           }
           fail(`should have failed due to ${bitBucketSize}bits integer overflow (bucket size : ${i})`);
-        } catch (e) {
+        } catch(e) {
           //ok
+        } finally {
+          wasmHistogram.destroy();
         }
       });
 
-       //Cannot use a destroyed histogram error
-    it.skip(`should fail when adding two histograms when the same bucket count addition is greater than ${bitBucketSize}bits max integer value`, () => {
-      //given
-      const histogram1 = build({ useWebAssembly: true, bitBucketSize });
-      histogram1.recordValueWithCount(1, maxBucketSize);
-      const histogram2 = build({ useWebAssembly: true, bitBucketSize });
-      histogram2.recordValueWithCount(1, maxBucketSize);
-      
-      //when //then
-      try {
-        histogram2.add(histogram1);
-        fail(`should have failed due to ${bitBucketSize}bits integer overflow`);
-      } catch (e) {
-        //ok
-      }
+      it(`should fail when adding two histograms when the same bucket count addition is greater than ${bitBucketSize}bits max integer value`, () => {
+        //given
+        const histogram1 = build({ useWebAssembly: true, bitBucketSize });
+        histogram1.recordValueWithCount(1, maxBucketSize);
+        const histogram2 = build({ useWebAssembly: true, bitBucketSize });
+        histogram2.recordValueWithCount(1, maxBucketSize);
+        
+        //when //then
+        expect(() => histogram2.add(histogram1)).toThrow();
+
+        histogram1.destroy();
+        histogram2.destroy();
+      });
     });
-    });
-    //Cannot use a destroyed histogram error
-    it.skip("should fail when decoding an Int32 histogram with one bucket count greater than 16bits", () => {
+
+    it("should fail when decoding an Int32 histogram with one bucket count greater than 16bits in a smaller histogram", () => {
       //given
       const int32Histogram = build({ useWebAssembly: true, bitBucketSize: 32 }) as WasmHistogram;
       int32Histogram.recordValueWithCount(1, 2**32 - 1);
+      const encodedInt32Histogram = int32Histogram.encodeIntoCompressedBase64();
       
       //when //then
-      try {
-        const encodedInt32Histogram = int32Histogram.encodeIntoCompressedBase64();
-        decodeFromCompressedBase64(encodedInt32Histogram, 16, true);
-        fail(`should have failed due to 16bits integer overflow`);
-      } catch (e) {
-        //ok
-      }
+      expect(() => decodeFromCompressedBase64(encodedInt32Histogram, 16, true)).toThrow();
+      int32Histogram.destroy();
     });
 });
 

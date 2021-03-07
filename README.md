@@ -234,7 +234,7 @@ import * as hdr from "hdr-histogram-js"
 
 const histogram = hdr.build();
 histogram.recordvalue(42);
-const encodedString = hdr.encodeIntoBase64String(histogram);
+const encodedString = hdr.encodeIntoCompressedBase64(histogram);
 // gives something that looks like "HISTFAAAAB542pNpmSzMwMDAxAABzFCaEUoz2X+AMIKZAEARAtM="
 ```
 

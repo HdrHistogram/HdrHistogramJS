@@ -56,7 +56,7 @@
     "yargs": "^6.4.0"
   },
   "dependencies": {
-    "@assemblyscript/loader": "^0.10.1",
+    "@assemblyscript/loader": "^0.17.5",
     "base64-js": "^1.2.0",
     "pako": "^1.0.3"
   },

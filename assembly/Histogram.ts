@@ -46,7 +46,7 @@ export default class Histogram<T, U> extends AbstractHistogramBase<T, U> {
   maxValue: u64 = 0;
   minNonZeroValue: u64 = U64.MAX_VALUE;
 
-  counts: T;
+  counts!: T;
   totalCount: u64 = 0;
 
   constructor(

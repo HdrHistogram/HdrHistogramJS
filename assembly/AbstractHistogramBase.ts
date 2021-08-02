@@ -36,8 +36,8 @@ export abstract class AbstractHistogramBase<T, U> {
 
   integerToDoubleValueConversionRatio: f64 = 1.0;
 
-  percentileIterator: PercentileIterator<T, U>;
-  recordedValuesIterator: RecordedValuesIterator<T, U>;
+  percentileIterator!: PercentileIterator<T, U>;
+  recordedValuesIterator!: RecordedValuesIterator<T, U>;
 
   constructor() {
     this.identity = 0;

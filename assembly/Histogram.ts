@@ -439,6 +439,7 @@ export default class Histogram<T, U> extends AbstractHistogramBase<T, U> {
     }
   }
 
+  @inline
   recordCountAtValue(count: u64, value: u64): void {
     const countsIndex = this.countsArrayIndex(value);
     if (countsIndex >= this.countsArrayLength) {
@@ -574,6 +575,7 @@ export default class Histogram<T, U> extends AbstractHistogramBase<T, U> {
     return (<u64>subBucketIndex) << (bucketIndex + this.unitMagnitude);
   }
 
+  @inline
   valueFromIndex(index: i32): u64 {
     let bucketIndex = (index >> this.subBucketHalfCountMagnitude) - 1;
     let subBucketIndex =
@@ -618,6 +620,7 @@ export default class Histogram<T, U> extends AbstractHistogramBase<T, U> {
     this.totalCount++;
   }
 
+  @inline
   getCountAtIndex(index: i32): u64 {
     // @ts-ignore
     return unchecked(<u64>this.counts[index]);
@@ -939,45 +942,47 @@ export default class Histogram<T, U> extends AbstractHistogramBase<T, U> {
   }
 }
 
-export class Storage<T, U> {
-  [key: number]: number;
-  array: T;
+@final
+export class Storage<T> {
+  array: StaticArray<T>;
   constructor(size: i32) {
-    this.array = instantiate<T>(size);
+    this.array = new StaticArray<T>(size);
   }
 
   public get estimatedFootprintInBytes(): i32 {
-    // @ts-ignore
-    return offsetof<Storage<T, U>>() + this.array.byteLength;
+    return offsetof<Storage<T>>() + this.array.length;
   }
 
-  resize(newSize: i32): Storage<T, U> {
-    const newArray = new Storage<T, U>(newSize);
-    // @ts-ignore
-    newArray.array.set(this.array);
+  resize(newSize: i32): Storage<T> {
+    const newArray = new Storage<T>(newSize);
+    for (let index: i32 = 0; index < this.array.length; index++) {
+      unchecked(newArray.array[index] = this.array[index]);
+    }
     return newArray;
   }
 
   clear(): void {
-    // @ts-ignore
-    this.array.fill(0);
+    for (let index: i32 = 0; index < this.array.length; index++) {
+      // @ts-ignore
+      unchecked(this.array[index] = 0);
+    }
   }
 
-  @operator("[]") private __get(index: i32): U {
+  @inline @operator("[]") private __get(index: i32): T {
     // @ts-ignore
     return unchecked(this.array[index]);
   }
 
-  @operator("[]=") private __set(index: i32, value: U): void {
+  @inline @operator("[]=") private __set(index: i32, value: T): void {
     // @ts-ignore
     unchecked((this.array[index] = value));
   }
 }
 
-export type Uint8Storage = Storage<Uint8Array, u8>;
-export type Uint16Storage = Storage<Uint16Array, u16>;
-export type Uint32Storage = Storage<Uint32Array, u32>;
-export type Uint64Storage = Storage<Uint64Array, u64>;
+export type Uint8Storage = Storage<u8>;
+export type Uint16Storage = Storage<u16>;
+export type Uint32Storage = Storage<u32>;
+export type Uint64Storage = Storage<u64>;
 
 export class Histogram8 extends Histogram<Uint8Storage, u8> {}
 export class Histogram16 extends Histogram<Uint16Storage, u16> {}

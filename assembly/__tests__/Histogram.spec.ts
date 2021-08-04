@@ -293,7 +293,7 @@ describe("Histogram add & subtract", () => {
     histogram.recordValue(42);
     histogram2.recordValue(158);
     // testwhen
-    histogram.add<Storage<Uint16Array, u16>, u16>(histogram2);
+    histogram.add<Storage<u16>, u16>(histogram2);
     // then
     expect(histogram.totalCount).toBe(2);
     expect(histogram.getMean()).toBe(100);
@@ -307,7 +307,7 @@ describe("Histogram add & subtract", () => {
     histogram.recordValue(42000);
     histogram2.recordValue(1000);
     // when
-    histogram.add<Storage<Uint16Array, u16>, u16>(histogram2);
+    histogram.add<Storage<u16>, u16>(histogram2);
     // then
     expect(histogram.totalCount).toBe(2);
     expect(Math.floor(histogram.getMean() / 100)).toBe(215);
@@ -325,8 +325,8 @@ describe("Histogram add & subtract", () => {
     histogram2.recordCountAtValue(1, 300);
     const outputBefore = histogram.outputPercentileDistribution();
     // when
-    histogram.add<Storage<Uint8Array, u8>, u8>(histogram2);
-    histogram.subtract<Storage<Uint8Array, u8>, u8>(histogram2);
+    histogram.add<Storage<u8>, u8>(histogram2);
+    histogram.subtract<Storage<u8>, u8>(histogram2);
     // then
     expect(histogram.outputPercentileDistribution()).toBe(outputBefore);
   });
@@ -339,8 +339,8 @@ describe("Histogram add & subtract", () => {
     histogram2.recordValue(100000);
     // when
     const outputBefore = histogram.outputPercentileDistribution();
-    histogram.add<Storage<Uint8Array, u8>, u8>(histogram2);
-    histogram.subtract<Storage<Uint8Array, u8>, u8>(histogram2);
+    histogram.add<Storage<u8>, u8>(histogram2);
+    histogram.subtract<Storage<u8>, u8>(histogram2);
     // then
     expect(histogram.outputPercentileDistribution()).toBe(outputBefore);
   });

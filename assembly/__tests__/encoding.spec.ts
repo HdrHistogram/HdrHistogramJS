@@ -52,9 +52,7 @@ describe("Histogram encoding", () => {
     histogram.recordValue(77);
     const data = histogram.encode();
     // when
-    const buffer = ByteBuffer.allocate();
-    buffer.data = data;
-    buffer.position = 0;
+    const buffer = new ByteBuffer(data);
     const result = decodeFromByteBuffer<Uint32Storage, u32>(buffer, 0);
     // then
     expect(result.outputPercentileDistribution()).toBe(
@@ -68,9 +66,7 @@ describe("Histogram encoding", () => {
     histogram.recordValue(32415482);
     const data = histogram.encode();
     // when
-    const buffer = ByteBuffer.allocate();
-    buffer.data = data;
-    buffer.position = 0;
+    const buffer = new ByteBuffer(data);
     const result = decodeFromByteBuffer<Uint32Storage, u32>(buffer, 0);
     // then
     expect(result.outputPercentileDistribution()).toBe(

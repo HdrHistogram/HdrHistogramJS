@@ -10,7 +10,7 @@ import * as base64 from "base64-js";
 // @ts-ignore
 import * as pako from "pako";
 // @ts-ignore
-import * as loader from "@assemblyscript/loader";
+import { instantiate, instantiateSync } from "@assemblyscript/loader";
 import { BuildRequest } from "../HistogramBuilder";
 
 const isNode = typeof process !== "undefined" && process.version;
@@ -38,8 +38,7 @@ export const initWebAssembly = async (): Promise<void> => {
   if (!!wasm) {
     return;
   }
-  return loader
-    .instantiate(pako.inflate(base64.toByteArray(BINARY)))
+  return instantiate(pako.inflate(base64.toByteArray(BINARY)))
     .then((w: any) => (wasm = w.exports || w));
 };
 
@@ -47,7 +46,7 @@ export const initWebAssemblySync = () => {
   if (!!wasm) {
     return;
   }
-  const w = loader.instantiateSync(pako.inflate(base64.toByteArray(BINARY)));
+  const w = instantiateSync(pako.inflate(base64.toByteArray(BINARY)));
   wasm = w.exports || w;
 };
 
@@ -81,6 +80,7 @@ export class WasmHistogram implements Histogram {
     private _remoteHistogramClass: string
   ) {
     this.tag = NO_TAG;
+    wasm.__pin(this._wasmHistogram);
   }
 
   static build(request: BuildRequest = defaultRequest) {
@@ -112,14 +112,13 @@ export class WasmHistogram implements Histogram {
     }
     const remoteHistogramClass = remoteHistogramClassFor(bitBucketSize);
     const decodeFunc = `decode${remoteHistogramClass}`;
-    const ptrArr = wasm.__retain(wasm.__allocArray(wasm.UINT8ARRAY_ID, data));
+    const ptrArr = wasm.__newArray(wasm.UINT8ARRAY_ID, data);
     const wasmHistogram = new WasmHistogram(
       wasm[remoteHistogramClass].wrap(
         wasm[decodeFunc](ptrArr, minBarForHighestTrackableValue)
       ),
       remoteHistogramClass
     );
-    wasm.__release(ptrArr);
     return wasmHistogram;
   }
 
@@ -297,9 +296,9 @@ export class WasmHistogram implements Histogram {
   }
 
   encode(): Uint8Array {
-    const ptrArray = this._wasmHistogram.encode();
+    const ptrArray = wasm.__pin(this._wasmHistogram.encode());
     const array = wasm.__getUint8Array(ptrArray);
-    wasm.__release(ptrArray);
+    wasm.__unpin(ptrArray);
     return array;
   }
 
@@ -309,7 +308,7 @@ export class WasmHistogram implements Histogram {
   }
 
   destroy(): void {
-    wasm.__release(this._wasmHistogram);
+    wasm.__unpin(this._wasmHistogram);
     this._wasmHistogram = destroyedWasmHistogram;
   }
 }

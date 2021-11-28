@@ -16,7 +16,7 @@ import HistogramIterationValue from "./HistogramIterationValue";
  */
 class RecordedValuesIterator<T, U> {
   visitedIndex: i32;
-  histogram: Histogram<T, U>;
+  histogram!: Histogram<T, U>;
   savedHistogramTotalRawCount: u64;
   currentIndex: i32;
   currentValueAtIndex: u64;

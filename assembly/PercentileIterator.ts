@@ -20,7 +20,7 @@ class PercentileIterator<T, U> {
   percentileLevelToIterateTo: f64;
   percentileLevelToIterateFrom: f64;
   reachedLastRecordedValue: boolean;
-  histogram: Histogram<T, U>;
+  histogram!: Histogram<T, U>;
   savedHistogramTotalRawCount: u64;
   currentIndex: i32;
   currentValueAtIndex: u64;

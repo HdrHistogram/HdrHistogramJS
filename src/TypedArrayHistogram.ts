@@ -18,6 +18,8 @@ class TypedArrayHistogram extends JsHistogram {
   _counts: TypedArray;
   _totalCount: number;
 
+  maxBucketSize: number;
+
   constructor(
     private arrayCtr: new (size: number) => TypedArray,
     lowestDiscernibleValue: number,
@@ -31,6 +33,7 @@ class TypedArrayHistogram extends JsHistogram {
     );
     this._totalCount = 0;
     this._counts = new arrayCtr(this.countsArrayLength);
+    this.maxBucketSize = 2**(this._counts.BYTES_PER_ELEMENT * 8) - 1;
   }
 
   clearCounts() {
@@ -40,8 +43,8 @@ class TypedArrayHistogram extends JsHistogram {
   incrementCountAtIndex(index: number) {
     const currentCount = this._counts[index];
     const newCount = currentCount + 1;
-    if (newCount < 0) {
-      throw newCount + " would overflow short integer count";
+    if (newCount > this.maxBucketSize) {
+      throw newCount + " would overflow " + this._counts.BYTES_PER_ELEMENT * 8 + "bits integer count";
     }
     this._counts[index] = newCount;
   }
@@ -49,18 +52,15 @@ class TypedArrayHistogram extends JsHistogram {
   addToCountAtIndex(index: number, value: number) {
     const currentCount = this._counts[index];
     const newCount = currentCount + value;
-    if (
-      newCount < Number.MIN_SAFE_INTEGER ||
-      newCount > Number.MAX_SAFE_INTEGER
-    ) {
-      throw newCount + " would overflow integer count";
+    if (newCount > this.maxBucketSize) {
+      throw newCount + " would overflow " + this._counts.BYTES_PER_ELEMENT * 8 + "bits integer count";
     }
     this._counts[index] = newCount;
   }
 
   setCountAtIndex(index: number, value: number) {
-    if (value < Number.MIN_SAFE_INTEGER || value > Number.MAX_SAFE_INTEGER) {
-      throw value + " would overflow integer count";
+    if (value > this.maxBucketSize) {
+      throw value + " would overflow " + this._counts.BYTES_PER_ELEMENT * 8 + "bits integer count";
     }
     this._counts[index] = value;
   }

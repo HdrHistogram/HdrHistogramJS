@@ -3,8 +3,8 @@ import JsHistogram from "./JsHistogram";
 import { NO_TAG } from "./Histogram";
 import Int32Histogram from "./Int32Histogram";
 import { initWebAssembly, WasmHistogram, initWebAssemblySync } from "./wasm";
-import Int8Histogram from "./Int8Histogram";
 import Histogram from "./Histogram";
+import { decodeFromCompressedBase64 } from './encoding';
 
 class HistogramForTests extends JsHistogram {
   //constructor() {}
@@ -557,3 +557,54 @@ describe("Histogram clearing support", () => {
     expect(histogram.mean).toBe(histogram2.mean);
   });
 });
+
+describe("WASM Histogram bucket size overflow", () => {
+  beforeAll(initWebAssembly);
+  [8 as const, 16 as const].forEach(
+    (bitBucketSize) => {
+      const maxBucketSize = (2 ** bitBucketSize) - 1;
+      it(`should fail when recording more than ${maxBucketSize} times the same value`, () => {
+        //given
+        const wasmHistogram = build({ useWebAssembly: true, bitBucketSize });
+
+        //when //then
+        try {
+          let i = 0;
+          for (i; i <= maxBucketSize; i++) {
+            wasmHistogram.recordValue(1); 
+          }
+          fail(`should have failed due to ${bitBucketSize}bits integer overflow (bucket size : ${i})`);
+        } catch(e) {
+          //ok
+        } finally {
+          wasmHistogram.destroy();
+        }
+      });
+
+      it(`should fail when adding two histograms when the same bucket count addition is greater than ${bitBucketSize}bits max integer value`, () => {
+        //given
+        const histogram1 = build({ useWebAssembly: true, bitBucketSize });
+        histogram1.recordValueWithCount(1, maxBucketSize);
+        const histogram2 = build({ useWebAssembly: true, bitBucketSize });
+        histogram2.recordValueWithCount(1, maxBucketSize);
+        
+        //when //then
+        expect(() => histogram2.add(histogram1)).toThrow();
+
+        histogram1.destroy();
+        histogram2.destroy();
+      });
+    });
+
+    it("should fail when decoding an Int32 histogram with one bucket count greater than 16bits in a smaller histogram", () => {
+      //given
+      const int32Histogram = build({ useWebAssembly: true, bitBucketSize: 32 }) as WasmHistogram;
+      int32Histogram.recordValueWithCount(1, 2**32 - 1);
+      const encodedInt32Histogram = int32Histogram.encodeIntoCompressedBase64();
+      
+      //when //then
+      expect(() => decodeFromCompressedBase64(encodedInt32Histogram, 16, true)).toThrow();
+      int32Histogram.destroy();
+    });
+});
+

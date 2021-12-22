@@ -49,6 +49,8 @@ export default class Histogram<T, U> extends AbstractHistogramBase<T, U> {
   counts!: T;
   totalCount: u64 = 0;
 
+  maxBucketSize: number;
+
   constructor(
     lowestDiscernibleValue: u64,
     highestTrackableValue: u64,
@@ -119,6 +121,8 @@ export default class Histogram<T, U> extends AbstractHistogramBase<T, U> {
     this.establishSize(highestTrackableValue);
     // @ts-ignore
     this.counts = instantiate<T>(this.countsArrayLength);
+
+    this.maxBucketSize = 2 ** (sizeof<U>() * 8) - 1;
 
     this.leadingZeroCountBase =
       64 - this.unitMagnitude - this.subBucketHalfCountMagnitude - 1;
@@ -591,9 +595,11 @@ export default class Histogram<T, U> extends AbstractHistogramBase<T, U> {
     // @ts-ignore
     const currentCount = unchecked(this.counts[index]);
     const newCount = currentCount + 1;
-    if (newCount < 0) {
+    if (newCount < currentCount) {
+      const bitSize = <u8>(sizeof<U>() * 8);
+      const overflowAt = (<u64>currentCount + 1); 
       throw new Error(
-        newCount.toString() + " would overflow short integer count"
+        overflowAt.toString() + " would overflow " + bitSize.toString() + "bits integer count"
       );
     }
     // @ts-ignore
@@ -602,6 +608,13 @@ export default class Histogram<T, U> extends AbstractHistogramBase<T, U> {
 
   setCountAtIndex(index: i32, value: u64): void {
     // @ts-ignore
+    if ((<u64>value) as number > this.maxBucketSize) {
+      const bitSize = <u8>(sizeof<U>() * 8);
+      throw new Error(
+        value.toString() + " would overflow " + bitSize.toString() + "bits integer count"
+      );
+    }
+    // @ts-ignore
     unchecked((this.counts[index] = <U>value));
   }
 
@@ -609,8 +622,12 @@ export default class Histogram<T, U> extends AbstractHistogramBase<T, U> {
     // @ts-ignore
     const currentCount = unchecked(this.counts[index]);
     const newCount = currentCount + value;
-    if (newCount < 0) {
-      throw newCount + " would overflow short integer count";
+    const u64NewCount = (<u64>currentCount + value) as number;
+    if (u64NewCount > this.maxBucketSize) {
+      const bitSize = <u8>(sizeof<U>() * 8);
+      throw new Error(
+        u64NewCount.toString() + " would overflow " + bitSize.toString() + "bits integer count"
+      );
     }
     // @ts-ignore
     unchecked((this.counts[index] = <U>newCount));

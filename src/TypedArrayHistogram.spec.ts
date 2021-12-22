@@ -2,6 +2,7 @@ import Int8Histogram from "./Int8Histogram";
 import Int16Histogram from "./Int16Histogram";
 import Int32Histogram from "./Int32Histogram";
 import Float64Histogram from "./Float64Histogram";
+import { decodeFromCompressedBase64 } from "./encoding";
 
 [Int8Histogram, Int16Histogram, Int32Histogram, Float64Histogram].forEach(
   (Histogram) => {
@@ -67,3 +68,47 @@ import Float64Histogram from "./Float64Histogram";
     });
   }
 );
+
+describe("Histogram bucket size overflow", () => {
+  [Int8Histogram, Int16Histogram].forEach(
+    (Histogram) => {
+      const maxBucketSize = (new Histogram(1, Number.MAX_SAFE_INTEGER, 3)).maxBucketSize;
+      const bitBucketSize = (new Histogram(1, Number.MAX_SAFE_INTEGER, 3))._counts.BYTES_PER_ELEMENT * 8;
+      it(`should fail when recording more than ${maxBucketSize} times the same value for a ${bitBucketSize}bits histogram`, () => {
+        //given;
+        const histogram = new Histogram(1, Number.MAX_SAFE_INTEGER, 3);
+        
+        //when //then
+        try {
+          let i = 0;
+          for (i; i <= histogram.maxBucketSize; i++) {
+            histogram.recordValue(1); 
+          }
+          fail(`should have failed due to ${bitBucketSize}bits integer overflow (bucket size: ${i})`);
+        } catch (e) {
+          //ok
+          expect(histogram.getCountAtIndex(1)).toBe(maxBucketSize);
+        }
+      });
+      it(`should fail when adding two histograms when the same bucket count addition is greater than ${bitBucketSize}bits max integer value`, () => {
+        //given
+        const histogram1 = new Histogram(1, Number.MAX_SAFE_INTEGER, 3);
+        histogram1.recordValueWithCount(1, maxBucketSize);
+        const histogram2 = new Histogram(1, Number.MAX_SAFE_INTEGER, 3);
+        histogram2.recordValueWithCount(1, maxBucketSize);
+        
+        //when //then
+        expect(() => histogram1.add(histogram2)).toThrow();
+      });
+    });
+    it("should fail when decoding an Int32 histogram with one bucket couunt greater than 16bits", () => {
+      //given
+      const int32Histogram = new Int32Histogram(1, Number.MAX_SAFE_INTEGER, 3);
+      int32Histogram.recordValueWithCount(1, 2**32 - 1);
+      const encodedInt32Histogram = int32Histogram.encodeIntoCompressedBase64();
+      
+      //when //then
+      expect(() => decodeFromCompressedBase64(encodedInt32Histogram, 16)).toThrow();
+
+    });
+});

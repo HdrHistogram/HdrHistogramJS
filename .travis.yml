@@ -2,9 +2,8 @@ language: node_js
 
 node_js:
   - "node"
-before_script:
-  - yarn run prettier
 script:
-  - yarn asbuild
-  - yarn astest:ci
-  - yarn test
+  - npm run asbuild
+  - npm run build
+  - npm run astest:ci
+  - npm run test

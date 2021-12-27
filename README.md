@@ -28,7 +28,7 @@ This library is packaged as a UMD module, hence you can use it directly
 from JavaScript within a browser. To do so, you can simply include HdrHistogramJS file from github's release page:
 
 ```html
-<script src="https://github.com/HdrHistogram/HdrHistogramJS/releases/download/v2.0.1/hdrhistogram.umd.js"></script>
+<script src="https://github.com/HdrHistogram/HdrHistogramJS/releases/download/v2.0.2/hdrhistogram.umd.js"></script>
 ```
 
 Then you will have access to classes and functions of the APIs using "hdr" prefix.

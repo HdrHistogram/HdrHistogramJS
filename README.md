@@ -64,7 +64,7 @@ import * as hdr from "hdr-histogram-js"
 const histogram = hdr.build();
 ```
 
-If you need more control on the memory footprint of the instantiated histogram, you can be more specific using and optionnal build request parameter:
+If you need more control on the memory footprint of the instantiated histogram, you can be more specific using and optional build request parameter:
 
 ```ts
 import * as hdr from "hdr-histogram-js"
@@ -117,7 +117,7 @@ console.log(h.getValueAtPercentile(90));  // 1244 as well
 console.log(h.summary);                   // { "p50": 123, ... , max: 1244, totalCount: 3 }
 ```
 
-If youn need a live example you can also take alook at this [simple ping demo](https://hdrhistogram.github.io/HdrHistogramJSDemo/ping-demo.html) or this [HdrHistogramJS on HdrHistogramJS demo](https://hdrhistogram.github.io/HdrHistogramJSDemo/hdr-on-hdr.html).
+If you need a live example you can also take alook at this [simple ping demo](https://hdrhistogram.github.io/HdrHistogramJSDemo/ping-demo.html) or this [HdrHistogramJS on HdrHistogramJS demo](https://hdrhistogram.github.io/HdrHistogramJSDemo/hdr-on-hdr.html).
 
 You can also very easily generate a textual
 representation of an histogram:
@@ -247,7 +247,7 @@ const encodedString = "HISTFAAAAB542pNpmSzMwMDAxAABzFCaEUoz2X+AMIKZAEARAtM=";
 const histogram = hdr.decodeFromCompressedBase64(encodedString);
 ```
 
-In the above code fragment, 'histogram' is a regular 32b bucket histogram. Other types of histograms can be specified using additionnal parameters. Below a code fragment where a WebAssembly packed histogram is used:
+In the above code fragment, 'histogram' is a regular 32b bucket histogram. Other types of histograms can be specified using additional parameters. Below a code fragment where a WebAssembly packed histogram is used:
 
 ```ts
 import * as hdr from "hdr-histogram-js"

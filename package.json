@@ -35,7 +35,7 @@
     "url": "git+https://github.com/HdrHistogram/HdrHistogramJS.git"
   },
   "author": "Alexandre Victoor",
-  "license": "BSD",
+  "license": "BSD-2-Clause",
   "devDependencies": {
     "@as-pect/cli": "^6.2.4",
     "@babel/preset-env": "^7.14.8",

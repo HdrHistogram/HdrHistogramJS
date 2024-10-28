@@ -58,7 +58,7 @@
     "ts-jest": "25.0.x",
     "ts-loader": "^3.5.0",
     "ts-node": "^5.0.1",
-    "typescript": "^3.7.1",
+    "typescript": "^5.6.3",
     "yargs": "^6.4.0"
   },
   "dependencies": {

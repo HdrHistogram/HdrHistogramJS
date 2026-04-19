@@ -128,7 +128,7 @@ describe("Histogram encoding/decoding", () => {
     [8, 16, 32, 64, "packed"].forEach((bitBucketSize: BitBucketSize) => {
       it(`Histogram ${bitBucketSize} (wasm: ${useWebAssembly}) should keep all data after an encoding/decoding roundtrip`, () => {
         fc.assert(
-          fc.property(arbData(1), fc.double(50, 100), (numbers, percentile) => {
+          fc.property(arbData(1), fc.double({ min: 50, max: 100, noNaN: true }), (numbers, percentile) => {
             const histogram = hdr.build({
               bitBucketSize,
               numberOfSignificantValueDigits,
@@ -153,7 +153,7 @@ describe("Histogram encoding/decoding", () => {
 });
 
 const arbData = (size: number, max: number = Number.MAX_SAFE_INTEGER) =>
-  fc.array(fc.integer(1, max), size, size);
+  fc.array(fc.integer({ min: 1, max }), { minLength: size, maxLength: size });
 
 // reference implementation
 const quantile = (inputData: number[], percentile: number) => {

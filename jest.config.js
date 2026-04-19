@@ -1,17 +1,14 @@
 module.exports = {
   setupFiles: ['../setup-jest.js'],
   transform: {
-    ".+\\.ts?$": "ts-jest",
+    ".+\\.ts?$": ["ts-jest", {
+      diagnostics: true,
+      tsconfig: "./tsconfig.json",
+    }],
     ".+\\.js?$": "babel-jest",
   },
   transformIgnorePatterns: [
     '/node_modules/(?!@assemblyscript\/loader)'
   ],
   rootDir: "src",
-  globals: {
-    "ts-jest": {
-      diagnostics: true,
-      tsConfig: "./tsconfig.json",
-    },
-  },
 };

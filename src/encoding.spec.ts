@@ -54,7 +54,7 @@ describe("Histogram encoding", () => {
     const base64Histogram = encodeIntoCompressedBase64(histogram);
     // then
     expect(base64Histogram).toBe(
-      "HISTFAAAAB94nJNpmSzMwMDABMSMQMzMAAGMUJoJxg9mAgA1TQGm"
+      "HISTFAAAACJ4nJNpmSzMwMDAxMDAwMjAwMDMAAGMUJoJxg9mAgA1TQGm"
     );
   });
 

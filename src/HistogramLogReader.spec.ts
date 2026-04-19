@@ -25,23 +25,23 @@ describe("Histogram Log Reader", () => {
 
     fileContent = fs.readFileSync(
       `${prefix}/test_files/jHiccup-2.0.7S.logV2.hlog`,
-      "UTF-8"
+      "utf-8"
     );
     fileContentWithBaseTime = fs.readFileSync(
       `${prefix}/test_files/jHiccup-with-basetime-2.0.7S.logV2.hlog`,
-      "UTF-8"
+      "utf-8"
     );
     fileContentWithoutHeader = fs.readFileSync(
       `${prefix}/test_files/jHiccup-no-header-2.0.7S.logV2.hlog`,
-      "UTF-8"
+      "utf-8"
     );
     tagFileContent = fs.readFileSync(
       `${prefix}/test_files/tagged-Log.logV2.hlog`,
-      "UTF-8"
+      "utf-8"
     );
     fileContentWithTrailingWhitespace = fs.readFileSync(
       `${prefix}/test_files/bug-whitespace.hlog`,
-      "UTF-8"
+      "utf-8"
     );
   });
 

@@ -40,4 +40,4 @@ describe("Packed array", () => {
 });
 
 const arbData = (size: number) =>
-  fc.array(fc.tuple(fc.integer(1, size), fc.integer(1, 100000000)), 1, size);
+  fc.array(fc.tuple(fc.integer({ min: 1, max: size }), fc.integer({ min: 1, max: 100000000 })), { minLength: 1, maxLength: size });

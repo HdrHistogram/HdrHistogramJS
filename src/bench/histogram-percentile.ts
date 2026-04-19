@@ -72,6 +72,7 @@ initWebAssembly().then(() => {
       options
     ),
 
+    b.cycle(),
     b.complete(),
     b.save({ file: "percentile", format: "chart.html" })
   );

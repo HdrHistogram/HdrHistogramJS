@@ -35,7 +35,7 @@
    public readonly isPacked: boolean;
    physicalLength: i32;
  
-   private array: ArrayBuffer;
+   private array!: ArrayBuffer;
    private byteArray!: Uint8Array;
    private shortArray!: Uint16Array;
    private longArray!: Uint64Array;

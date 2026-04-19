@@ -75,6 +75,7 @@ initWebAssembly().then(() => {
       options
     ),
 
+    b.cycle(),
     b.complete(),
     b.save({ file: "decoding", format: "chart.html" })
   );

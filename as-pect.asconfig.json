@@ -1,0 +1,12 @@
+{
+  "targets": {
+    "noCoverage": {
+      "runtime": "incremental",
+      "outFile": "output.wasm"
+    },
+    "coverage": {
+      "runtime": "incremental",
+      "outFile": "output.wasm"
+    }
+  }
+}

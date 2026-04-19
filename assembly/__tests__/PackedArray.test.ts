@@ -6,19 +6,20 @@
  * http://creativecommons.org/publicdomain/zero/1.0/
  */
 
+import { describe, test, expect } from "assemblyscript-unittest-framework/assembly";
 import { PackedArray } from "../packedarray/PackedArray";
 
 describe("Packed Array", () => {
-  it("should store a byte without extending array", () => {
+  test("should store a byte without extending array", () => {
     // given
     const packed = new PackedArray(1024);
     // when
     packed.set(42, 123);
     // then
-    expect(packed.get(42)).toBe(123);
+    expect(packed.get(42)).equal(123);
   });
 
-  it("should resize array when storing data", () => {
+  test("should resize array when storing data", () => {
     // given
     const array = new PackedArray(1024, 16);
 
@@ -27,9 +28,9 @@ describe("Packed Array", () => {
 
     // then
     const storedData = array.get(12);
-    expect(storedData).toBe(u64.MAX_VALUE);
+    expect(storedData).equal(u64.MAX_VALUE);
   });
-  it("should store a big number", () => {
+  test("should store a big number", () => {
     // given
     const array = new PackedArray(45056, 16);
 
@@ -38,8 +39,8 @@ describe("Packed Array", () => {
 
     // then
     const storedData = array.get(32768);
-    expect(storedData).toBe(1);
+    expect(storedData).equal(1);
     const storedDataAt0 = array.get(0);
-    expect(storedDataAt0).toBe(0);
+    expect(storedDataAt0).equal(0);
   });
 });

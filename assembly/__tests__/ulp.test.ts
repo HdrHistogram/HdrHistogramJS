@@ -6,14 +6,15 @@
  * http://creativecommons.org/publicdomain/zero/1.0/
  */
 
+import { describe, test, expect } from "assemblyscript-unittest-framework/assembly";
 import ulp from "../ulp";
 
 describe("math ulp helper", () => {
-  it("should compute ulp of integer", () => {
-    expect<f64>(ulp(1)).toBe(2.220446049250313e-16);
+  test("should compute ulp of integer", () => {
+    expect<f64>(ulp(1)).equal(2.220446049250313e-16);
   });
 
-  it("should compute ulp of floating point number", () => {
-    expect<f64>(ulp(0.000333)).toBe(5.421010862427522e-20);
+  test("should compute ulp of floating point number", () => {
+    expect<f64>(ulp(0.000333)).equal(5.421010862427522e-20);
   });
 });

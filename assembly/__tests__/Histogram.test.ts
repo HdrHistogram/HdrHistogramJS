@@ -6,6 +6,7 @@
  * http://creativecommons.org/publicdomain/zero/1.0/
  */
 
+import { describe, test, expect } from "assemblyscript-unittest-framework/assembly";
 import {
   Histogram8,
   Histogram16,
@@ -22,58 +23,58 @@ const buildHistogram = (): Histogram8 =>
   );
 
 describe("Histogram", () => {
-  it("should be instantiable", () => {
+  test("should be instantiable", () => {
     const h = buildHistogram();
     h.autoResize;
-    expect<bool>(h.autoResize).toBe(false);
+    expect<bool>(h.autoResize).equal(false);
   });
 });
 
 describe("Histogram initialization", () => {
-  it("should set sub bucket size", () => {
+  test("should set sub bucket size", () => {
     const histogram: Histogram8 = buildHistogram();
-    expect<u64>(histogram.subBucketCount).toBe(2048);
+    expect<u64>(histogram.subBucketCount).equal(2048);
   });
 
-  it("should set resize to false when max value specified", () => {
+  test("should set resize to false when max value specified", () => {
     const histogram: Histogram8 = buildHistogram();
-    expect<bool>(histogram.autoResize).toBe(false);
+    expect<bool>(histogram.autoResize).equal(false);
   });
 
-  it("should compute counts array length", () => {
+  test("should compute counts array length", () => {
     const histogram: Histogram8 = buildHistogram();
-    expect<usize>(histogram.countsArrayLength).toBe(45056);
+    expect<usize>(histogram.countsArrayLength).equal(45056);
   });
-  it("should compute bucket count", () => {
+  test("should compute bucket count", () => {
     const histogram: Histogram8 = buildHistogram();
-    expect(histogram.bucketCount).toBe(43);
+    expect(histogram.bucketCount).equal(43);
   });
 
-  it("should set max value", () => {
+  test("should set max value", () => {
     const histogram: Histogram8 = buildHistogram();
-    expect(histogram.maxValue).toBe(0);
+    expect(histogram.maxValue).equal(0);
   });
 });
 
 describe("Histogram internal indexes", () => {
-  it("should compute count index when value in first bucket", () => {
+  test("should compute count index when value in first bucket", () => {
     // given
     const histogram: Histogram8 = buildHistogram();
     // when
     const index = histogram.countsArrayIndex(2000); // 2000 < 2048
-    expect(index).toBe(2000);
+    expect(index).equal(2000);
   });
 
-  it("should compute count index when value outside first bucket", () => {
+  test("should compute count index when value outside first bucket", () => {
     // given
     const histogram: Histogram8 = buildHistogram();
     // when
     const index = histogram.countsArrayIndex(2050); // 2050 > 2048
     // then
-    expect(index).toBe(2049);
+    expect(index).equal(2049);
   });
 
-  it("should compute count index taking into account lowest discernible value", () => {
+  test("should compute count index taking into account lowest discernible value", () => {
     // given
     const histogram = new Histogram8(
       2000,
@@ -83,12 +84,12 @@ describe("Histogram internal indexes", () => {
     // when
     const index = histogram.countsArrayIndex(16000);
     // then
-    expect(index).toBe(15);
+    expect(index).equal(15);
   });
 });
 
 describe("Histogram computing statistics", () => {
-  it("should compute mean value", () => {
+  test("should compute mean value", () => {
     // given
     const histogram = buildHistogram();
     // when
@@ -96,10 +97,10 @@ describe("Histogram computing statistics", () => {
     histogram.recordValue(50);
     histogram.recordValue(75);
     // then
-    expect<f64>(histogram.getMean()).toBe(50);
+    expect<f64>(histogram.getMean()).equal(50);
   });
 
-  it("should compute standard deviation", () => {
+  test("should compute standard deviation", () => {
     // given
     const histogram = buildHistogram();
     // when
@@ -107,11 +108,11 @@ describe("Histogram computing statistics", () => {
     histogram.recordValue(50);
     histogram.recordValue(75);
     // then
-    expect<f64>(histogram.getStdDeviation()).toBeGreaterThan(20.4124);
-    expect<f64>(histogram.getStdDeviation()).toBeLessThan(20.4125);
+    expect<f64>(histogram.getStdDeviation()).greaterThan(20.4124);
+    expect<f64>(histogram.getStdDeviation()).lessThan(20.4125);
   });
 
-  it("should compute percentiles", () => {
+  test("should compute percentiles", () => {
     // given
     const histogram = buildHistogram();
     histogram.recordValue(123456);
@@ -121,29 +122,29 @@ describe("Histogram computing statistics", () => {
     // when
     const percentileValue = histogram.getValueAtPercentile(99.9);
     // then
-    expect<u64>(percentileValue).toBeGreaterThan(123456 - 1000);
-    expect<u64>(percentileValue).toBeLessThan(123456 + 1000);
+    expect<u64>(percentileValue).greaterThan(123456 - 1000);
+    expect<u64>(percentileValue).lessThan(123456 + 1000);
   });
 
-  it("should compute max value", () => {
+  test("should compute max value", () => {
     // given
     const histogram = buildHistogram();
     // when
     histogram.recordValue(123);
     // then
-    expect<u64>(histogram.maxValue).toBe(123);
+    expect<u64>(histogram.maxValue).equal(123);
   });
 
-  it("should compute min non zero value", () => {
+  test("should compute min non zero value", () => {
     // given
     const histogram = buildHistogram();
     // when
     histogram.recordValue(123);
     // then
-    expect<u64>(histogram.minNonZeroValue).toBe(123);
+    expect<u64>(histogram.minNonZeroValue).equal(123);
   });
 
-  it("should compute percentile distribution", () => {
+  test("should compute percentile distribution", () => {
     // given
     const histogram = buildHistogram();
     // when
@@ -168,26 +169,24 @@ describe("Histogram computing statistics", () => {
 #[Max     =       75.000, Total count    =            3]
 #[Buckets =           43, SubBuckets     =         2048]
 `;
-    expect<string>(histogram.outputPercentileDistribution()).toBe(
+    expect<string>(histogram.outputPercentileDistribution()).equal(
       expectedResult
     );
   });
 });
 
 describe("Histogram resize", () => {
-  it("should not crash when autoresize on and value bigger than max", () => {
-    expect(() => {
-      // given
-      const histogram = new Histogram8(1, 4096, 3);
-      histogram.autoResize = true;
-      // when
-      histogram.recordValue(900000);
-      // then
-      expect<u64>(histogram.totalCount).toBe(1);
-    }).not.toThrow();
+  test("should not crash when autoresize on and value bigger than max", () => {
+    // given
+    const histogram = new Histogram8(1, 4096, 3);
+    histogram.autoResize = true;
+    // when
+    histogram.recordValue(900000);
+    // then
+    expect<u64>(histogram.totalCount).equal(1);
   });
 
-  it("should compute percentiles after resize", () => {
+  test("should compute percentiles after resize", () => {
     // given
     const histogram = new Histogram8(1, 4096, 3);
     histogram.autoResize = true;
@@ -198,22 +197,22 @@ describe("Histogram resize", () => {
     histogram.recordValue(90000000);
     // then
     const medianValue = histogram.getValueAtPercentile(50);
-    expect<f64>(Math.floor(<f64>medianValue / <f64>10000)).toBe(900);
+    expect<f64>(Math.floor(<f64>medianValue / <f64>10000)).equal(900);
   });
 
-  it("should update highest trackable value when resizing", () => {
+  test("should update highest trackable value when resizing", () => {
     // given
     const histogram = new Histogram8(1, 4096, 3);
     histogram.autoResize = true;
     // when
     histogram.recordValue(9000);
     // then
-    expect(histogram.highestTrackableValue).toBeGreaterThan(4096);
+    expect(histogram.highestTrackableValue).greaterThan(4096);
   });
 });
 
 describe("Histogram clearing support", () => {
-  it("should reset data in order to reuse histogram", () => {
+  test("should reset data in order to reuse histogram", () => {
     // given
     const histogram = buildHistogram();
     histogram.startTimeStampMsec = 42;
@@ -223,38 +222,38 @@ describe("Histogram clearing support", () => {
     // when
     histogram.reset();
     // then
-    expect(histogram.totalCount).toBe(0);
-    expect(histogram.startTimeStampMsec).toBe(0);
-    expect(histogram.endTimeStampMsec).toBe(0);
-    //expect(histogram.tag).toBe(NO_TAG);
-    expect(histogram.maxValue).toBe(0);
-    expect(histogram.minNonZeroValue).toBe(U64.MAX_VALUE);
-    expect(histogram.getValueAtPercentile(99.999)).toBe(0);
+    expect(histogram.totalCount).equal(0);
+    expect(histogram.startTimeStampMsec).equal(0);
+    expect(histogram.endTimeStampMsec).equal(0);
+    //expect(histogram.tag).equal(NO_TAG);
+    expect(histogram.maxValue).equal(0);
+    expect(histogram.minNonZeroValue).equal(U64.MAX_VALUE);
+    expect(histogram.getValueAtPercentile(99.999)).equal(0);
   });
 });
 
 describe("Histogram correcting coordinated omissions", () => {
-  it("should generate additional values when recording", () => {
+  test("should generate additional values when recording", () => {
     // given
     const histogram = buildHistogram();
     // when
     histogram.recordSingleValueWithExpectedInterval(200, 100);
     // then
-    expect(histogram.totalCount).toBe(2);
-    expect(histogram.minNonZeroValue).toBe(100);
-    expect(histogram.maxValue).toBe(200);
+    expect(histogram.totalCount).equal(2);
+    expect(histogram.minNonZeroValue).equal(100);
+    expect(histogram.maxValue).equal(200);
   });
 
-  it("should not generate additional values when recording without ommission", () => {
+  test("should not generate additional values when recording without ommission", () => {
     // given
     const histogram = buildHistogram();
     // when
     histogram.recordSingleValueWithExpectedInterval(99, 100);
     // then
-    expect(histogram.totalCount).toBe(1);
+    expect(histogram.totalCount).equal(1);
   });
 
-  it("should generate additional values when correcting after recording", () => {
+  test("should generate additional values when correcting after recording", () => {
     // given
     const histogram = buildHistogram();
     histogram.recordValue(207);
@@ -264,12 +263,12 @@ describe("Histogram correcting coordinated omissions", () => {
       100
     );
     // then
-    expect(correctedHistogram.totalCount).toBe(4);
-    expect(correctedHistogram.minNonZeroValue).toBe(107);
-    expect(correctedHistogram.maxValue).toBe(207);
+    expect(correctedHistogram.totalCount).equal(4);
+    expect(correctedHistogram.minNonZeroValue).equal(107);
+    expect(correctedHistogram.maxValue).equal(207);
   });
 
-  it("should generate additional values when correcting after recording bis", () => {
+  test("should generate additional values when correcting after recording bis", () => {
     // given
     const histogram = buildHistogram();
     histogram.recordValue(207);
@@ -279,14 +278,14 @@ describe("Histogram correcting coordinated omissions", () => {
       1000
     );
     // then
-    expect(correctedHistogram.totalCount).toBe(2);
-    expect(correctedHistogram.minNonZeroValue).toBe(207);
-    expect(correctedHistogram.maxValue).toBe(207);
+    expect(correctedHistogram.totalCount).equal(2);
+    expect(correctedHistogram.minNonZeroValue).equal(207);
+    expect(correctedHistogram.maxValue).equal(207);
   });
 });
 
 describe("Histogram add & subtract", () => {
-  it("should add histograms of same size", () => {
+  test("should add histograms of same size", () => {
     // given
     const histogram = buildHistogram();
     const histogram2 = new Histogram16(1, 256, 3);
@@ -295,11 +294,11 @@ describe("Histogram add & subtract", () => {
     // testwhen
     histogram.add<Storage<u16>, u16>(histogram2);
     // then
-    expect(histogram.totalCount).toBe(2);
-    expect(histogram.getMean()).toBe(100);
+    expect(histogram.totalCount).equal(2);
+    expect(histogram.getMean()).equal(100);
   });
 
-  it("should add histograms of different sizes & precisions", () => {
+  test("should add histograms of different sizes & precisions", () => {
     // given
     const histogram = buildHistogram();
     const histogram2 = new Histogram16(1, 1024, 3);
@@ -309,11 +308,11 @@ describe("Histogram add & subtract", () => {
     // when
     histogram.add<Storage<u16>, u16>(histogram2);
     // then
-    expect(histogram.totalCount).toBe(2);
-    expect(Math.floor(histogram.getMean() / 100)).toBe(215);
+    expect(histogram.totalCount).equal(2);
+    expect(Math.floor(histogram.getMean() / 100)).equal(215);
   });
 
-  it("should be equal when another histogram is added then subtracted with same characteristics", () => {
+  test("should be equal when another histogram is added then subtracted with same characteristics", () => {
     // given
     const histogram = buildHistogram();
     const histogram2 = buildHistogram();
@@ -328,10 +327,10 @@ describe("Histogram add & subtract", () => {
     histogram.add<Storage<u8>, u8>(histogram2);
     histogram.subtract<Storage<u8>, u8>(histogram2);
     // then
-    expect(histogram.outputPercentileDistribution()).toBe(outputBefore);
+    expect(histogram.outputPercentileDistribution()).equal(outputBefore);
   });
 
-  it("should be equal when another histogram of lower precision is added then subtracted", () => {
+  test("should be equal when another histogram of lower precision is added then subtracted", () => {
     // given
     const histogram = new Histogram8(1, 1000000000, 5);
     const histogram2 = new Histogram8(1, 1000000000, 3);
@@ -342,12 +341,12 @@ describe("Histogram add & subtract", () => {
     histogram.add<Storage<u8>, u8>(histogram2);
     histogram.subtract<Storage<u8>, u8>(histogram2);
     // then
-    expect(histogram.outputPercentileDistribution()).toBe(outputBefore);
+    expect(histogram.outputPercentileDistribution()).equal(outputBefore);
   });
 });
 
 describe("Packed Histogram", () => {
-  it("should compute percentiles as the non packed version", () => {
+  test("should compute percentiles as the non packed version", () => {
     // given
     const packedHistogram = new PackedHistogram(
       1,
@@ -365,7 +364,7 @@ describe("Packed Histogram", () => {
     packedHistogram.recordValue(2199023255552);
 
     // then
-    expect<u64>(packedHistogram.getValueAtPercentile(90)).toBe(
+    expect<u64>(packedHistogram.getValueAtPercentile(90)).equal(
       histogram.getValueAtPercentile(90)
     );
   });

@@ -6,12 +6,13 @@
  * http://creativecommons.org/publicdomain/zero/1.0/
  */
 
+import { describe, test, expect } from "assemblyscript-unittest-framework/assembly";
 import { decodeFromByteBuffer, encodeIntoByteBuffer } from "../encoding";
 import { Histogram32, Uint32Storage } from "../Histogram";
 import ByteBuffer from "../ByteBuffer";
 
 describe("Histogram encoding", () => {
-  it("should encode filling a byte buffer", () => {
+  test("should encode filling a byte buffer", () => {
     // given
     const histogram = new Histogram32(1, 9007199254740991, 2);
     histogram.recordValue(42);
@@ -22,10 +23,10 @@ describe("Histogram encoding", () => {
       buffer
     );
     // then
-    expect(encodedSize).toBe(42);
+    expect(encodedSize).equal(42);
   });
 
-  it("should encode / decode", () => {
+  test("should encode / decode", () => {
     // given
     const histogram = new Histogram32(1, 9007199254740991, 2);
     histogram.recordValue(42);
@@ -40,11 +41,11 @@ describe("Histogram encoding", () => {
     // when
     const result = decodeFromByteBuffer<Uint32Storage, u32>(buffer, 0);
     // then
-    expect(result.outputPercentileDistribution()).toBe(
+    expect(result.outputPercentileDistribution()).equal(
       histogram.outputPercentileDistribution()
     );
   });
-  it("should encode / decode bis", () => {
+  test("should encode / decode bis", () => {
     // given
     const histogram = new Histogram32(1, 9007199254740991, 2);
     histogram.recordValue(42);
@@ -55,22 +56,20 @@ describe("Histogram encoding", () => {
     const buffer = new ByteBuffer(data);
     const result = decodeFromByteBuffer<Uint32Storage, u32>(buffer, 0);
     // then
-    expect(result.outputPercentileDistribution()).toBe(
+    expect(result.outputPercentileDistribution()).equal(
       histogram.outputPercentileDistribution()
     );
   });
-  xit("should encode / decode without any assemblyscript crash", () => {
-    // given
-    const histogram = new Histogram32(1, 9007199254740991, 3);
-    histogram.autoResize = true;
-    histogram.recordValue(32415482);
-    const data = histogram.encode();
-    // when
-    const buffer = new ByteBuffer(data);
-    const result = decodeFromByteBuffer<Uint32Storage, u32>(buffer, 0);
-    // then
-    expect(result.outputPercentileDistribution()).toBe(
-      histogram.outputPercentileDistribution()
-    );
-  });
+  // Skipped: assembly compiler crash with autoResize + large values
+  // test("should encode / decode without any assemblyscript crash", () => {
+  //   const histogram = new Histogram32(1, 9007199254740991, 3);
+  //   histogram.autoResize = true;
+  //   histogram.recordValue(32415482);
+  //   const data = histogram.encode();
+  //   const buffer = new ByteBuffer(data);
+  //   const result = decodeFromByteBuffer<Uint32Storage, u32>(buffer, 0);
+  //   expect(result.outputPercentileDistribution()).equal(
+  //     histogram.outputPercentileDistribution()
+  //   );
+  // });
 });

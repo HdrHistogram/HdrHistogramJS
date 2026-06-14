@@ -199,13 +199,9 @@ The code fragment below shows how to instantiate a resizable 32 bits WebAssembly
 ```ts
 import * as hdr from "hdr-histogram-js"
 
-// If you are on the browser side, you need to
-// load asynchronously HdrHistogramJS WASM module
+// The WASM module is compressed in the bundle and inflated at runtime with the
+// native DecompressionStream, so it must be loaded asynchronously before use:
 await hdr.initWebAssembly();
-
-// If you are on the server side, you can
-// load synchronously HdrHistogramJS WASM module
-hdr.initWebAssemblySync();
 
 const histogram = hdr.build({ useWebAssembly: true });
 
@@ -221,20 +217,25 @@ histogram.destroy();
 
 ```
 
-Note: If you want to use this feature on the browser side, along with the UMD package, you need to add external dependency
-"pako". "pako" is mandatory to bootstrap the WASM module which is compressed to save some weight.
+Note: HdrHistogramJS no longer has any third-party runtime dependency. Compression
+relies on the browser/runtime-native [Compression Streams API](https://developer.mozilla.org/docs/Web/API/Compression_Streams_API)
+(Baseline: widely available since 2023, Node 18+).
 
 ## Encode & decode
 
 You can encode and decode base64 compressed histograms. Hence you can decode base64 compressed histograms produced by other implementations of HdrHistogram (Java, C#, Rust, ...).  
+
+> **Note (v4):** encoding & decoding are now **asynchronous** (they return promises),
+> since they use the native Compression Streams API. Remember to `await` them.
+
 The code fragment below shows how to encode an histogram:
 
 ```ts
 import * as hdr from "hdr-histogram-js"
 
 const histogram = hdr.build();
-histogram.recordvalue(42);
-const encodedString = hdr.encodeIntoCompressedBase64(histogram);
+histogram.recordValue(42);
+const encodedString = await hdr.encodeIntoCompressedBase64(histogram);
 // gives something that looks like "HISTFAAAAB542pNpmSzMwMDAxAABzFCaEUoz2X+AMIKZAEARAtM="
 ```
 
@@ -244,7 +245,7 @@ Then to decode an histogram you can use this chunk of code:
 import * as hdr from "hdr-histogram-js"
 
 const encodedString = "HISTFAAAAB542pNpmSzMwMDAxAABzFCaEUoz2X+AMIKZAEARAtM=";
-const histogram = hdr.decodeFromCompressedBase64(encodedString);
+const histogram = await hdr.decodeFromCompressedBase64(encodedString);
 ```
 
 In the above code fragment, 'histogram' is a regular 32b bucket histogram. Other types of histograms can be specified using additional parameters. Below a code fragment where a WebAssembly packed histogram is used:
@@ -253,13 +254,13 @@ In the above code fragment, 'histogram' is a regular 32b bucket histogram. Other
 import * as hdr from "hdr-histogram-js"
 
 const encodedString = "HISTFAAAAB542pNpmSzMwMDAxAABzFCaEUoz2X+AMIKZAEARAtM=";
-const histogram = hdr.decodeFromCompressedBase64(encodedString, 'packed', true);
+const histogram = await hdr.decodeFromCompressedBase64(encodedString, 'packed', true);
 ```
 
-If you want to use this feature along with the UMD package, you need to add external dependency
-"pako". "pako" is used for zlib compression. Using npm you should get
-it as a transitive dependency, otherwise you need to add it in
-your html page.
+Compression uses the native [Compression Streams API](https://developer.mozilla.org/docs/Web/API/Compression_Streams_API)
+(zlib `deflate` format, fully interoperable with the Java/C/Rust implementations), so
+no third-party dependency is required. Note that the `compressionLevel` argument is
+accepted for backward compatibility but ignored, as the native API exposes no level option.
 
 You can check out [this demo](https://hdrhistogram.github.io/HdrHistogramJSDemo/decoding-demo.html) or this [plotter on steroid](https://hdrhistogram.github.io/HdrHistogramJSDemo/plotFiles.html) to see this feature live!  
 _Be aware that only latest V2 encoding has been implemented, please raise a github issue if you need to see other versions implemented_
@@ -286,7 +287,7 @@ histogram.recordValue(123000);
 
 writer.outputLogFormatVersion();
 writer.outputLegend();
-writer.outputIntervalHistogram(histogram);
+await writer.outputIntervalHistogram(histogram);
 ```
 
 As for the reading part, if you know a little bit the Java version, the following code fragment will sound familiar:
@@ -294,7 +295,7 @@ As for the reading part, if you know a little bit the Java version, the followin
 ```ts
 const reader = new hdr.HistogramLogReader(fileContent);
 let histogram;
-while ((histogram = reader.nextIntervalHistogram()) != null) {
+while ((histogram = await reader.nextIntervalHistogram()) != null) {
   // iterate on all histogram log lines
   ...
 
@@ -343,6 +344,56 @@ histogram.autoResize = true;
 histogram.recordValue(...);
 
 ```
+
+# Migrating from v3 to v4
+
+Version 4.0.0 drops the `pako` dependency and uses the runtime-native
+[Compression Streams API](https://developer.mozilla.org/docs/Web/API/Compression_Streams_API)
+for zlib `deflate` compression instead. The compressed wire format is unchanged and
+stays fully interoperable with the Java/C#/Rust implementations. This brings a few
+breaking changes:
+
+**1. No more `pako` dependency.** HdrHistogramJS has no third-party runtime dependency
+anymore. If you were adding `pako` to your page or bundle for browser usage, you can
+remove it.
+
+**2. Node.js 18+ / modern browsers required.** The Compression Streams API is
+_Baseline: widely available_ (Chrome 80+, Firefox 113+, Safari 16.4+, Node 18+).
+`engines.node` is now `>=18`.
+
+**3. Encoding & decoding are now asynchronous.** The native API is async-only, so the
+following now return promises — add `await` (or chain `.then()`):
+
+- `encodeIntoCompressedBase64(histogram)`
+- `decodeFromCompressedBase64(base64String, ...)`
+- `HistogramLogWriter.outputIntervalHistogram(histogram, ...)`
+- `HistogramLogReader.nextIntervalHistogram(...)`
+
+```ts
+// HdrHistogramJS v3
+const encoded = hdr.encodeIntoCompressedBase64(histogram);
+const decoded = hdr.decodeFromCompressedBase64(encoded);
+
+// becomes with HdrHistogramJS v4
+const encoded = await hdr.encodeIntoCompressedBase64(histogram);
+const decoded = await hdr.decodeFromCompressedBase64(encoded);
+```
+
+**4. `initWebAssemblySync()` has been removed.** The WASM module is compressed in the
+bundle and inflated at runtime via the (async) `DecompressionStream`, so there is no
+synchronous initialization. Use `await initWebAssembly()` everywhere:
+
+```ts
+// HdrHistogramJS v3 (server side)
+hdr.initWebAssemblySync();
+
+// becomes with HdrHistogramJS v4
+await hdr.initWebAssembly();
+```
+
+**5. The `compressionLevel` argument is ignored.** `encodeIntoCompressedBase64` still
+accepts it for source compatibility, but the native API exposes no level option, so it
+has no effect.
 
 # Migrating from v1 to v2
 

@@ -32,13 +32,13 @@ class HistogramLogWriter {
    * @param histogram The interval histogram to log.
    * @param maxValueUnitRatio The ratio by which to divide the histogram's max value when reporting on it.
    */
-  outputIntervalHistogram(
+  async outputIntervalHistogram(
     histogram: Histogram,
     startTimeStampSec = (histogram.startTimeStampMsec - this.baseTime) / 1000,
     endTimeStampSec = (histogram.endTimeStampMsec - this.baseTime) / 1000,
     maxValueUnitRatio = 1000
   ) {
-    const base64 = encodeIntoCompressedBase64(histogram);
+    const base64 = await encodeIntoCompressedBase64(histogram);
     const start = timeFormatter(startTimeStampSec);
     const duration = timeFormatter(endTimeStampSec - startTimeStampSec);
     const max = timeFormatter(histogram.maxValue / maxValueUnitRatio);

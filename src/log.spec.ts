@@ -1,7 +1,7 @@
 import { build, HistogramLogReader, HistogramLogWriter } from ".";
 
 describe("Logs", () => {
-  it("should give same result after been written then read", () => {
+  it("should give same result after been written then read", async () => {
     // given
     let buffer = "";
     const writer = new HistogramLogWriter((content) => {
@@ -13,9 +13,9 @@ describe("Logs", () => {
     const inputHistogram = build();
     inputHistogram.recordValue(42);
     // when
-    writer.outputIntervalHistogram(inputHistogram, 12345042, 1234056, 1);
+    await writer.outputIntervalHistogram(inputHistogram, 12345042, 1234056, 1);
     const reader = new HistogramLogReader(buffer);
-    const outputHistogram = reader.nextIntervalHistogram();
+    const outputHistogram = await reader.nextIntervalHistogram();
     // then
     expect(outputHistogram).not.toBeNull();
     // @ts-ignore

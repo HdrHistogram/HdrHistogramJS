@@ -7,8 +7,7 @@ import Histogram, {
 } from "../Histogram";
 // @ts-ignore
 import * as base64 from "base64-js";
-// @ts-ignore
-import * as pako from "pako";
+import { inflate } from "../JsHistogram.encoding";
 import { BuildRequest } from "../HistogramBuilder";
 
 const isNode = typeof process !== "undefined" && process.version;
@@ -143,16 +142,8 @@ export const initWebAssembly = async (): Promise<void> => {
     throw new Error("WebAssembly not available here!");
   }
   if (wasm) return;
-  const binary = pako.inflate(base64.toByteArray(BINARY));
+  const binary = await inflate(base64.toByteArray(BINARY));
   const { instance } = await WA.instantiate(binary, wasmImports);
-  wasm = instance.exports;
-};
-
-export const initWebAssemblySync = () => {
-  if (wasm) return;
-  const binary = pako.inflate(base64.toByteArray(BINARY));
-  const module = new WA.Module(binary);
-  const instance = new WA.Instance(module, wasmImports);
   wasm = instance.exports;
 };
 

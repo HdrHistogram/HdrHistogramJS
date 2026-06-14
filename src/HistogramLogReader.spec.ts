@@ -45,92 +45,92 @@ describe("Histogram Log Reader", () => {
     );
   });
 
-  it("should update startTimeSec reading first histogram", () => {
+  it("should update startTimeSec reading first histogram", async () => {
     // given
     const reader = new HistogramLogReader(fileContent);
     // when
-    reader.nextIntervalHistogram();
+    await reader.nextIntervalHistogram();
     // then
     expect(reader.startTimeSec).toBe(1441812279.474);
   });
 
-  it("should read first histogram starting from the beginning", () => {
+  it("should read first histogram starting from the beginning", async () => {
     // given
     const reader = new HistogramLogReader(fileContent);
     // when
-    const histogram = reader.nextIntervalHistogram();
+    const histogram = await reader.nextIntervalHistogram();
     // then
     checkNotNull(histogram);
     // if mean is good, strong probability everything else is good as well
     expect(floor(histogram.mean)).toBe(301998);
   });
 
-  it("should read encoded histogram and use provided constructor", () => {
+  it("should read encoded histogram and use provided constructor", async () => {
     // given
     const reader = new HistogramLogReader(fileContent, "packed");
     // when
-    const histogram = reader.nextIntervalHistogram();
+    const histogram = await reader.nextIntervalHistogram();
     // then
     checkNotNull(histogram);
     // if mean is good, strong probability everything else is good as well
     expect(floor(histogram.mean)).toBe(301998);
   });
 
-  it("should return null if no histogram in the logs", () => {
+  it("should return null if no histogram in the logs", async () => {
     // given
     const reader = new HistogramLogReader("# empty");
     // when
-    const histogram = reader.nextIntervalHistogram();
+    const histogram = await reader.nextIntervalHistogram();
     // then
     expect(histogram).toBeNull();
   });
 
-  it("should return next histogram in the logs", () => {
+  it("should return next histogram in the logs", async () => {
     // given
     const reader = new HistogramLogReader(fileContent);
-    reader.nextIntervalHistogram();
+    await reader.nextIntervalHistogram();
     // when
-    const histogram = reader.nextIntervalHistogram();
+    const histogram = await reader.nextIntervalHistogram();
     // then
     checkNotNull(histogram);
     // if mean is good, strong probability everything else is good as well
     expect(floor(histogram.mean)).toBe(293719);
   });
 
-  it("should return null if all histograms are after specified time range", () => {
+  it("should return null if all histograms are after specified time range", async () => {
     // given
     const reader = new HistogramLogReader(fileContent);
     // when
-    const histogram = reader.nextIntervalHistogram(0.01, 0.1);
+    const histogram = await reader.nextIntervalHistogram(0.01, 0.1);
     // then
     expect(histogram).toBeNull();
   });
 
-  it("should return null if all histograms are before specified time range", () => {
+  it("should return null if all histograms are before specified time range", async () => {
     // given
     const reader = new HistogramLogReader(fileContent);
     // when
-    const histogram = reader.nextIntervalHistogram(62, 63);
+    const histogram = await reader.nextIntervalHistogram(62, 63);
     // then
     expect(histogram).toBeNull();
   });
 
-  it("should parse histogram even if there are trailing whitespaces", () => {
+  it("should parse histogram even if there are trailing whitespaces", async () => {
     // given
     const reader = new HistogramLogReader(fileContentWithTrailingWhitespace);
     // when
-    const histogram = reader.nextIntervalHistogram();
+    const histogram = await reader.nextIntervalHistogram();
     // then
     // no error
   });
 
-  it("should return histograms within specified time range", () => {
+  it("should return histograms within specified time range", async () => {
     // given
     const reader = new HistogramLogReader(fileContent);
     // when
-    const firstHistogram = reader.nextIntervalHistogram(0, 2);
-    const secondHistogram = reader.nextIntervalHistogram(0, 2);
-    const thirdHistogram = reader.nextIntervalHistogram(0, 2);
+    const firstHistogram = await reader.nextIntervalHistogram(0, 2);
+    const secondHistogram = await reader.nextIntervalHistogram(0, 2);
+    const thirdHistogram = await reader.nextIntervalHistogram(0, 2);
     // then
     checkNotNull(firstHistogram);
     checkNotNull(secondHistogram);
@@ -140,54 +140,54 @@ describe("Histogram Log Reader", () => {
     expect(floor(secondHistogram.mean)).toBe(293719);
   });
 
-  it("should set start timestamp on histogram", () => {
+  it("should set start timestamp on histogram", async () => {
     // given
     const reader = new HistogramLogReader(fileContent);
     // when
-    const histogram = reader.nextIntervalHistogram();
+    const histogram = await reader.nextIntervalHistogram();
     // then
     checkNotNull(histogram);
     expect(histogram.startTimeStampMsec).toBe(1441812279601);
   });
 
-  it("should set end timestamp on histogram", () => {
+  it("should set end timestamp on histogram", async () => {
     // given
     const reader = new HistogramLogReader(fileContent);
     // when
-    const histogram = reader.nextIntervalHistogram();
+    const histogram = await reader.nextIntervalHistogram();
     // then
     checkNotNull(histogram);
     expect(histogram.endTimeStampMsec).toBe(1441812280608);
   });
 
-  it("should parse tagged histogram", () => {
+  it("should parse tagged histogram", async () => {
     // given
     const reader = new HistogramLogReader(tagFileContent);
-    reader.nextIntervalHistogram();
+    await reader.nextIntervalHistogram();
     // when
-    const histogram = reader.nextIntervalHistogram();
+    const histogram = await reader.nextIntervalHistogram();
     // then
     checkNotNull(histogram);
     expect(histogram.tag).toBe("A");
     expect(floor(histogram.mean)).toBe(301998);
   });
 
-  it("should use basetime to set timestamps on histogram", () => {
+  it("should use basetime to set timestamps on histogram", async () => {
     // given
     const reader = new HistogramLogReader(fileContentWithBaseTime);
     // when
-    const histogram = reader.nextIntervalHistogram();
+    const histogram = await reader.nextIntervalHistogram();
     // then
     checkNotNull(histogram);
     expect(histogram.startTimeStampMsec).toBe(1441812123250);
     expect(histogram.endTimeStampMsec).toBe(1441812124257);
   });
 
-  it("should default startTime using 1st observed time", () => {
+  it("should default startTime using 1st observed time", async () => {
     // given
     const reader = new HistogramLogReader(fileContentWithoutHeader);
     // when
-    const histogram = reader.nextIntervalHistogram();
+    const histogram = await reader.nextIntervalHistogram();
     // then
     checkNotNull(histogram);
     expect(histogram.startTimeStampMsec).toBe(127);
@@ -224,7 +224,7 @@ Tag=A,0.127,1.007,2.769,HISTFAAAAEV42pNpmSzMwMCgyAABTBDKT4GBgdnNYMcCBvsPEBEJISEu
       accumulatedHistogram.destroy();
     });
 
-    it("should do the whole 9 yards just like the original Java version :-)", () => {
+    it("should do the whole 9 yards just like the original Java version :-)", async () => {
       // given
       const reader = new HistogramLogReader(fileContent, 32, true);
       accumulatedHistogram = WasmHistogram.build();
@@ -233,7 +233,7 @@ Tag=A,0.127,1.007,2.769,HISTFAAAAEV42pNpmSzMwMCgyAABTBDKT4GBgdnNYMcCBvsPEBEJISEu
       let totalCount = 0;
 
       // when
-      while ((histogram = reader.nextIntervalHistogram()) != null) {
+      while ((histogram = await reader.nextIntervalHistogram()) != null) {
         histogramCount++;
         totalCount += histogram.totalCount;
         accumulatedHistogram.add(histogram as any);

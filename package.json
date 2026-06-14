@@ -17,7 +17,7 @@
     "node": ">=18"
   },
   "scripts": {
-    "tsc": "tsc --skipLibCheck --outDir dist --declaration true --sourceMap true",
+    "tsc": "tsc -p tsconfig.build.json --skipLibCheck --outDir dist --declaration true --sourceMap true",
     "test": "vitest run",
     "stryker": "stryker run",
     "build": "npm run tsc && npm run rollup",

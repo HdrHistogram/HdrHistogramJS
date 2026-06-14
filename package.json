@@ -14,7 +14,7 @@
     "performance"
   ],
   "engines": {
-    "node": ">=18"
+    "node": ">=22"
   },
   "scripts": {
     "tsc": "tsc -p tsconfig.build.json --skipLibCheck --outDir dist --declaration true --sourceMap true",

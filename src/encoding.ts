@@ -17,7 +17,7 @@ import { inflate, deflate } from "./JsHistogram.encoding";
 const V2CompressedEncodingCookieBase = 0x1c849304;
 const compressedEncodingCookie = V2CompressedEncodingCookieBase | 0x10; // LSBit of wordsize byte indicates TLZE Encoding
 
-export function decompress(data: Uint8Array): Uint8Array {
+export async function decompress(data: Uint8Array): Promise<Uint8Array> {
   const buffer = new ByteBuffer(data);
   const initialTargetPosition = buffer.position;
 
@@ -29,7 +29,7 @@ export function decompress(data: Uint8Array): Uint8Array {
 
   const lengthOfCompressedContents = buffer.getInt32();
 
-  const uncompressedBuffer: Uint8Array = inflate(
+  const uncompressedBuffer: Uint8Array = await inflate(
     buffer.data.slice(
       initialTargetPosition + 8,
       initialTargetPosition + 8 + lengthOfCompressedContents
@@ -38,14 +38,14 @@ export function decompress(data: Uint8Array): Uint8Array {
   return uncompressedBuffer;
 }
 
-export const decodeFromCompressedBase64 = (
+export const decodeFromCompressedBase64 = async (
   base64String: string,
   bitBucketSize: 8 | 16 | 32 | 64 | "packed" = 32,
   useWebAssembly: boolean = false,
   minBarForHighestTrackableValue: number = 0
-): Histogram => {
+): Promise<Histogram> => {
   const data = base64.toByteArray(base64String.trim());
-  const uncompressedData = decompress(data);
+  const uncompressedData = await decompress(data);
   if (useWebAssembly) {
     return WasmHistogram.decode(
       uncompressedData,
@@ -60,20 +60,19 @@ export const decodeFromCompressedBase64 = (
   );
 };
 
-function encodeWasmIntoCompressedBase64(compressionLevel?: number): string {
-  const compressionOptions = compressionLevel
-    ? { level: compressionLevel }
-    : {};
+// `compressionLevel` is kept for source compatibility but ignored: the native
+// Compression Streams API exposes no level option.
+async function encodeWasmIntoCompressedBase64(
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  compressionLevel?: number
+): Promise<string> {
   const self: WasmHistogram = this as any;
 
   const targetBuffer = ByteBuffer.allocate();
   targetBuffer.putInt32(compressedEncodingCookie);
 
   const uncompressedData = self.encode();
-  const compressedData: Uint8Array = deflate(
-    uncompressedData,
-    compressionOptions
-  );
+  const compressedData: Uint8Array = await deflate(uncompressedData);
 
   targetBuffer.putInt32(compressedData.byteLength);
   targetBuffer.putArray(compressedData);
@@ -92,7 +91,7 @@ WasmHistogram.prototype.encodeIntoCompressedBase64 = encodeWasmIntoCompressedBas
 export const encodeIntoCompressedBase64 = (
   histogram: Histogram,
   compressionLevel?: number
-): string => {
+): Promise<string> => {
   if (histogram instanceof WasmHistogram) {
     return histogram.encodeIntoCompressedBase64(compressionLevel);
   }

@@ -7,8 +7,6 @@
  */
 // @ts-ignore
 import * as base64 from "base64-js";
-// @ts-ignore
-import * as pako from "pako";
 import { JsHistogram } from "./JsHistogram";
 import ByteBuffer from "./ByteBuffer";
 import { BitBucketSize } from "./Histogram";
@@ -137,25 +135,48 @@ function getWordSizeInBytesFromCookie(cookie: number): number {
   return sizeByte & 0xe;
 }
 
-function findDeflateFunction() {
-  try {
-    return eval('require("zlib").deflateSync');
-  } catch (error) {
-    return !!pako ? pako.deflate : () => { throw new Error('pako library is mandatory for encoding/deconding on the browser side') };
+// The histogram wire format is zlib/DEFLATE, interoperable with the Java/C
+// HdrHistogram. The native Compression Streams API exposes that exact format as
+// "deflate" (ZLIB Compressed Data Format), works in browsers and Node 18+, and
+// requires no third-party dependency. It is async-only, hence the Promise-based
+// codec below.
+async function pipeThrough(
+  data: Uint8Array,
+  stream: CompressionStream | DecompressionStream
+): Promise<Uint8Array> {
+  const writer = stream.writable.getWriter();
+  // Observe the writer-side promise so that, on invalid input, its rejection is
+  // handled here rather than surfacing as an unhandled rejection. The same error
+  // is reported by the read loop below, which is the source of truth for errors.
+  const written = writer
+    .write(data as Uint8Array<ArrayBuffer>)
+    .then(() => writer.close())
+    .catch(() => undefined);
+  const reader = stream.readable.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    chunks.push(value);
+    total += value.length;
   }
-}
-function findInflateFunction() {
-  try {
-    return eval('require("zlib").inflateSync');
-  } catch (error) {
-    return !!pako ? pako.inflate : () => { throw new Error('pako library is mandatory for encoding/deconding on the browser side') };
+  await written;
+  const out = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) {
+    out.set(chunk, offset);
+    offset += chunk.length;
   }
+  return out;
 }
 
-export const deflate = findDeflateFunction();
-export const inflate = findInflateFunction();
+export const deflate = (data: Uint8Array): Promise<Uint8Array> =>
+  pipeThrough(data, new CompressionStream("deflate"));
+export const inflate = (data: Uint8Array): Promise<Uint8Array> =>
+  pipeThrough(data, new DecompressionStream("deflate"));
 
-export function decompress(data: Uint8Array): Uint8Array {
+export async function decompress(data: Uint8Array): Promise<Uint8Array> {
   const buffer = new ByteBuffer(data);
   const initialTargetPosition = buffer.position;
 
@@ -167,7 +188,7 @@ export function decompress(data: Uint8Array): Uint8Array {
 
   const lengthOfCompressedContents = buffer.getInt32();
 
-  const uncompressedBuffer: Uint8Array = inflate(
+  const uncompressedBuffer: Uint8Array = await inflate(
     buffer.data.slice(
       initialTargetPosition + 8,
       initialTargetPosition + 8 + lengthOfCompressedContents
@@ -232,10 +253,12 @@ export function doDecode(
   return histogram;
 }
 
-function doEncodeIntoCompressedBase64(compressionLevel?: number): string {
-  const compressionOptions = compressionLevel
-    ? { level: compressionLevel }
-    : {};
+// `compressionLevel` is kept for source compatibility but ignored: the native
+// Compression Streams API exposes no level option.
+async function doEncodeIntoCompressedBase64(
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  compressionLevel?: number
+): Promise<string> {
   const self: JsHistogram = this as any;
 
   const targetBuffer = ByteBuffer.allocate();
@@ -250,7 +273,7 @@ function doEncodeIntoCompressedBase64(compressionLevel?: number): string {
     0,
     uncompressedLength
   );
-  const compressedData: Uint8Array = deflate(data, compressionOptions);
+  const compressedData: Uint8Array = await deflate(data);
   targetBuffer.putInt32(compressedData.byteLength);
   targetBuffer.putArray(compressedData);
 

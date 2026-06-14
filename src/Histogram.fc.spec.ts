@@ -126,17 +126,17 @@ describe("Histogram encoding/decoding", () => {
   const numberOfSignificantValueDigits = 3;
   [true, false].forEach((useWebAssembly) =>
     [8, 16, 32, 64, "packed"].forEach((bitBucketSize: BitBucketSize) => {
-      it(`Histogram ${bitBucketSize} (wasm: ${useWebAssembly}) should keep all data after an encoding/decoding roundtrip`, () => {
-        fc.assert(
-          fc.property(arbData(1), fc.double({ min: 50, max: 100, noNaN: true }), (numbers, percentile) => {
+      it(`Histogram ${bitBucketSize} (wasm: ${useWebAssembly}) should keep all data after an encoding/decoding roundtrip`, async () => {
+        await fc.assert(
+          fc.asyncProperty(arbData(1), fc.double({ min: 50, max: 100, noNaN: true }), async (numbers, percentile) => {
             const histogram = hdr.build({
               bitBucketSize,
               numberOfSignificantValueDigits,
               useWebAssembly,
             });
             numbers.forEach((n) => histogram.recordValue(n));
-            const encodedHistogram = hdr.encodeIntoCompressedBase64(histogram);
-            const decodedHistogram = hdr.decodeFromCompressedBase64(
+            const encodedHistogram = await hdr.encodeIntoCompressedBase64(histogram);
+            const decodedHistogram = await hdr.decodeFromCompressedBase64(
               encodedHistogram
             );
             const actual = histogram.getValueAtPercentile(percentile);

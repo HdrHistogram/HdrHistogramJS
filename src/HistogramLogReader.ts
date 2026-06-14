@@ -80,10 +80,10 @@ class HistogramLogReader {
    * from the file, this method will return a null.
    * @return a DecodedInterval, or a null if no appropriate interval found
    */
-  public nextIntervalHistogram(
+  public async nextIntervalHistogram(
     rangeStartTimeSec = 0,
     rangeEndTimeSec = Number.MAX_VALUE
-  ): Histogram | null {
+  ): Promise<Histogram | null> {
     while (this.currentLineIndex < this.lines.length) {
       const currentLine = this.lines[this.currentLineIndex];
       this.currentLineIndex++;
@@ -133,7 +133,7 @@ class HistogramLogReader {
         if (logTimeStampInSec < rangeStartTimeSec) {
           continue;
         }
-        const histogram = decodeFromCompressedBase64(
+        const histogram = await decodeFromCompressedBase64(
           base64Histogram,
           this.bitBucketSize,
           this.useWebAssembly

@@ -21,13 +21,12 @@ import Int8Histogram from "./Int8Histogram";
 import JsHistogram from "./JsHistogram";
 import PackedHistogram from "./PackedHistogram";
 import Recorder from "./Recorder";
-import { initWebAssembly, initWebAssemblySync, WasmHistogram } from "./wasm";
+import { initWebAssembly, WasmHistogram } from "./wasm";
 import type { BuildRequest } from "./HistogramBuilder";
 import { build } from "./HistogramBuilder";
 
 export {
   initWebAssembly,
-  initWebAssemblySync,
   Histogram,
   BitBucketSize,
   HistogramSummary,

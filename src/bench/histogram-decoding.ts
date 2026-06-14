@@ -14,14 +14,14 @@ initWebAssembly().then(() => {
     "Histogram decoding",
     b.add(
       "Int32Histogram",
-      () => {
+      async () => {
         const histogram = build();
         for (let index = 0; index < 1024; index++) {
           histogram.recordValueWithCount(randomInteger(), randomInteger(100));
         }
-        const b64 = encodeIntoCompressedBase64(histogram);
-        return () => {
-          decodeFromCompressedBase64(b64, 32, false).destroy();
+        const b64 = await encodeIntoCompressedBase64(histogram);
+        return async () => {
+          (await decodeFromCompressedBase64(b64, 32, false)).destroy();
         };
       },
       options
@@ -29,36 +29,36 @@ initWebAssembly().then(() => {
 
     b.add(
       "WASM 32B Histogram",
-      () => {
+      async () => {
         const histogram = build();
         for (let index = 0; index < 1024; index++) {
           histogram.recordValueWithCount(randomInteger(), randomInteger(100));
         }
-        const b64 = encodeIntoCompressedBase64(histogram);
+        const b64 = await encodeIntoCompressedBase64(histogram);
         histogram.destroy();
-        return () => {
-          decodeFromCompressedBase64(b64, 32, true).destroy();
+        return async () => {
+          (await decodeFromCompressedBase64(b64, 32, true)).destroy();
         };
       },
       options
     ),
     b.add(
       "Packed Histogram",
-      () => {
+      async () => {
         const histogram = build();
         for (let index = 0; index < 1024; index++) {
           histogram.recordValueWithCount(randomInteger(), randomInteger(100));
         }
-        const b64 = encodeIntoCompressedBase64(histogram);
-        return () => {
-          decodeFromCompressedBase64(b64, "packed", false).destroy();
+        const b64 = await encodeIntoCompressedBase64(histogram);
+        return async () => {
+          (await decodeFromCompressedBase64(b64, "packed", false)).destroy();
         };
       },
       options
     ),
     b.add(
       "WASM Packed Histogram",
-      () => {
+      async () => {
         const histogram = build({
           bitBucketSize: "packed",
           useWebAssembly: true
@@ -66,10 +66,10 @@ initWebAssembly().then(() => {
         for (let index = 0; index < 1024; index++) {
           histogram.recordValueWithCount(randomInteger(), randomInteger(100));
         }
-        const b64 = encodeIntoCompressedBase64(histogram);
+        const b64 = await encodeIntoCompressedBase64(histogram);
         histogram.destroy();
-        return () => {
-          decodeFromCompressedBase64(b64, "packed", true).destroy();
+        return async () => {
+          (await decodeFromCompressedBase64(b64, "packed", true)).destroy();
         };
       },
       options

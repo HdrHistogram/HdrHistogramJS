@@ -8,6 +8,9 @@ if (!src || !src.length) {
 }
 
 try {
+  // The WASM binary is stored deflate-compressed (zlib format) to keep the bundle
+  // small. It is inflated at runtime by initWebAssembly() using the native
+  // DecompressionStream — which is async-only, so there is no synchronous init.
   const raw = fs.readFileSync(src);
   const encoded = zlib
     .deflateSync(Buffer.from(raw), { level: zlib.constants.Z_BEST_COMPRESSION })

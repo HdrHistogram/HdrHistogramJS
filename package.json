@@ -19,6 +19,7 @@
   "scripts": {
     "tsc": "tsc --skipLibCheck --outDir dist --declaration true --sourceMap true",
     "test": "vitest run",
+    "stryker": "stryker run",
     "build": "npm run tsc && npm run rollup",
     "prettier": "prettier --parser typescript -l src/**/*.ts",
     "prettier:fix": "prettier --write --parser typescript -l src/**/*.ts",
@@ -41,6 +42,8 @@
     "@rollup/plugin-node-resolve": "^16.0.1",
     "@rollup/plugin-terser": "^0.4.4",
     "@rollup/plugin-typescript": "^12.1.2",
+    "@stryker-mutator/core": "^9.6.1",
+    "@stryker-mutator/vitest-runner": "^9.6.1",
     "@types/benchmark": "^2.1.5",
     "@types/node": "^22.0.0",
     "assemblyscript": "^0.27.32",

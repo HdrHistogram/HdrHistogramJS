@@ -60,9 +60,6 @@
     "vitest": "^4.1.4",
     "yargs": "^18.0.0"
   },
-  "dependencies": {
-    "base64-js": "^1.2.0"
-  },
   "files": [
     ".",
     "dist"

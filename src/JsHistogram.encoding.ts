@@ -5,8 +5,7 @@
  * and released to the public domain, as explained at
  * http://creativecommons.org/publicdomain/zero/1.0/
  */
-// @ts-ignore
-import * as base64 from "base64-js";
+import * as base64 from "./base64";
 import { JsHistogram } from "./JsHistogram";
 import ByteBuffer from "./ByteBuffer";
 import { BitBucketSize } from "./Histogram";

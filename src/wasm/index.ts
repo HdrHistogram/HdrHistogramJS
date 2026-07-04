@@ -5,8 +5,7 @@ import Histogram, {
   toSummary,
   HistogramSummary
 } from "../Histogram";
-// @ts-ignore
-import * as base64 from "base64-js";
+import * as base64 from "../base64";
 import { inflate } from "../JsHistogram.encoding";
 import { BuildRequest } from "../HistogramBuilder";
 

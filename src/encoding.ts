@@ -10,8 +10,7 @@ import ByteBuffer from "./ByteBuffer";
 import Histogram from "./Histogram";
 import { WasmHistogram } from "./wasm";
 
-// @ts-ignore
-import * as base64 from "base64-js";
+import * as base64 from "./base64";
 import { inflate, deflate } from "./JsHistogram.encoding";
 
 const V2CompressedEncodingCookieBase = 0x1c849304;

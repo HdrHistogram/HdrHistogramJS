@@ -333,17 +333,27 @@ console.log(histogram.estimatedFootprintInBytes);
 
 # Tree Shaking
 
-The above examples use a convenient 'barrel' index file. Using this barrel, you cannot leverage on the tree shaking features of your favorite bundler. Hence the size of your JavaScript bundle may increase significantly. If you need to optimize the size of your bundle, you can import HdrHistogram modules as shown in code fragment below:
+HdrHistogramJS ships as an ES module and is flagged `"sideEffects": false`, so modern
+bundlers (Rollup, esbuild, webpack, Vite, tsdown, ...) tree-shake it automatically.
+Just import the named exports you actually use from the package entry point, and
+unused histogram types, iterators and the inlined WebAssembly module are dropped from
+your bundle:
 
 ```ts
-import Int32Histogram from "hdr-histogram-js/dist/Int32Histogram"
+import { Int32Histogram } from "hdr-histogram-js";
 
 const histogram = new Int32Histogram(1, 2, 3);
 histogram.autoResize = true;
 
 histogram.recordValue(...);
-
 ```
+
+For example, importing only `Int32Histogram` produces a bundle **without** the ~33 kB
+WebAssembly blob, whereas using `build({ useWebAssembly: true })` pulls it in — you pay
+only for what you use.
+
+> Deep imports such as `hdr-histogram-js/dist/Int32Histogram` are no longer needed:
+> named imports from `"hdr-histogram-js"` give you the same tree-shaking benefit.
 
 # Migrating from v3 to v4
 
@@ -357,9 +367,9 @@ breaking changes:
 anymore. If you were adding `pako` to your page or bundle for browser usage, you can
 remove it.
 
-**2. Node.js 18+ / modern browsers required.** The Compression Streams API is
+**2. Node.js 22+ / modern browsers required.** The Compression Streams API is
 _Baseline: widely available_ (Chrome 80+, Firefox 113+, Safari 16.4+, Node 18+).
-`engines.node` is now `>=18`.
+`engines.node` is now `>=22`.
 
 **3. Encoding & decoding are now asynchronous.** The native API is async-only, so the
 following now return promises — add `await` (or chain `.then()`):
@@ -394,6 +404,21 @@ await hdr.initWebAssembly();
 **5. The `compressionLevel` argument is ignored.** `encodeIntoCompressedBase64` still
 accepts it for source compatibility, but the native API exposes no level option, so it
 has no effect.
+
+**6. Dual ESM/CommonJS package with a proper `exports` map.** v4 ships true ES modules
+(`import`) alongside CommonJS (`require`), a UMD browser build, and bundled type
+definitions, all resolved through the package `exports` field. Standard imports are
+unchanged:
+
+```ts
+import * as hdr from "hdr-histogram-js";          // ESM
+// or
+const hdr = require("hdr-histogram-js");           // CommonJS
+```
+
+Deep imports into internal files such as `hdr-histogram-js/dist/Int32Histogram` are no
+longer supported — import the named exports from the package entry point instead (see
+[Tree Shaking](#tree-shaking)); they are tree-shaken just as well.
 
 # Migrating from v1 to v2
 

@@ -3,8 +3,23 @@
   "version": "4.0.0",
   "description": "TypeScript port of HdrHistogram",
   "main": "dist/index.js",
+  "module": "dist/index.mjs",
   "browser": "dist/hdrhistogram.umd.js",
   "types": "dist/index.d.ts",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.mts",
+        "default": "./dist/index.mjs"
+      },
+      "require": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      }
+    },
+    "./package.json": "./package.json"
+  },
   "keywords": [
     "hdr-histogram",
     "hdr-histogram-js",
@@ -17,10 +32,11 @@
     "node": ">=22"
   },
   "scripts": {
-    "tsc": "tsc -p tsconfig.build.json --skipLibCheck --outDir dist --declaration true --sourceMap true",
+    "typecheck": "tsc --noEmit -p tsconfig.build.json --skipLibCheck",
     "test": "vitest run",
     "stryker": "stryker run",
-    "build": "npm run tsc && npm run rollup",
+    "build": "tsdown",
+    "prepublishOnly": "npm run build",
     "prettier": "prettier --parser typescript -l src/**/*.ts",
     "prettier:fix": "prettier --write --parser typescript -l src/**/*.ts",
     "astest": "as-test",
@@ -28,8 +44,7 @@
     "asbuild:untouched": "asc assembly/index.ts -o build/untouched.wasm -t build/untouched.wat --sourceMap --debug --exportRuntime",
     "asbuild:optimized": "asc assembly/index.ts -o build/optimized.wasm -t build/optimized.wat --sourceMap -O3 --noAssert --exportRuntime --runtime minimal",
     "asbuild:base64": "echo \"/** @internal */\\nexport const BINARY = \\\"$(node ./base64.js build/optimized.wasm)\\\";\" > src/wasm/generated-wasm.ts",
-    "asbuild": "npm run asbuild:untouched && npm run asbuild:optimized && npm run asbuild:base64",
-    "rollup": "rollup -c"
+    "asbuild": "npm run asbuild:untouched && npm run asbuild:optimized && npm run asbuild:base64"
   },
   "repository": {
     "type": "git",
@@ -38,10 +53,6 @@
   "author": "Alexandre Victoor",
   "license": "BSD-2-Clause",
   "devDependencies": {
-    "@rollup/plugin-commonjs": "^28.0.3",
-    "@rollup/plugin-node-resolve": "^16.0.1",
-    "@rollup/plugin-terser": "^0.4.4",
-    "@rollup/plugin-typescript": "^12.1.2",
     "@stryker-mutator/core": "^9.6.1",
     "@stryker-mutator/vitest-runner": "^9.6.1",
     "@types/benchmark": "^2.1.5",
@@ -53,18 +64,13 @@
     "fast-check": "^4.6.0",
     "node-notifier": ">=8.0.1",
     "prettier": "^3.8.2",
-    "rollup": "^4.60.1",
-    "ts-loader": "^9.5.7",
     "ts-node": "^10.9.2",
+    "tsdown": "^0.22.2",
     "typescript": "^5.9.3",
     "vitest": "^4.1.4",
     "yargs": "^18.0.0"
   },
-  "dependencies": {
-    "base64-js": "^1.2.0"
-  },
   "files": [
-    ".",
     "dist"
   ]
 }

@@ -302,6 +302,60 @@ while ((histogram = await reader.nextIntervalHistogram()) != null) {
 }
 ```
 
+## Interoperability with Node.js native histograms
+
+Node.js ships its own HdrHistogram-based histograms in `node:perf_hooks`
+(`createHistogram()`, `monitorEventLoopDelay()`). Starting with Node 26.9,
+a native histogram can be serialized with `histogram.export()` and
+reconstructed with `perf_hooks.importHistogram()`. HdrHistogramJS reads and
+writes that same binary format, in both directions:
+
+```ts
+import { createHistogram } from "node:perf_hooks";
+import * as hdr from "hdr-histogram-js";
+
+const native = createHistogram();
+native.record(1234);
+
+// Node native histogram -> HdrHistogramJS
+const { histogram, header } = hdr.fromNodeExport(native.export());
+console.log(histogram.getValueAtPercentile(99));
+console.log(await hdr.encodeIntoCompressedBase64(histogram)); // and on to Java, Rust, Go...
+```
+
+```ts
+import { importHistogram } from "node:perf_hooks";
+import * as hdr from "hdr-histogram-js";
+
+// HdrHistogramJS -> Node native histogram
+const histogram = hdr.build();
+histogram.recordValue(1234);
+const native = importHistogram(hdr.toNodeExport(histogram));
+console.log(native.percentile(99));
+```
+
+A few details worth knowing:
+
+- Conversion cost is proportional to the number of occupied buckets, and
+  `fromNodeExport` works on serialized bytes, so the data can come from
+  another process or machine (only producing the bytes requires Node 26.9;
+  decoding them works anywhere, browsers included).
+- `fromNodeExport` returns a Float64-backed histogram by default (counts
+  exact up to 2^53, like the native source); pass
+  `{ bitBucketSize: 32 }` or `{ bitBucketSize: "packed" }` to save memory.
+- A native histogram created without an explicit `highest` (notably
+  `monitorEventLoopDelay()`) tracks values up to 2^63 - 1, which JavaScript
+  numbers cannot hold; `fromNodeExport` clamps it to
+  `Number.MAX_SAFE_INTEGER` and only fails if an occupied bucket actually
+  lies beyond that range (about 104 days expressed in nanoseconds).
+- When the native histogram was created with a `halfLife`, the EWMA state
+  (`ewmaMean`, `ewmaStddev`, ...) rides along in the returned `header.ewma`.
+  It has no HdrHistogramJS equivalent, and `toNodeExport` never writes it.
+- `maxValue` and `minNonZeroValue` of a converted histogram are bucket
+  edges, exactly what the native `max` and `min` getters report.
+- Use `hdr.decodeNodeExport(data)` to inspect an export (header, EWMA
+  state, occupied buckets) without building a histogram.
+
 # Performance tips
 
 HdrHistogramJS stores values in memory buckets. Memory footprint of an histogram heavily depends on 3 things:

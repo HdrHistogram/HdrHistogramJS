@@ -24,6 +24,13 @@ import Recorder from "./Recorder";
 import { initWebAssembly, WasmHistogram } from "./wasm";
 import type { BuildRequest } from "./HistogramBuilder";
 import { build } from "./HistogramBuilder";
+import { decodeNodeExport, fromNodeExport, toNodeExport } from "./nodeInterop";
+import type {
+  FromNodeExportOptions,
+  NodeExport,
+  NodeExportHeader,
+  NodeHistogramEwma,
+} from "./nodeInterop";
 
 export {
   initWebAssembly,
@@ -46,4 +53,11 @@ export {
   Recorder,
   WasmHistogram,
   JsHistogram,
+  decodeNodeExport,
+  fromNodeExport,
+  toNodeExport,
+  FromNodeExportOptions,
+  NodeExport,
+  NodeExportHeader,
+  NodeHistogramEwma,
 };

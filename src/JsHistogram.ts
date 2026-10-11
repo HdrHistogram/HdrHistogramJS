@@ -114,7 +114,12 @@ export abstract class JsHistogram implements Histogram {
   abstract resize(newHighestTrackableValue: number): void;
 
   private updatedMaxValue(value: number): void {
-    const internalValue: number = value + this.unitMagnitudeMask;
+    // value | unitMagnitudeMask in the Java original; done arithmetically
+    // because bitwise OR truncates to 32 bits in JavaScript.
+    const internalValue: number =
+      floor(value / this.lowestDiscernibleValueRounded) *
+        this.lowestDiscernibleValueRounded +
+      this.unitMagnitudeMask;
     this.maxValue = internalValue;
   }
 

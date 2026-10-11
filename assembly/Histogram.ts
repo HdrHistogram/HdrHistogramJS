@@ -418,7 +418,7 @@ export default class Histogram<T, U> extends AbstractHistogramBase<T, U> {
   }
 
   private updatedMaxValue(value: u64): void {
-    const internalValue: u64 = value + this.unitMagnitudeMask;
+    const internalValue: u64 = value | this.unitMagnitudeMask;
     this.maxValue = internalValue;
   }
 

@@ -132,6 +132,19 @@ describe("Histogram recording values", () => {
     expect(histogram.maxValue).toBe(123);
   });
 
+  it("should not inflate max value when lowest discernible value is above 1", () => {
+    // given lowest=1000 => unitMagnitude=9, unitMagnitudeMask=511
+    const histogram = new HistogramForTests(1000, Number.MAX_SAFE_INTEGER, 3);
+    // when
+    histogram.recordValue(9999000000);
+    // then (value | mask as in the Java original, not value + mask)
+    expect(histogram.maxValue).toBe(9999000063);
+    // when the low 9 bits are already all set
+    histogram.recordValue(9999000063);
+    // then the value is left untouched
+    expect(histogram.maxValue).toBe(9999000063);
+  });
+
   it("should throw an error when value bigger than highest trackable value", () => {
     // given
     const histogram = new HistogramForTests(1, 4096, 3);

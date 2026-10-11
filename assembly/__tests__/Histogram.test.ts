@@ -135,6 +135,19 @@ describe("Histogram computing statistics", () => {
     expect<u64>(histogram.maxValue).equal(123);
   });
 
+  test("should not inflate max value when lowest discernible value is above 1", () => {
+    // given lowest=1000 => unitMagnitude=9, unitMagnitudeMask=511
+    const histogram = new Histogram64(1000, 9007199254740991, 3);
+    // when
+    histogram.recordValue(9999000000);
+    // then (value | mask as in the Java original, not value + mask)
+    expect<u64>(histogram.maxValue).equal(9999000063);
+    // when the low 9 bits are already all set
+    histogram.recordValue(9999000063);
+    // then the value is left untouched
+    expect<u64>(histogram.maxValue).equal(9999000063);
+  });
+
   test("should compute min non zero value", () => {
     // given
     const histogram = buildHistogram();

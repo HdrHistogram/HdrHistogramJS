@@ -19,6 +19,7 @@
   "scripts": {
     "tsc": "tsc -p tsconfig.build.json --skipLibCheck --outDir dist --declaration true --sourceMap true",
     "test": "vitest run",
+    "bench": "vitest bench --reporter=verbose",
     "stryker": "stryker run",
     "build": "npm run tsc && npm run rollup",
     "prettier": "prettier --parser typescript -l src/**/*.ts",
@@ -44,12 +45,9 @@
     "@rollup/plugin-typescript": "^12.1.2",
     "@stryker-mutator/core": "^9.6.1",
     "@stryker-mutator/vitest-runner": "^9.6.1",
-    "@types/benchmark": "^2.1.5",
     "@types/node": "^22.0.0",
     "assemblyscript": "^0.27.32",
     "assemblyscript-unittest-framework": "^2.0.0",
-    "benchmark": "^2.1.4",
-    "benny": "^3.6.14",
     "fast-check": "^4.6.0",
     "node-notifier": ">=8.0.1",
     "prettier": "^3.8.2",
@@ -57,7 +55,7 @@
     "ts-loader": "^9.5.7",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3",
-    "vitest": "^4.1.4",
+    "vitest": "^5.0.5",
     "yargs": "^18.0.0"
   },
   "files": [

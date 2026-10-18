@@ -1,5 +1,6 @@
 import { build } from "./index";
 import JsHistogram from "./JsHistogram";
+import { initWebAssembly, WasmHistogram } from "./wasm";
 import {
   decodeNodeExport,
   encodeNodeExport,
@@ -239,9 +240,9 @@ describe("Node.js native histogram interop", () => {
     expect(histogram.totalCount).toBe(reference.totalCount);
   });
 
-  it("should refuse to export a histogram without index-level access", () => {
+  it("should refuse to export something that is not a histogram", () => {
     expect(() => toNodeExport({} as any)).toThrow(
-      "toNodeExport requires a JS histogram",
+      "toNodeExport requires an hdr-histogram-js histogram",
     );
   });
 
@@ -250,5 +251,76 @@ describe("Node.js native histogram interop", () => {
     expect(() => decodeNodeExport(data.subarray(0, 5))).toThrow(
       "truncated CBOR",
     );
+  });
+});
+
+describe("Node.js native histogram interop with WebAssembly histograms", () => {
+  beforeAll(initWebAssembly);
+
+  const buildWasmHistogram = (bitBucketSize: 32 | "packed" = 32) =>
+    build({
+      lowestDiscernibleValue: 1,
+      highestTrackableValue: Number.MAX_SAFE_INTEGER,
+      numberOfSignificantValueDigits: 3,
+      bitBucketSize,
+      autoResize: false,
+      useWebAssembly: true,
+    }) as WasmHistogram;
+
+  it("should export the same bytes as an equivalent JS histogram", () => {
+    // given
+    const values = [1, 42, 1000, 123456, 98765432100];
+    const wasmHistogram = buildWasmHistogram();
+    const reference = buildJsHistogram();
+    values.forEach((value) => {
+      wasmHistogram.recordValue(value);
+      reference.recordValue(value);
+    });
+    // when then
+    expect(toNodeExport(wasmHistogram)).toStrictEqual(toNodeExport(reference));
+    wasmHistogram.destroy();
+  });
+
+  it("should round trip a WASM histogram", () => {
+    // given
+    const wasmHistogram = buildWasmHistogram();
+    wasmHistogram.recordValueWithCount(1500, 100);
+    wasmHistogram.recordValueWithCount(9000000, 3);
+    // when
+    const { histogram } = fromNodeExport(toNodeExport(wasmHistogram));
+    // then
+    expect(histogram.totalCount).toBe(103);
+    [50, 99, 100].forEach((percentile) => {
+      expect(histogram.getValueAtPercentile(percentile)).toBe(
+        wasmHistogram.getValueAtPercentile(percentile),
+      );
+    });
+    wasmHistogram.destroy();
+  });
+
+  it("should export a packed WASM histogram", () => {
+    // given
+    const wasmHistogram = buildWasmHistogram("packed");
+    const reference = buildJsHistogram();
+    [25, 3000, 777777777].forEach((value) => {
+      wasmHistogram.recordValue(value);
+      reference.recordValue(value);
+    });
+    // when then
+    expect(toNodeExport(wasmHistogram)).toStrictEqual(toNodeExport(reference));
+    wasmHistogram.destroy();
+  });
+
+  it("should clamp the 2^64-1 min of an empty WASM histogram", () => {
+    // given
+    const wasmHistogram = buildWasmHistogram();
+    // when
+    const { header } = decodeNodeExport(toNodeExport(wasmHistogram));
+    // then
+    expect(header.min).toBe(Number.MAX_SAFE_INTEGER);
+    expect(header.totalCount).toBe(0);
+    const { histogram } = fromNodeExport(toNodeExport(wasmHistogram));
+    expect(histogram.totalCount).toBe(0);
+    wasmHistogram.destroy();
   });
 });

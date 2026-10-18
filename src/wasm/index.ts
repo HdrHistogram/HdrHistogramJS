@@ -48,6 +48,9 @@ interface WasmFns {
   getEstimatedFootprintInBytes: (ptr: number) => number;
   getMinNonZeroValue: (ptr: number) => number;
   getMaxValue: (ptr: number) => number;
+  getLowestDiscernibleValue: (ptr: number) => number;
+  getCountsArrayLength: (ptr: number) => number;
+  getNonZeroCounts: (ptr: number) => number;
   recordValue: (ptr: number, value: number) => void;
   recordValueWithCount: (ptr: number, value: number, count: number) => void;
   recordValueWithExpectedInterval: (
@@ -97,6 +100,9 @@ function buildWasmFns(s: string): WasmFns {
     getEstimatedFootprintInBytes: wasm[`getEstimatedFootprintInBytes${s}`],
     getMinNonZeroValue: wasm[`getMinNonZeroValue${s}`],
     getMaxValue: wasm[`getMaxValue${s}`],
+    getLowestDiscernibleValue: wasm[`getLowestDiscernibleValue${s}`],
+    getCountsArrayLength: wasm[`getCountsArrayLength${s}`],
+    getNonZeroCounts: wasm[`getNonZeroCounts${s}`],
     recordValue: wasm[`recordValue${s}`],
     recordValueWithCount: wasm[`recordValueWithCount${s}`],
     recordValueWithExpectedInterval: wasm[`recordValueWithExpectedInterval${s}`],
@@ -171,6 +177,14 @@ function getUint8Array(ptr: number): Uint8Array {
   const dataStart = U32[(ptr + 4) >>> 2];
   const byteLength = U32[(ptr + 8) >>> 2];
   return new Uint8Array(wasm.memory.buffer, dataStart, byteLength).slice();
+}
+
+/** Copy a Float64Array out of WASM linear memory (ArrayBufferView layout) */
+function getFloat64Array(ptr: number): Float64Array {
+  const U32 = new Uint32Array(wasm.memory.buffer);
+  const dataStart = U32[(ptr + 4) >>> 2];
+  const byteLength = U32[(ptr + 8) >>> 2];
+  return new Float64Array(wasm.memory.buffer, dataStart, byteLength / 8).slice();
 }
 
 /**
@@ -334,6 +348,22 @@ export class WasmHistogram implements Histogram {
 
   public get maxValue(): number {
     return this._fns.getMaxValue(this._ptr);
+  }
+
+  public get lowestDiscernibleValue(): number {
+    return this._fns.getLowestDiscernibleValue(this._ptr);
+  }
+
+  public get countsArrayLength(): number {
+    return this._fns.getCountsArrayLength(this._ptr);
+  }
+
+  /** The occupied buckets as interleaved [index, count, ...] pairs. */
+  getNonZeroCounts(): Float64Array {
+    const arrPtr: number = wasm.__pin(this._fns.getNonZeroCounts(this._ptr));
+    const result = getFloat64Array(arrPtr);
+    wasm.__unpin(arrPtr);
+    return result;
   }
 
   recordValue(value: number) {

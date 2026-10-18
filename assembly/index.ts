@@ -103,6 +103,37 @@ class HistogramAdapter<T, U> {
     return <f64>this._histogram.numberOfSignificantValueDigits;
   }
 
+  public get lowestDiscernibleValue(): f64 {
+    return <f64>this._histogram.lowestDiscernibleValue;
+  }
+
+  public get countsArrayLength(): f64 {
+    return <f64>this._histogram.countsArrayLength;
+  }
+
+  // The occupied buckets as interleaved [index, count, ...] pairs, so a
+  // caller crosses the WebAssembly boundary once instead of once per bucket.
+  getNonZeroCounts(): Float64Array {
+    const histogram = this._histogram;
+    let nonZero = 0;
+    for (let i = 0; i < histogram.countsArrayLength; i++) {
+      if (histogram.getCountAtIndex(i) > 0) {
+        nonZero++;
+      }
+    }
+    const result = new Float64Array(2 * nonZero);
+    let j = 0;
+    for (let i = 0; i < histogram.countsArrayLength; i++) {
+      const count = histogram.getCountAtIndex(i);
+      if (count > 0) {
+        result[j] = <f64>i;
+        result[j + 1] = <f64>count;
+        j += 2;
+      }
+    }
+    return result;
+  }
+
   recordValue(value: f64): void {
     this._histogram.recordSingleValue(<u64>value);
   }
@@ -347,6 +378,24 @@ export function getMaxValue16(h: Histogram16): f64 { return h.maxValue; }
 export function getMaxValue32(h: Histogram32): f64 { return h.maxValue; }
 export function getMaxValue64(h: Histogram64): f64 { return h.maxValue; }
 export function getMaxValuePacked(h: PackedHistogram): f64 { return h.maxValue; }
+
+export function getLowestDiscernibleValue8(h: Histogram8): f64 { return h.lowestDiscernibleValue; }
+export function getLowestDiscernibleValue16(h: Histogram16): f64 { return h.lowestDiscernibleValue; }
+export function getLowestDiscernibleValue32(h: Histogram32): f64 { return h.lowestDiscernibleValue; }
+export function getLowestDiscernibleValue64(h: Histogram64): f64 { return h.lowestDiscernibleValue; }
+export function getLowestDiscernibleValuePacked(h: PackedHistogram): f64 { return h.lowestDiscernibleValue; }
+
+export function getCountsArrayLength8(h: Histogram8): f64 { return h.countsArrayLength; }
+export function getCountsArrayLength16(h: Histogram16): f64 { return h.countsArrayLength; }
+export function getCountsArrayLength32(h: Histogram32): f64 { return h.countsArrayLength; }
+export function getCountsArrayLength64(h: Histogram64): f64 { return h.countsArrayLength; }
+export function getCountsArrayLengthPacked(h: PackedHistogram): f64 { return h.countsArrayLength; }
+
+export function getNonZeroCounts8(h: Histogram8): Float64Array { return h.getNonZeroCounts(); }
+export function getNonZeroCounts16(h: Histogram16): Float64Array { return h.getNonZeroCounts(); }
+export function getNonZeroCounts32(h: Histogram32): Float64Array { return h.getNonZeroCounts(); }
+export function getNonZeroCounts64(h: Histogram64): Float64Array { return h.getNonZeroCounts(); }
+export function getNonZeroCountsPacked(h: PackedHistogram): Float64Array { return h.getNonZeroCounts(); }
 
 // Setters
 export function setAutoResize8(h: Histogram8, resize: boolean): void { h.autoResize = resize; }

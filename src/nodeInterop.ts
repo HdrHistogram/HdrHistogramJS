@@ -23,6 +23,7 @@
 import type Histogram from "./Histogram";
 import type { BitBucketSize } from "./Histogram";
 import JsHistogram from "./JsHistogram";
+import { WasmHistogram } from "./wasm";
 import { build } from "./HistogramBuilder";
 
 const MAX_SAFE = Number.MAX_SAFE_INTEGER;
@@ -479,15 +480,42 @@ const cborF64 = (out: number[], value: number) => {
  * @internal
  */
 export const encodeNodeExport = (
-  histogram: JsHistogram,
+  histogram: Histogram,
   ewma?: NodeHistogramEwma,
 ): Uint8Array => {
+  // The occupied buckets as interleaved [index, count, ...] pairs. A WASM
+  // histogram hands them over in one boundary crossing; a JS histogram is
+  // walked index by index.
+  let lowestDiscernibleValue: number;
+  let countsArrayLength: number;
+  let nonZeroCounts: ArrayLike<number>;
+  if (histogram instanceof JsHistogram) {
+    lowestDiscernibleValue = histogram.lowestDiscernibleValue;
+    countsArrayLength = histogram.countsArrayLength;
+    const pairs: number[] = [];
+    for (let i = 0; i < countsArrayLength; i++) {
+      const count = histogram.getCountAtIndex(i);
+      if (count !== 0) {
+        pairs.push(i, count);
+      }
+    }
+    nonZeroCounts = pairs;
+  } else if (histogram instanceof WasmHistogram) {
+    lowestDiscernibleValue = histogram.lowestDiscernibleValue;
+    countsArrayLength = histogram.countsArrayLength;
+    nonZeroCounts = histogram.getNonZeroCounts();
+  } else {
+    throw new TypeError(
+      "toNodeExport requires an hdr-histogram-js histogram (JS or WebAssembly)",
+    );
+  }
+
   const out: number[] = [];
   cborUint(out, 5, ewma ? 12 : 11);
   cborUint(out, 0, 0);
   cborUint(out, 0, 2); // format version
   cborUint(out, 0, 1);
-  cborUint(out, 0, histogram.lowestDiscernibleValue);
+  cborUint(out, 0, lowestDiscernibleValue);
   cborUint(out, 0, 2);
   cborUint(out, 0, histogram.highestTrackableValue);
   cborUint(out, 0, 3);
@@ -495,31 +523,24 @@ export const encodeNodeExport = (
   cborUint(out, 0, 4);
   cborUint(out, 0, histogram.totalCount);
   cborUint(out, 0, 5);
-  cborUint(out, 0, histogram.minNonZeroValue);
+  // 2^64 - 1 on an empty WASM histogram; clamp like the import direction
+  cborUint(out, 0, Math.min(histogram.minNonZeroValue, MAX_SAFE));
   cborUint(out, 0, 6);
-  cborUint(out, 0, histogram.maxValue);
+  cborUint(out, 0, Math.min(histogram.maxValue, MAX_SAFE));
   cborUint(out, 0, 7);
   cborUint(out, 0, 0); // normalizing index offset
   cborUint(out, 0, 8);
   cborF64(out, 1); // conversion ratio
   cborUint(out, 0, 9);
-  cborUint(out, 0, histogram.countsArrayLength);
+  cborUint(out, 0, countsArrayLength);
   cborUint(out, 0, 10);
-  const sparse: number[] = [];
-  let pairs = 0;
+  cborUint(out, 4, nonZeroCounts.length);
   let previous = 0;
-  for (let i = 0; i < histogram.countsArrayLength; i++) {
-    const count = histogram.getCountAtIndex(i);
-    if (count !== 0) {
-      cborUint(sparse, 0, i - previous);
-      cborUint(sparse, 0, count);
-      previous = i;
-      pairs++;
-    }
-  }
-  cborUint(out, 4, 2 * pairs);
-  for (const byte of sparse) {
-    out.push(byte);
+  for (let k = 0; k < nonZeroCounts.length; k += 2) {
+    const index = nonZeroCounts[k];
+    cborUint(out, 0, index - previous);
+    cborUint(out, 0, nonZeroCounts[k + 1]);
+    previous = index;
   }
   if (ewma) {
     cborUint(out, 0, 11);
@@ -539,16 +560,10 @@ export const encodeNodeExport = (
 };
 
 /**
- * Serializes an hdr-histogram-js histogram into the bytes that Node.js's
- * perf_hooks.importHistogram() (Node >= 26.9) accepts: a version 2 export
- * with keys 0 to 10. EWMA state (key 11) is never written, since
- * hdr-histogram-js keeps none.
+ * Serializes an hdr-histogram-js histogram (JS or WebAssembly backed) into
+ * the bytes that Node.js's perf_hooks.importHistogram() (Node >= 26.9)
+ * accepts: a version 2 export with keys 0 to 10. EWMA state (key 11) is
+ * never written, since hdr-histogram-js keeps none.
  */
-export const toNodeExport = (histogram: Histogram): Uint8Array => {
-  if (!(histogram instanceof JsHistogram)) {
-    throw new TypeError(
-      "toNodeExport requires a JS histogram; convert a WebAssembly histogram first",
-    );
-  }
-  return encodeNodeExport(histogram);
-};
+export const toNodeExport = (histogram: Histogram): Uint8Array =>
+  encodeNodeExport(histogram);

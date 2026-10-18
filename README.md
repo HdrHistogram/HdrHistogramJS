@@ -351,6 +351,8 @@ A few details worth knowing:
 - When the native histogram was created with a `halfLife`, the EWMA state
   (`ewmaMean`, `ewmaStddev`, ...) rides along in the returned `header.ewma`.
   It has no HdrHistogramJS equivalent, and `toNodeExport` never writes it.
+- `toNodeExport` accepts every kind of HdrHistogramJS histogram, WebAssembly
+  ones included.
 - `maxValue` and `minNonZeroValue` of a converted histogram are bucket
   edges, exactly what the native `max` and `min` getters report.
 - Use `hdr.decodeNodeExport(data)` to inspect an export (header, EWMA

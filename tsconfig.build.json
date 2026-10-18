@@ -3,5 +3,5 @@
   "compilerOptions": {
     "types": ["node"]
   },
-  "exclude": ["node_modules", "dist", "assembly", "src/**/*.spec.ts", "src/**/*.fc.spec.ts"]
+  "exclude": ["node_modules", "dist", "assembly", "src/**/*.spec.ts", "src/**/*.fc.spec.ts", "src/bench/**"]
 }

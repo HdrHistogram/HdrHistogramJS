@@ -11,7 +11,8 @@ import {
   MINIMUM_INITIAL_PACKED_ARRAY_CAPACITY,
 } from "./PackedArrayContext";
 
-const NUMBER_OF_SETS: u8 = 8;
+const NUMBER_OF_SETS: i32 = 8;
+const NO_LEAF: i32 = -1;
 
 /**
  * A Packed array of signed 64 bit values, and supports {@link #get get()}, {@link #set set()},
@@ -29,6 +30,19 @@ export class PackedArray {
 
   private arrayContext: PackedArrayContext;
 
+  // Leaf cache for sequential reads.
+  //
+  // The 8 virtual indexes of a group (index >> 3) share one leaf per byte set,
+  // so a scan over consecutive indexes would otherwise repeat the same set-tree
+  // walks 8 times. leafIndexBySet remembers, for the group last read, the long
+  // index of each set's leaf (NO_LEAF when the set has no entry for that
+  // group). set() and add() record the leaves they insert for the cached group,
+  // and anything that rebuilds the context invalidates the cache.
+  private cachedGroup: i32 = -1;
+  private leafIndexBySet: StaticArray<i32> = new StaticArray<i32>(
+    NUMBER_OF_SETS
+  );
+
   constructor(
     virtualLength: i32,
     initialPhysicalLength: i32 = MINIMUM_INITIAL_PACKED_ARRAY_CAPACITY
@@ -45,6 +59,7 @@ export class PackedArray {
   }
 
   public setVirtualLength(newVirtualArrayLength: i32): void {
+    this.cachedGroup = -1;
     if (newVirtualArrayLength < this.length()) {
       throw new Error(
         "Cannot set virtual length, as requested length " +
@@ -84,28 +99,59 @@ export class PackedArray {
    * @return the array value at the virtual index given
    */
   get(index: i32): u64 {
+    const arrayContext = this.arrayContext;
+    // Deal with unpacked context:
+    if (!arrayContext.isPacked) {
+      return arrayContext.getAtUnpackedIndex(index);
+    }
+    // Context is packed:
+    if (index >> 3 != this.cachedGroup) {
+      this.fillLeafCache(index);
+    }
+    const byteInLeaf = index & 0x7;
+    const leafIndexBySet = this.leafIndexBySet;
     let value: u64 = 0;
-    for (let byteNum: u8 = 0; byteNum < NUMBER_OF_SETS; byteNum++) {
-      let byteValueAtPackedIndex: u64 = 0;
-
-      // Deal with unpacked context:
-      if (!this.arrayContext.isPacked) {
-        return this.arrayContext.getAtUnpackedIndex(index);
+    for (let byteNum = 0; byteNum < NUMBER_OF_SETS; byteNum++) {
+      const leafIndex = unchecked(leafIndexBySet[byteNum]);
+      if (leafIndex == NO_LEAF) {
+        break;
       }
-      // Context is packed:
-      const packedIndex = this.arrayContext.getPackedIndex(
-        byteNum,
-        index,
-        false
-      );
-      if (packedIndex < 0) {
-        return value;
-      }
-      byteValueAtPackedIndex =
-        (<u64>this.arrayContext.getAtByteIndex(packedIndex)) << (byteNum << 3);
-      value += byteValueAtPackedIndex;
+      value |=
+        (<u64>arrayContext.getAtByteIndex((leafIndex << 3) + byteInLeaf)) <<
+        (byteNum << 3);
     }
     return value;
+  }
+
+  /**
+   * Walk the set trees once for the group of 8 indexes containing `index`, and
+   * remember the leaf of every set that has one.
+   */
+  private fillLeafCache(index: i32): void {
+    const arrayContext = this.arrayContext;
+    const leafIndexBySet = this.leafIndexBySet;
+    let byteNum = 0;
+    for (; byteNum < NUMBER_OF_SETS; byteNum++) {
+      const packedIndex = arrayContext.getPackedIndex(byteNum, index, false);
+      if (packedIndex < 0) {
+        break;
+      }
+      unchecked((leafIndexBySet[byteNum] = packedIndex >> 3));
+    }
+    // Sets are populated from byte 0 upwards (see set() and add()), so once a
+    // set has no leaf for this group the higher sets have none either.
+    for (; byteNum < NUMBER_OF_SETS; byteNum++) {
+      unchecked((leafIndexBySet[byteNum] = NO_LEAF));
+    }
+    this.cachedGroup = index >> 3;
+  }
+
+  /** Keep the leaf cache coherent with a leaf just looked up with insertAsNeeded. */
+  @inline
+  private noteLeaf(index: i32, byteNum: i32, packedIndex: i32): void {
+    if (index >> 3 == this.cachedGroup) {
+      unchecked((this.leafIndexBySet[byteNum] = packedIndex >> 3));
+    }
   }
 
   /**
@@ -129,34 +175,27 @@ export class PackedArray {
    * @param value the value to add
    */
   public add(index: i32, value: u64): void {
+    const arrayContext = this.arrayContext;
+    // Deal with unpacked context:
+    if (!arrayContext.isPacked) {
+      arrayContext.addAndGetAtUnpackedIndex(index, value);
+      return;
+    }
+    // Context is packed:
     let remainingValueToAdd = value;
-
-    for (
-      let byteNum = 0, byteShift = 0;
-      byteNum < NUMBER_OF_SETS;
-      byteNum++, byteShift += 8
-    ) {
-      // Deal with unpacked context:
-      if (!this.arrayContext.isPacked) {
-        this.arrayContext.addAndGetAtUnpackedIndex(index, value);
-        return;
-      }
-      // Context is packed:
+    for (let byteNum = 0; byteNum < NUMBER_OF_SETS; byteNum++) {
       const packedIndex = this.safeGetPackedIndexgetPackedIndex(byteNum, index);
+      this.noteLeaf(index, byteNum, packedIndex);
 
-      const byteToAdd = remainingValueToAdd & 0xff;
-
-      const afterAddByteValue = this.arrayContext.addAtByteIndex(
+      const byteToAdd = <u8>(remainingValueToAdd & 0xff);
+      const afterAddByteValue = arrayContext.addAtByteIndex(
         packedIndex,
         byteToAdd
       );
 
-      // Reduce remaining value to add by amount just added:
-      remainingValueToAdd -= byteToAdd;
-
-      remainingValueToAdd = remainingValueToAdd >> 8;
-      // Account for carry:
-      remainingValueToAdd += afterAddByteValue >> 8;
+      // Move on to the next byte, accounting for the carry:
+      remainingValueToAdd =
+        (remainingValueToAdd >> 8) + <u64>(afterAddByteValue >> 8);
 
       if (remainingValueToAdd == 0) {
         return; // nothing to add to higher magnitudes
@@ -170,47 +209,31 @@ export class PackedArray {
    * @param value the value to set
    */
   set(index: i32, value: u64): void {
-    let bytesAlreadySet: u8 = 0;
+    const arrayContext = this.arrayContext;
+    // Deal with unpacked context:
+    if (!arrayContext.isPacked) {
+      arrayContext.setAtUnpackedIndex(index, value);
+      return;
+    }
+    // Context is packed:
     let valueForNextLevels = value;
-    for (let byteNum: u8 = 0; byteNum < NUMBER_OF_SETS; byteNum++) {
-      // Establish context within: critical section
-
-      // Deal with unpacked context:
-      if (!this.arrayContext.isPacked) {
-        this.arrayContext.setAtUnpackedIndex(index, value);
-        return;
-      }
-      // Context is packed:
+    for (let byteNum = 0; byteNum < NUMBER_OF_SETS; byteNum++) {
       if (valueForNextLevels == 0) {
         // Special-case zeros to avoid inflating packed array for no reason
-        const packedIndex = this.arrayContext.getPackedIndex(
-          byteNum,
-          index,
-          false
-        );
+        const packedIndex = arrayContext.getPackedIndex(byteNum, index, false);
         if (packedIndex < 0) {
           return; // no need to create entries for zero values if they don't already exist
         }
       }
       // Make sure byte is populated:
-      const packedIndex = this.arrayContext.getPackedIndex(
-        byteNum,
-        index,
-        true
-      );
+      const packedIndex = arrayContext.getPackedIndex(byteNum, index, true);
+      this.noteLeaf(index, byteNum, packedIndex);
 
       // Determine value to write, and prepare for next levels
       const byteToWrite: u8 = <u8>(valueForNextLevels & 0xff);
       valueForNextLevels = valueForNextLevels >> 8;
 
-      if (byteNum < bytesAlreadySet) {
-        // We want to avoid writing to the same byte twice when not doing so for the
-        // entire 64 bit value atomically, as doing so opens a race with e.g. concurrent
-        // adders. So dobn't actually write the byte if has been written before.
-        continue;
-      }
-      this.arrayContext.setAtByteIndex(packedIndex, byteToWrite);
-      bytesAlreadySet++;
+      arrayContext.setAtByteIndex(packedIndex, byteToWrite);
     }
   }
 
@@ -239,6 +262,7 @@ export class PackedArray {
    * Clear the array contents
    */
   public clear(): void {
+    this.cachedGroup = -1;
     this.arrayContext.clear();
   }
 

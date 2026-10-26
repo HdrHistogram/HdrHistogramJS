@@ -39,6 +39,12 @@
    private byteArray!: Uint8Array;
    private shortArray!: Uint16Array;
    private longArray!: Uint64Array;
+   /**
+    * Address of the first byte of `array`. The accessors on the set-tree walk
+    * read and write through it directly, skipping the typed array bounds checks
+    * (indexes come from the tree itself, which is kept within the array).
+    */
+   private dataStart: usize = 0;
    private populatedShortLength: i32 = 0;
    private virtualLength: i32;
    private topLevelShift: i32 = i32.MAX_VALUE; // Make it non-sensical until properly initialized.
@@ -61,6 +67,7 @@
      this.byteArray = Uint8Array.wrap(array);
      this.shortArray = Uint16Array.wrap(array);
      this.longArray = Uint64Array.wrap(array);
+     this.dataStart = changetype<usize>(array);
    }
  
    private init(virtualLength: i32): void {
@@ -107,23 +114,27 @@
      return (this.getPopulatedShortLength() + 3) >> 2; // round up
    }
  
+   @inline
    public setAtByteIndex(byteIndex: i32, value: u8): void {
-     this.byteArray[byteIndex] = value;
+     store<u8>(this.dataStart + <usize>byteIndex, value);
    }
  
+   @inline
    public getAtByteIndex(byteIndex: i32): u8 {
-     return this.byteArray[byteIndex];
+     return load<u8>(this.dataStart + <usize>byteIndex);
    }
  
    /**
     * add a byte value to a current byte value in the array
     * @param byteIndex index of byte value to add to
     * @param valueToAdd byte value to add
-    * @return the afterAddValue. ((afterAddValue & 0x100) != 0) indicates a carry.
+    * @return the afterAddValue, unwrapped: (afterAddValue >> 8) is the carry.
     */
-   public addAtByteIndex(byteIndex: i32, valueToAdd: u8): u8 {
-     const newValue = this.byteArray[byteIndex] + valueToAdd;
-     this.byteArray[byteIndex] = newValue;
+   @inline
+   public addAtByteIndex(byteIndex: i32, valueToAdd: u8): u32 {
+     const pointer = this.dataStart + <usize>byteIndex;
+     const newValue = <u32>load<u8>(pointer) + <u32>valueToAdd;
+     store<u8>(pointer, <u8>newValue);
      return newValue;
    }
  
@@ -138,20 +149,24 @@
      return this.physicalLength;
    }
  
+   @inline
    setAtShortIndex(shortIndex: i32, value: u16): void {
-     this.shortArray[shortIndex] = value;
+     store<u16>(this.dataStart + (<usize>shortIndex << 1), value);
    }
  
+   @inline
    setAtLongIndex(longIndex: i32, value: u64): void {
-     this.longArray[longIndex] = value;
+     store<u64>(this.dataStart + (<usize>longIndex << 3), value);
    }
  
+   @inline
    getAtShortIndex(shortIndex: i32): u16 {
-     return this.shortArray[shortIndex];
+     return load<u16>(this.dataStart + (<usize>shortIndex << 1));
    }
  
+   @inline
    getIndexAtShortIndex(shortIndex: i32): u16 {
-     return this.shortArray[shortIndex];
+     return load<u16>(this.dataStart + (<usize>shortIndex << 1));
    }
  
    setPackedSlotIndicators(entryIndex: i32, newPackedSlotIndicators: u16): void {
@@ -161,10 +176,10 @@
      );
    }
  
+   @inline
    getPackedSlotIndicators(entryIndex: i32): u16 {
-     return (
-       this.shortArray[entryIndex + NON_LEAF_ENTRY_SLOT_INDICATORS_OFFSET] &
-       0xffff
+     return this.getAtShortIndex(
+       entryIndex + NON_LEAF_ENTRY_SLOT_INDICATORS_OFFSET
      );
    }
  
@@ -550,10 +565,12 @@
      }
    }
  
+   @inline
    getAtUnpackedIndex(index: i32): u64 {
      return this.longArray[index];
    }
  
+   @inline
    setAtUnpackedIndex(index: i32, newValue: u64): void {
      this.longArray[index] = newValue;
    }
@@ -563,13 +580,13 @@
    }
  
    incrementAndGetAtUnpackedIndex(index: i32): u64 {
-     this.longArray[index]++;
-     return this.longArray[index];
+     return this.addAndGetAtUnpackedIndex(index, 1);
    }
  
    addAndGetAtUnpackedIndex(index: i32, valueToAdd: u64): u64 {
-     this.longArray[index] += valueToAdd;
-     return this.longArray[index];
+     const newValue = this.longArray[index] + valueToAdd;
+     this.longArray[index] = newValue;
+     return newValue;
    }
  
    //

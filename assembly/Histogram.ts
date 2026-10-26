@@ -588,6 +588,11 @@ export default class Histogram<T, U> extends AbstractHistogramBase<T, U> {
   }
 
   incrementCountAtIndex(index: i32): void {
+    if (idof<T>() == idof<PackedArray>()) {
+      // One set-tree walk per populated byte, instead of a get plus a set.
+      changetype<PackedArray>(this.counts).increment(index);
+      return;
+    }
     // @ts-ignore
     const currentCount = unchecked(this.counts[index]);
     const newCount = currentCount + 1;
@@ -606,6 +611,13 @@ export default class Histogram<T, U> extends AbstractHistogramBase<T, U> {
   }
 
   addToCountAtIndex(index: i32, value: u64): void {
+    if (idof<T>() == idof<PackedArray>() && <i64>value > 0) {
+      // Positive adds walk only the bytes they touch. Wrapped negative values
+      // (from subtract) keep going through get + set, which does not inflate
+      // every byte set of the packed array.
+      changetype<PackedArray>(this.counts).add(index, value);
+      return;
+    }
     // @ts-ignore
     const currentCount = unchecked(this.counts[index]);
     const newCount = currentCount + value;

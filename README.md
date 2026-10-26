@@ -193,6 +193,8 @@ To benefit from WebAssembly performance boost, there are three things to take ca
 - Build a WebAssembly histogram setting the useWebAssembly flag to true
 - Explicitely ask to free up memory by calling _histogram.destroy()_ once an histogram is not needed anymore.
 
+The WebAssembly module uses [SIMD instructions](https://webassembly.org/features/) for bulk operations on the counts array (percentile lookups, add, subtract, reset). SIMD is supported by all current browsers (Chrome 91+, Firefox 89+, Safari 16.4+) and by NodeJS 16.4+; on an older runtime, `initWebAssembly()` rejects and you should fall back to the regular JS histograms.
+
 Even if under the cover a WebAssembly histogram is very different from a regular JS based histogram, both provide exactly the same interface.  
 The code fragment below shows how to instantiate a resizable 32 bits WebAssembly histogram:
 

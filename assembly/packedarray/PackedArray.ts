@@ -9,6 +9,7 @@
 import {
   PackedArrayContext,
   MINIMUM_INITIAL_PACKED_ARRAY_CAPACITY,
+  RESIZE_REQUIRED,
 } from "./PackedArrayContext";
 
 const NUMBER_OF_SETS: i32 = 8;
@@ -53,6 +54,11 @@ export class PackedArray {
     );
   }
 
+  /** False once the array has outgrown the packed representation (see resizeStorageArray). */
+  public get isPacked(): bool {
+    return this.arrayContext.isPacked;
+  }
+
   public resize(newVirtualArrayLength: i32): PackedArray {
     this.setVirtualLength(newVirtualArrayLength);
     return this;
@@ -79,10 +85,59 @@ export class PackedArray {
       currentArrayContext.setVirtualLength(newVirtualArrayLength);
       return;
     }
-    this.arrayContext = currentArrayContext.copyAndIncreaseSize(
-      this.getPhysicalLength(),
-      newVirtualArrayLength
-    );
+    this.replaceContext(newVirtualArrayLength, this.getPhysicalLength());
+  }
+
+  /**
+   * Port of the Java resizeStorageArray(): rebuild the context with the physical
+   * length a failed insertion asked for, which is beyond what a packed context can
+   * address, so the new context is unpacked.
+   */
+  private resizeStorageArray(newPhysicalLength: i32): void {
+    this.replaceContext(this.length(), newPhysicalLength);
+  }
+
+  /**
+   * Replace the context with a new one of the given sizes, carrying the values over.
+   * Packed to packed copies the set trees; otherwise (or when the trees do not fit
+   * in a packed context) the non-zero values are re-inserted, as the Java version
+   * does in resizeStorageArray() and setVirtualLength().
+   */
+  private replaceContext(newVirtualLength: i32, newPhysicalLength: i32): void {
+    const oldContext = this.arrayContext;
+    this.cachedGroup = -1;
+    let newContext = new PackedArrayContext(newVirtualLength, newPhysicalLength);
+    if (oldContext.isPacked && newContext.isPacked) {
+      if (newContext.populateEquivalentEntriesWithEntriesFromOther(oldContext)) {
+        this.arrayContext = newContext;
+        return;
+      }
+      newContext = PackedArrayContext.newUnpacked(newVirtualLength);
+    }
+    this.arrayContext = newContext;
+    const oldLength = oldContext.getVirtualLength();
+    for (let index = 0; index < oldLength; index++) {
+      const value = PackedArray.getFromContext(oldContext, index);
+      if (value != 0) {
+        this.set(index, value);
+      }
+    }
+  }
+
+  /** Plain read of a value from a given context, without the leaf cache. */
+  private static getFromContext(arrayContext: PackedArrayContext, index: i32): u64 {
+    if (!arrayContext.isPacked) {
+      return arrayContext.getAtUnpackedIndex(index);
+    }
+    let value: u64 = 0;
+    for (let byteNum = 0; byteNum < NUMBER_OF_SETS; byteNum++) {
+      const packedIndex = arrayContext.getPackedIndex(byteNum, index, false);
+      if (packedIndex < 0) {
+        break;
+      }
+      value |= (<u64>arrayContext.getAtByteIndex(packedIndex)) << (byteNum << 3);
+    }
+    return value;
   }
 
   @operator("[]") private __get(index: i32): u64 {
@@ -175,31 +230,53 @@ export class PackedArray {
    * @param value the value to add
    */
   public add(index: i32, value: u64): void {
-    const arrayContext = this.arrayContext;
-    // Deal with unpacked context:
-    if (!arrayContext.isPacked) {
-      arrayContext.addAndGetAtUnpackedIndex(index, value);
+    if (value == 0) {
       return;
     }
-    // Context is packed:
+    // Kept at its own magnitude (not shifted) so that a retry after a context
+    // rebuild can restart from byte 0 with what is still left to add.
     let remainingValueToAdd = value;
-    for (let byteNum = 0; byteNum < NUMBER_OF_SETS; byteNum++) {
-      const packedIndex = this.safeGetPackedIndexgetPackedIndex(byteNum, index);
-      this.noteLeaf(index, byteNum, packedIndex);
-
-      const byteToAdd = <u8>(remainingValueToAdd & 0xff);
-      const afterAddByteValue = arrayContext.addAtByteIndex(
-        packedIndex,
-        byteToAdd
-      );
-
-      // Move on to the next byte, accounting for the carry:
-      remainingValueToAdd =
-        (remainingValueToAdd >> 8) + <u64>(afterAddByteValue >> 8);
-
-      if (remainingValueToAdd == 0) {
-        return; // nothing to add to higher magnitudes
+    while (true) {
+      const arrayContext = this.arrayContext;
+      // Deal with unpacked context:
+      if (!arrayContext.isPacked) {
+        arrayContext.addAndGetAtUnpackedIndex(index, remainingValueToAdd);
+        return;
       }
+      // Context is packed:
+      let resizeRequired = false;
+      for (
+        let byteNum = 0, byteShift = 0;
+        byteNum < NUMBER_OF_SETS;
+        byteNum++, byteShift += 8
+      ) {
+        const packedIndex = this.safeGetPackedIndexgetPackedIndex(byteNum, index);
+        if (packedIndex == RESIZE_REQUIRED) {
+          resizeRequired = true;
+          break;
+        }
+        this.noteLeaf(index, byteNum, packedIndex);
+
+        const amountToAddAtSet = remainingValueToAdd & (<u64>0xff << byteShift);
+        const byteToAdd = <u8>(amountToAddAtSet >> byteShift);
+        const afterAddByteValue = arrayContext.addAtByteIndex(
+          packedIndex,
+          byteToAdd
+        );
+
+        // Reduce remaining value to add by amount just added:
+        remainingValueToAdd -= amountToAddAtSet;
+        // Account for carry:
+        remainingValueToAdd += <u64>(afterAddByteValue & 0x100) << byteShift;
+
+        if (remainingValueToAdd == 0) {
+          return; // nothing to add to higher magnitudes
+        }
+      }
+      if (!resizeRequired) {
+        return;
+      }
+      this.resizeStorageArray(arrayContext.requestedPhysicalLength);
     }
   }
 
@@ -209,31 +286,49 @@ export class PackedArray {
    * @param value the value to set
    */
   set(index: i32, value: u64): void {
-    const arrayContext = this.arrayContext;
-    // Deal with unpacked context:
-    if (!arrayContext.isPacked) {
-      arrayContext.setAtUnpackedIndex(index, value);
-      return;
-    }
-    // Context is packed:
-    let valueForNextLevels = value;
-    for (let byteNum = 0; byteNum < NUMBER_OF_SETS; byteNum++) {
-      if (valueForNextLevels == 0) {
-        // Special-case zeros to avoid inflating packed array for no reason
-        const packedIndex = arrayContext.getPackedIndex(byteNum, index, false);
-        if (packedIndex < 0) {
-          return; // no need to create entries for zero values if they don't already exist
-        }
+    // Bytes written before a context rebuild are carried over by the rebuild,
+    // so a retry only has to populate them, not write them again.
+    let bytesAlreadySet = 0;
+    while (true) {
+      const arrayContext = this.arrayContext;
+      // Deal with unpacked context:
+      if (!arrayContext.isPacked) {
+        arrayContext.setAtUnpackedIndex(index, value);
+        return;
       }
-      // Make sure byte is populated:
-      const packedIndex = arrayContext.getPackedIndex(byteNum, index, true);
-      this.noteLeaf(index, byteNum, packedIndex);
+      // Context is packed:
+      let valueForNextLevels = value;
+      let resizeRequired = false;
+      for (let byteNum = 0; byteNum < NUMBER_OF_SETS; byteNum++) {
+        if (valueForNextLevels == 0) {
+          // Special-case zeros to avoid inflating packed array for no reason
+          const packedIndex = arrayContext.getPackedIndex(byteNum, index, false);
+          if (packedIndex < 0) {
+            return; // no need to create entries for zero values if they don't already exist
+          }
+        }
+        // Make sure byte is populated:
+        const packedIndex = arrayContext.getPackedIndex(byteNum, index, true);
+        if (packedIndex == RESIZE_REQUIRED) {
+          resizeRequired = true;
+          break;
+        }
+        this.noteLeaf(index, byteNum, packedIndex);
 
-      // Determine value to write, and prepare for next levels
-      const byteToWrite: u8 = <u8>(valueForNextLevels & 0xff);
-      valueForNextLevels = valueForNextLevels >> 8;
+        // Determine value to write, and prepare for next levels
+        const byteToWrite: u8 = <u8>(valueForNextLevels & 0xff);
+        valueForNextLevels = valueForNextLevels >> 8;
 
-      arrayContext.setAtByteIndex(packedIndex, byteToWrite);
+        if (byteNum < bytesAlreadySet) {
+          continue;
+        }
+        arrayContext.setAtByteIndex(packedIndex, byteToWrite);
+        bytesAlreadySet++;
+      }
+      if (!resizeRequired) {
+        return;
+      }
+      this.resizeStorageArray(arrayContext.requestedPhysicalLength);
     }
   }
 

@@ -22,7 +22,20 @@
  *
  */
  export const MINIMUM_INITIAL_PACKED_ARRAY_CAPACITY = 16;
- const MAX_SUPPORTED_PACKED_COUNTS_ARRAY_LENGTH = Math.pow(2, 13) - 1; //(Short.MAX_VALUE / 4);  TODO ALEX why ???
+ /**
+  * Largest physical length (in longs) a packed context can have. Entries are
+  * addressed with 16 bit short indexes, so beyond this a context is unpacked
+  * (one u64 per virtual index). Same value as the Java version: Short.MAX_VALUE / 4.
+  */
+ export const MAX_SUPPORTED_PACKED_COUNTS_ARRAY_LENGTH: i32 = 8191;
+ /**
+  * Returned by getPackedIndex() when inserting the requested entry would push the
+  * physical length beyond MAX_SUPPORTED_PACKED_COUNTS_ARRAY_LENGTH. The caller must
+  * rebuild the context (see PackedArray.resizeStorageArray) and retry. This is the
+  * port of the Java ResizeException, which cannot be expressed in AssemblyScript.
+  */
+ export const RESIZE_REQUIRED: i32 = -2;
+ const ENTRY_ALLOCATION_FAILED: i32 = -1;
  const SET_0_START_INDEX = 0;
  const NUMBER_OF_SETS = 8;
  const LEAF_LEVEL_SHIFT = 3;
@@ -46,6 +59,8 @@
     */
    private dataStart: usize = 0;
    private populatedShortLength: i32 = 0;
+   /** Physical length a failed expandArrayIfNeeded() asked for. */
+   requestedPhysicalLength: i32 = 0;
    private virtualLength: i32;
    private topLevelShift: i32 = i32.MAX_VALUE; // Make it non-sensical until properly initialized.
  
@@ -92,18 +107,12 @@
      this.init(this.virtualLength);
    }
  
-   public copyAndIncreaseSize(
-     newPhysicalArrayLength: i32,
-     newVirtualArrayLength: i32
-   ): PackedArrayContext {
-     const ctx = new PackedArrayContext(
-       newVirtualArrayLength,
-       newPhysicalArrayLength
+   /** A context that stores one u64 per virtual index. */
+   static newUnpacked(virtualLength: i32): PackedArrayContext {
+     return new PackedArrayContext(
+       virtualLength,
+       MAX_SUPPORTED_PACKED_COUNTS_ARRAY_LENGTH + 1
      );
-     if (this.isPacked) {
-       ctx.populateEquivalentEntriesWithEntriesFromOther(this);
-     }
-     return ctx;
    }
  
    public getPopulatedShortLength(): i32 {
@@ -196,7 +205,13 @@
      );
    }
  
-   private expandArrayIfNeeded(entryLengthInLongs: i32): void {
+   /**
+    * Grow the physical array if `entryLengthInLongs` more longs do not fit.
+    * @return false when growing would exceed MAX_SUPPORTED_PACKED_COUNTS_ARRAY_LENGTH;
+    * the length that was needed is then in requestedPhysicalLength and the
+    * context is left untouched (the Java version throws ResizeException here).
+    */
+   private expandArrayIfNeeded(entryLengthInLongs: i32): bool {
      const currentLength = this.length();
      if (currentLength < this.getPopulatedLongLength() + entryLengthInLongs) {
        const growthIncrement = <i32>(
@@ -205,15 +220,24 @@
            this.getPopulatedLongLength() >> PACKED_ARRAY_GROWTH_FRACTION_POW2
          )
        );
-       this.resizeArray(currentLength + growthIncrement);
+       const newLength = currentLength + growthIncrement;
+       if (newLength > MAX_SUPPORTED_PACKED_COUNTS_ARRAY_LENGTH) {
+         this.requestedPhysicalLength = newLength;
+         return false;
+       }
+       this.resizeArray(newLength);
      }
+     return true;
    }
  
+   /** @return the short index of the new entry, or ENTRY_ALLOCATION_FAILED. */
    private newEntry(entryLengthInShorts: i32): i32 {
      // Add entry at the end of the array:
  
      const newEntryIndex = this.populatedShortLength;
-     this.expandArrayIfNeeded((entryLengthInShorts >> 2) + 1);
+     if (!this.expandArrayIfNeeded((entryLengthInShorts >> 2) + 1)) {
+       return ENTRY_ALLOCATION_FAILED;
+     }
      this.populatedShortLength = newEntryIndex + entryLengthInShorts;
  
      for (let i = 0; i < entryLengthInShorts; i++) {
@@ -222,10 +246,13 @@
      return newEntryIndex;
    }
  
+   /** @return the long index of the new leaf, or ENTRY_ALLOCATION_FAILED. */
    private newLeafEntry(): i32 {
      // Add entry at the end of the array:
      let newEntryIndex = this.getPopulatedLongLength();
-     this.expandArrayIfNeeded(1);
+     if (!this.expandArrayIfNeeded(1)) {
+       return ENTRY_ALLOCATION_FAILED;
+     }
  
      this.setPopulatedLongLength(newEntryIndex + 1);
  
@@ -282,8 +309,8 @@
     * @param insertedSlotIndex  realtive [packed] index of slot being inserted into entry
     * @param insertedSlotMask   mask value fo slot being inserted
     * @param nextLevelIsLeaf    the level below this one is a leaf level
-    * @return the updated index of the entry (-1 if epansion failed due to conflict)
-    * @throws RetryException if expansion fails due to concurrent conflict, and caller should try again.
+    * @return the updated index of the entry, or ENTRY_ALLOCATION_FAILED if the
+    * physical array cannot grow (the entry is then left as it was).
     */
    expandEntry(
      existingEntryIndex: i32,
@@ -310,6 +337,9 @@
      let indexOfNewNextLevelEntry = 0;
      if (nextLevelIsLeaf) {
        indexOfNewNextLevelEntry = this.newLeafEntry(); // Establish long-index to new leaf entry
+       if (indexOfNewNextLevelEntry < 0) {
+         return ENTRY_ALLOCATION_FAILED;
+       }
      } else {
        // TODO: Optimize this by creating the whole sub-tree here, rather than a step that will immediaterly expand
  
@@ -317,13 +347,20 @@
        indexOfNewNextLevelEntry = this.newEntry(
          NON_LEAF_ENTRY_HEADER_SIZE_IN_SHORTS
        ); // Establish short-index to new leaf entry
+       if (indexOfNewNextLevelEntry < 0) {
+         return ENTRY_ALLOCATION_FAILED;
+       }
  
        this.setPackedSlotIndicators(indexOfNewNextLevelEntry, 0);
      }
  
      const insertedSlotValue = indexOfNewNextLevelEntry;
  
+     // Allocate before linking anything, so a failure leaves the tree consistent:
      const expandedEntryIndex = this.newEntry(expandedEntryLength);
+     if (expandedEntryIndex < 0) {
+       return ENTRY_ALLOCATION_FAILED;
+     }
  
      // populate the packed indicators word:
      this.setPackedSlotIndicators(expandedEntryIndex, <u16>packedSlotIndicators);
@@ -351,6 +388,7 @@
    //   ######   ########    ##          ###    ##     ## ######## ##       #### ##    ## ########  ######## ##     ##
    //
  
+   /** @return the root entry index, 0 when absent, ENTRY_ALLOCATION_FAILED when it cannot be created. */
    getRootEntry(setNumber: i32, insertAsNeeded: boolean = false): i32 {
      const entryPointerIndex = SET_0_START_INDEX + setNumber;
      let entryIndex = <i32>this.getIndexAtShortIndex(entryPointerIndex);
@@ -361,6 +399,9 @@
        }
  
        entryIndex = this.newEntry(NON_LEAF_ENTRY_HEADER_SIZE_IN_SHORTS);
+       if (entryIndex < 0) {
+         return ENTRY_ALLOCATION_FAILED;
+       }
        // Create a new empty (no slots set) entry for the next level:
        this.setPackedSlotIndicators(entryIndex, 0);
  
@@ -376,7 +417,9 @@
     * @param setNumber      The set tree number (0-7, 0 corresponding with the LSByte set tree)
     * @param virtualIndex   The virtual index into the PackedArray
     * @param insertAsNeeded If true, will insert new set tree nodes as needed if they do not already exist
-    * @return the byte-index corresponding to the given (set tree) value byte of the given virtual index
+    * @return the byte-index corresponding to the given (set tree) value byte of the given virtual index,
+    * -1 if it does not exist (and insertAsNeeded is false), or RESIZE_REQUIRED when inserting it needs
+    * a larger context than a packed one can be (see expandArrayIfNeeded).
     */
    getPackedIndex(
      setNumber: i32,
@@ -393,6 +436,9 @@
      let entryIndex = this.getRootEntry(setNumber, insertAsNeeded);
      if (entryIndex == 0) {
        return -1; // Index does not currently exist in packed array;
+     }
+     if (entryIndex < 0) {
+       return RESIZE_REQUIRED;
      }
  
      // Work down the levels of non-leaf entries:
@@ -423,6 +469,9 @@
            slotMask,
            nextLevelIsLeaf
          );
+         if (entryIndex < 0) {
+           return RESIZE_REQUIRED;
+         }
        }
  
        // Next level's entry pointer index is in the appropriate slot in in the entries array in this entry:
@@ -482,9 +531,15 @@
      this.physicalLength = newLength;
    }
  
-   private populateEquivalentEntriesWithEntriesFromOther(
+   /**
+    * Copy the set trees (and their values) of a packed `other` into this empty
+    * packed context, inserting levels as needed for a larger virtual length.
+    * @return false if this context cannot hold them within a packed physical length
+    * (the caller then falls back to an unpacked context).
+    */
+   populateEquivalentEntriesWithEntriesFromOther(
      other: PackedArrayContext
-   ): void {
+   ): bool {
      if (this.virtualLength < other.getVirtualLength()) {
        throw new Error("Cannot populate array of smaller virtual length");
      }
@@ -498,6 +553,9 @@
          // Allocate entry in other:
          const sizeOfEntry = NON_LEAF_ENTRY_HEADER_SIZE_IN_SHORTS + 1;
          const newEntryIndex = this.newEntry(sizeOfEntry);
+         if (newEntryIndex < 0) {
+           return false;
+         }
  
          // Link new level in.
          this.setAtShortIndex(entryIndexPointer, <u16>newEntryIndex);
@@ -506,13 +564,18 @@
          entryIndexPointer =
            newEntryIndex + NON_LEAF_ENTRY_HEADER_SIZE_IN_SHORTS; // Where the slot 0 index goes.
        }
-       this.copyEntriesAtLevelFromOther(
-         other,
-         otherEntryIndex,
-         entryIndexPointer,
-         other.topLevelShift
-       );
+       if (
+         !this.copyEntriesAtLevelFromOther(
+           other,
+           otherEntryIndex,
+           entryIndexPointer,
+           other.topLevelShift
+         )
+       ) {
+         return false;
+       }
      }
+     return true;
    }
  
    private copyEntriesAtLevelFromOther(
@@ -520,7 +583,7 @@
      otherLevelEntryIndex: i32,
      levelEntryIndexPointer: i32,
      otherIndexShift: i32
-   ): void {
+   ): bool {
      const nextLevelIsLeaf = otherIndexShift == LEAF_LEVEL_SHIFT;
      const packedSlotIndicators = other.getPackedSlotIndicators(
        otherLevelEntryIndex
@@ -528,6 +591,9 @@
      const numberOfSlots = popcnt(packedSlotIndicators);
      const sizeOfEntry = NON_LEAF_ENTRY_HEADER_SIZE_IN_SHORTS + numberOfSlots;
      const entryIndex = this.newEntry(sizeOfEntry);
+     if (entryIndex < 0) {
+       return false;
+     }
  
      this.setAtShortIndex(levelEntryIndexPointer, <u16>entryIndex);
      this.setAtShortIndex(
@@ -539,6 +605,9 @@
        if (nextLevelIsLeaf) {
          // Make leaf in other:
          const leafEntryIndex = this.newLeafEntry();
+         if (leafEntryIndex < 0) {
+           return false;
+         }
  
          this.setIndexAtEntrySlot(entryIndex, i, <u16>leafEntryIndex);
  
@@ -555,14 +624,19 @@
            otherLevelEntryIndex,
            i
          );
-         this.copyEntriesAtLevelFromOther(
-           other,
-           otherNextLevelEntryIndex,
-           entryIndex + NON_LEAF_ENTRY_HEADER_SIZE_IN_SHORTS + i,
-           otherIndexShift - 4
-         );
+         if (
+           !this.copyEntriesAtLevelFromOther(
+             other,
+             otherNextLevelEntryIndex,
+             entryIndex + NON_LEAF_ENTRY_HEADER_SIZE_IN_SHORTS + i,
+             otherIndexShift - 4
+           )
+         ) {
+           return false;
+         }
        }
      }
+     return true;
    }
  
    @inline

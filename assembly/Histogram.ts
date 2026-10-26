@@ -16,6 +16,85 @@ import ByteBuffer from "./ByteBuffer";
 import { encodeIntoByteBuffer } from "./encoding";
 import { PackedArray } from "./packedarray/PackedArray";
 
+// ---------------------------------------------------------------------------
+// SIMD helpers.
+//
+// Non-packed histograms keep their counts in a flat StaticArray<U> (see
+// Storage<T> below), so whole-array scans (percentile lookup, add, subtract,
+// re-establishing min/max/total) can run 16 bytes at a time. Every helper is
+// resolved at compile time for the element width U, so each Histogram
+// instantiation gets a straight-line kernel with no runtime dispatch. The
+// PackedArray-backed histogram keeps the scalar paths.
+// ---------------------------------------------------------------------------
+
+/** True when the counts storage is a flat Storage<U>. Folded at compile time. */
+// @ts-ignore: decorator
+@inline
+function isFlatStorage<T>(): bool {
+  return idof<T>() != idof<PackedArray>();
+}
+
+/** Number of U-wide lanes in a 128-bit vector. */
+// @ts-ignore: decorator
+@inline
+function lanes<U>(): i32 {
+  return 16 / sizeof<U>();
+}
+
+/** Widen the unsigned U-wide lanes of v and pairwise-add them into two u64 lanes. */
+// @ts-ignore: decorator
+@inline
+function widenSum<U>(v: v128): v128 {
+  if (sizeof<U>() == 1) {
+    const w = i32x4.extadd_pairwise_i16x8_u(i16x8.extadd_pairwise_i8x16_u(v));
+    return i64x2.add(i64x2.extend_low_i32x4_u(w), i64x2.extend_high_i32x4_u(w));
+  } else if (sizeof<U>() == 2) {
+    const w = i32x4.extadd_pairwise_i16x8_u(v);
+    return i64x2.add(i64x2.extend_low_i32x4_u(w), i64x2.extend_high_i32x4_u(w));
+  } else if (sizeof<U>() == 4) {
+    return i64x2.add(i64x2.extend_low_i32x4_u(v), i64x2.extend_high_i32x4_u(v));
+  } else {
+    return v;
+  }
+}
+
+/** Sum of the two u64 lanes. */
+// @ts-ignore: decorator
+@inline
+function horizontalSum(v: v128): u64 {
+  return <u64>i64x2.extract_lane(v, 0) + <u64>i64x2.extract_lane(v, 1);
+}
+
+/** Lane-wise wrapping add of U-wide integers (same wrap semantics as the scalar `<U>` cast). */
+// @ts-ignore: decorator
+@inline
+function laneAdd<U>(a: v128, b: v128): v128 {
+  if (sizeof<U>() == 1) {
+    return i8x16.add(a, b);
+  } else if (sizeof<U>() == 2) {
+    return i16x8.add(a, b);
+  } else if (sizeof<U>() == 4) {
+    return i32x4.add(a, b);
+  } else {
+    return i64x2.add(a, b);
+  }
+}
+
+/** Lane-wise wrapping subtract of U-wide integers. */
+// @ts-ignore: decorator
+@inline
+function laneSub<U>(a: v128, b: v128): v128 {
+  if (sizeof<U>() == 1) {
+    return i8x16.sub(a, b);
+  } else if (sizeof<U>() == 2) {
+    return i16x8.sub(a, b);
+  } else if (sizeof<U>() == 4) {
+    return i32x4.sub(a, b);
+  } else {
+    return i64x2.sub(a, b);
+  }
+}
+
 export default class Histogram<T, U> extends AbstractHistogramBase<T, U> {
   // "Hot" accessed fields (used in the the value recording code path) are bunched here, such
   // that they will have a good chance of ending up in the same cache line as the totalCounts and
@@ -559,7 +638,26 @@ export default class Histogram<T, U> extends AbstractHistogramBase<T, U> {
     );
 
     let totalToCurrentIndex: u64 = 0;
-    for (let i = 0; i < this.countsArrayLength; i++) {
+    const length = this.countsArrayLength;
+    let i = 0;
+    if (isFlatStorage<T>()) {
+      // Accumulate 64 bytes of counts per step; the scalar loop below only
+      // runs inside the block where the running total crosses countAtPercentile.
+      const base = this.countsDataStart;
+      const step = lanes<U>() << 2;
+      while (i + step <= length) {
+        const p = base + (<usize>i << alignof<U>());
+        let acc = widenSum<U>(v128.load(p));
+        acc = i64x2.add(acc, widenSum<U>(v128.load(p, 16)));
+        acc = i64x2.add(acc, widenSum<U>(v128.load(p, 32)));
+        acc = i64x2.add(acc, widenSum<U>(v128.load(p, 48)));
+        const totalToBlockEnd = totalToCurrentIndex + horizontalSum(acc);
+        if (totalToBlockEnd >= countAtPercentile) break;
+        totalToCurrentIndex = totalToBlockEnd;
+        i += step;
+      }
+    }
+    for (; i < length; i++) {
       totalToCurrentIndex += this.getCountAtIndex(i);
       if (totalToCurrentIndex >= countAtPercentile) {
         var valueAtIndex: u64 = this.valueFromIndex(i);
@@ -626,6 +724,12 @@ export default class Histogram<T, U> extends AbstractHistogramBase<T, U> {
     return unchecked(<u64>this.counts[index]);
   }
 
+  /** Address of counts[0] in linear memory. Only valid when isFlatStorage<T>(). */
+  @inline
+  get countsDataStart(): usize {
+    return changetype<Storage<U>>(this.counts).dataStart;
+  }
+
   resize(newHighestTrackableValue: u64): void {
     this.establishSize(newHighestTrackableValue);
     // @ts-ignore
@@ -653,7 +757,28 @@ export default class Histogram<T, U> extends AbstractHistogramBase<T, U> {
     ) {
       // Counts arrays are of the same length and meaning, so we can just iterate and add directly:
       let observedOtherTotalCount = <u64>0;
-      for (let i = 0; i < otherHistogram.countsArrayLength; i++) {
+      const length = otherHistogram.countsArrayLength;
+      let i = 0;
+      if (
+        isFlatStorage<T>() &&
+        isFlatStorage<V>() &&
+        sizeof<U>() == sizeof<W>()
+      ) {
+        // Same element width on both sides: add one vector at a time and
+        // widen-sum the other side's lanes for the total.
+        const dst = this.countsDataStart;
+        const src = otherHistogram.countsDataStart;
+        const step = lanes<U>();
+        let acc = i64x2.splat(0);
+        for (; i + step <= length; i += step) {
+          const offset = <usize>i << alignof<U>();
+          const other = v128.load(src + offset);
+          acc = i64x2.add(acc, widenSum<W>(other));
+          v128.store(dst + offset, laneAdd<U>(v128.load(dst + offset), other));
+        }
+        observedOtherTotalCount = horizontalSum(acc);
+      }
+      for (; i < length; i++) {
         const otherCount = otherHistogram.getCountAtIndex(i);
         if (otherCount > 0) {
           this.addToCountAtIndex(i, otherCount);
@@ -721,7 +846,36 @@ export default class Histogram<T, U> extends AbstractHistogramBase<T, U> {
     let maxIndex: i32 = -1;
     let minNonZeroIndex = -1;
     let observedTotalCount: u64 = 0;
-    for (let index: i32 = 0; index < lengthToCover; index++) {
+    let index: i32 = 0;
+    if (isFlatStorage<T>()) {
+      // Skip all-zero vectors outright; only look at individual lanes of the
+      // first non-zero vector (for minNonZeroIndex) and the last one (for maxIndex).
+      const base = this.countsDataStart;
+      const step = lanes<U>();
+      let acc = i64x2.splat(0);
+      let lastNonZeroBlock = -1;
+      for (; index + step <= lengthToCover; index += step) {
+        const v = v128.load(base + (<usize>index << alignof<U>()));
+        if (v128.any_true(v)) {
+          acc = i64x2.add(acc, widenSum<U>(v));
+          lastNonZeroBlock = index;
+          if (minNonZeroIndex == -1) {
+            for (let j = index; j < index + step; j++) {
+              if (j != 0 && this.getCountAtIndex(j) > 0) {
+                minNonZeroIndex = j;
+                break;
+              }
+            }
+          }
+        }
+      }
+      observedTotalCount = horizontalSum(acc);
+      if (lastNonZeroBlock >= 0) {
+        maxIndex = lastNonZeroBlock + step - 1;
+        while (this.getCountAtIndex(maxIndex) == 0) maxIndex--;
+      }
+    }
+    for (; index < lengthToCover; index++) {
       const countAtIndex: u64 = this.getCountAtIndex(index);
       if (countAtIndex > 0) {
         observedTotalCount += countAtIndex;
@@ -760,10 +914,28 @@ export default class Histogram<T, U> extends AbstractHistogramBase<T, U> {
       this.subBucketCount === otherHistogram.subBucketCount &&
       this.unitMagnitude === otherHistogram.unitMagnitude
     ) {
-      // optim
-      // Counts arrays are of the same length and meaning, so we can just iterate and add directly:
+      // Counts arrays are of the same length and meaning, so we can just iterate and subtract directly:
       let observedOtherTotalCount: u64 = 0;
-      for (let i = 0; i < otherHistogram.countsArrayLength; i++) {
+      const length = otherHistogram.countsArrayLength;
+      let i = 0;
+      if (
+        isFlatStorage<T>() &&
+        isFlatStorage<V>() &&
+        sizeof<U>() == sizeof<W>()
+      ) {
+        const dst = this.countsDataStart;
+        const src = otherHistogram.countsDataStart;
+        const step = lanes<U>();
+        let acc = i64x2.splat(0);
+        for (; i + step <= length; i += step) {
+          const offset = <usize>i << alignof<U>();
+          const other = v128.load(src + offset);
+          acc = i64x2.add(acc, widenSum<W>(other));
+          v128.store(dst + offset, laneSub<U>(v128.load(dst + offset), other));
+        }
+        observedOtherTotalCount = horizontalSum(acc);
+      }
+      for (; i < length; i++) {
         const otherCount = otherHistogram.getCountAtIndex(i);
         if (otherCount > 0) {
           this.addToCountAtIndex(i, -otherCount);
@@ -953,19 +1125,21 @@ export class Storage<T> {
     return offsetof<Storage<T>>() + this.array.length;
   }
 
+  /** Address of the first element in linear memory. */
+  @inline
+  get dataStart(): usize {
+    return changetype<usize>(this.array);
+  }
+
   resize(newSize: i32): Storage<T> {
     const newArray = new Storage<T>(newSize);
-    for (let index: i32 = 0; index < this.array.length; index++) {
-      unchecked(newArray.array[index] = this.array[index]);
-    }
+    const copied = min(this.array.length, newSize);
+    memory.copy(newArray.dataStart, this.dataStart, <usize>copied << alignof<T>());
     return newArray;
   }
 
   clear(): void {
-    for (let index: i32 = 0; index < this.array.length; index++) {
-      // @ts-ignore
-      unchecked(this.array[index] = 0);
-    }
+    memory.fill(this.dataStart, 0, <usize>this.array.length << alignof<T>());
   }
 
   @inline @operator("[]") private __get(index: i32): T {

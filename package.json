@@ -25,8 +25,8 @@
     "prettier:fix": "prettier --write --parser typescript -l src/**/*.ts",
     "astest": "as-test",
     "astest:ci": "as-test --mode table",
-    "asbuild:untouched": "asc assembly/index.ts -o build/untouched.wasm -t build/untouched.wat --sourceMap --debug --exportRuntime",
-    "asbuild:optimized": "asc assembly/index.ts -o build/optimized.wasm -t build/optimized.wat --sourceMap -O3 --noAssert --exportRuntime --runtime minimal",
+    "asbuild:untouched": "asc assembly/index.ts -o build/untouched.wasm -t build/untouched.wat --sourceMap --debug --exportRuntime --enable simd",
+    "asbuild:optimized": "asc assembly/index.ts -o build/optimized.wasm -t build/optimized.wat --sourceMap -O3 --noAssert --exportRuntime --runtime minimal --enable simd",
     "asbuild:base64": "echo \"/** @internal */\\nexport const BINARY = \\\"$(node ./base64.js build/optimized.wasm)\\\";\" > src/wasm/generated-wasm.ts",
     "asbuild": "npm run asbuild:untouched && npm run asbuild:optimized && npm run asbuild:base64",
     "rollup": "rollup -c"

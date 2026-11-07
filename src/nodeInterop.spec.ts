@@ -246,6 +246,12 @@ describe("Node.js native histogram interop", () => {
     );
   });
 
+  it("should write format version 1, the one every Node runtime with import accepts", () => {
+    // Node 24.x importHistogram() rejects a version 2 header
+    const data = toNodeExport(buildJsHistogram());
+    expect(decodeNodeExport(data).header.version).toBe(1);
+  });
+
   it("should reject truncated data", () => {
     const data = toNodeExport(buildJsHistogram());
     expect(() => decodeNodeExport(data.subarray(0, 5))).toThrow(

@@ -513,7 +513,10 @@ export const encodeNodeExport = (
   const out: number[] = [];
   cborUint(out, 5, ewma ? 12 : 11);
   cborUint(out, 0, 0);
-  cborUint(out, 0, 2); // format version
+  // Version 1: every field is written, so version 2's leniency is not needed,
+  // and runtimes that predate version 2 (Node 24.x) reject a version 2 header.
+  // Runtimes that know version 2 still read version 1.
+  cborUint(out, 0, 1); // format version
   cborUint(out, 0, 1);
   cborUint(out, 0, lowestDiscernibleValue);
   cborUint(out, 0, 2);
@@ -562,7 +565,8 @@ export const encodeNodeExport = (
 /**
  * Serializes an hdr-histogram-js histogram (JS or WebAssembly backed) into
  * the bytes that Node.js's perf_hooks.importHistogram() (Node >= 26.9)
- * accepts: a version 2 export with keys 0 to 10. EWMA state (key 11) is
+ * accepts: a complete version 1 export with keys 0 to 10 (also read by
+ * runtimes that know version 2). EWMA state (key 11) is
  * never written, since hdr-histogram-js keeps none.
  */
 export const toNodeExport = (histogram: Histogram): Uint8Array =>

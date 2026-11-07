@@ -173,3 +173,57 @@ describe("Unpacked array", () => {
     expect(array.get(16)).toBe(42);
   });
 });
+
+describe("Packed array leaf cache", () => {
+  it("Should carry across bytes", () => {
+    const array = new PackedArray(1024, pow(2, 12));
+    array.add(42, 200);
+    array.add(42, 100);
+    expect(array.get(42)).toBe(300);
+  });
+
+  it("Should keep interleaved reads and writes coherent inside a group", () => {
+    const array = new PackedArray(1024, pow(2, 12));
+    expect(array.get(8)).toBe(0); // caches group 1 as empty
+    array.set(9, 5);
+    array.set(8, 70000);
+    expect(array.get(8)).toBe(70000);
+    expect(array.get(9)).toBe(5);
+    array.set(8, 3); // smaller value clears higher bytes
+    expect(array.get(8)).toBe(3);
+  });
+
+  it("Should match a plain array on a random workload", () => {
+    const size = 2048;
+    const array = new PackedArray(size, pow(2, 14));
+    const model = new Array<number>(size).fill(0);
+    let seed = 12345;
+    const rnd = () => (seed = (seed * 1103515245 + 12345) & 0x7fffffff);
+    for (let i = 0; i < 5000; i++) {
+      const index = rnd() % size;
+      const v = rnd() % 100000;
+      if (rnd() % 2 === 0) {
+        array.set(index, v);
+        model[index] = v;
+      } else {
+        array.add(index, v);
+        model[index] += v;
+      }
+      const probe = rnd() % size;
+      expect(array.get(probe)).toBe(model[probe]);
+    }
+    for (let i = 0; i < size; i++) {
+      expect(array.get(i)).toBe(model[i]);
+    }
+  });
+
+  it("Should invalidate on clear and resize", () => {
+    const array = new PackedArray(1024, pow(2, 12));
+    array.set(3, 7);
+    expect(array.get(3)).toBe(7);
+    array.setVirtualLength(1 << 20);
+    expect(array.get(3)).toBe(7);
+    array.clear();
+    expect(array.get(3)).toBe(0);
+  });
+});

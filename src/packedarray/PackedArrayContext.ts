@@ -31,7 +31,7 @@ const NON_LEAF_ENTRY_HEADER_SIZE_IN_SHORTS = 1;
 const PACKED_ARRAY_GROWTH_INCREMENT = 16;
 const PACKED_ARRAY_GROWTH_FRACTION_POW2 = 4;
 
-const { pow, ceil, log2, max } = Math;
+const { ceil, log2, max } = Math;
 
 const bitCount = (n: number) => {
   var bits = 0;
@@ -404,7 +404,7 @@ export class PackedArrayContext {
       const nextLevelIsLeaf = indexShift === LEAF_LEVEL_SHIFT;
       // Target is a packedSlotIndicators entry
       const packedSlotIndicators = this.getPackedSlotIndicators(entryIndex);
-      const slotBitNumber = (virtualIndex / pow(2, indexShift)) & 0xf; //(virtualIndex >>> indexShift) & 0xf;
+      const slotBitNumber = (virtualIndex >>> indexShift) & 0xf;
       const slotMask = 1 << slotBitNumber;
       const slotsBelowBitNumber = packedSlotIndicators & (slotMask - 1);
       const slotNumber = bitCount(slotsBelowBitNumber);

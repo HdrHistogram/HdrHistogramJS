@@ -368,4 +368,25 @@ describe("Packed Histogram", () => {
       histogram.getValueAtPercentile(90)
     );
   });
+
+  test("should record many large counts as the non packed version", () => {
+    // given
+    const packedHistogram = new PackedHistogram(1, 1000000000, 3);
+    const histogram = new Histogram64(1, 1000000000, 3);
+
+    // when
+    for (let value: u64 = 1; value < 1000000000; value += 100000) {
+      histogram.recordCountAtValue(value << 20, value);
+      packedHistogram.recordCountAtValue(value << 20, value);
+    }
+
+    // then
+    expect<u64>(packedHistogram.totalCount).equal(histogram.totalCount);
+    expect<u64>(packedHistogram.getValueAtPercentile(50)).equal(
+      histogram.getValueAtPercentile(50)
+    );
+    expect<u64>(packedHistogram.getValueAtPercentile(99.9)).equal(
+      histogram.getValueAtPercentile(99.9)
+    );
+  });
 });

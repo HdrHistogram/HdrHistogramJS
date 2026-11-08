@@ -62,8 +62,11 @@ export class PackedArray {
       );
     }
     const currentArrayContext = this.arrayContext;
+    if (!currentArrayContext.isPacked) {
+      this.unpack(newVirtualArrayLength);
+      return;
+    }
     if (
-      currentArrayContext.isPacked &&
       currentArrayContext.determineTopLevelShiftForVirtualLength(
         newVirtualArrayLength
       ) == currentArrayContext.getTopLevelShift()
@@ -151,17 +154,7 @@ export class PackedArray {
     setNumber: number,
     virtualIndex: number
   ) {
-    //do {
-    //try {
     return this.arrayContext.getPackedIndex(setNumber, virtualIndex, true);
-    /*} catch (ex) {
-        if (ex instanceof ResizeError) {
-          this.arrayContext.resizeArray(ex.newSize);
-        } else {
-          throw ex;
-        }
-      }*/
-    //} while (true);
   }
 
   /**
@@ -180,6 +173,15 @@ export class PackedArray {
     let remainingValueToAdd = value;
     for (let byteNum = 0; byteNum < NUMBER_OF_SETS; byteNum++) {
       const packedIndex = this.safeGetPackedIndexgetPackedIndex(byteNum, index);
+      if (packedIndex < 0) {
+        // The packed storage is full, the lower bytes have already been added
+        this.unpack();
+        this.arrayContext.addAndGetAtUnpackedIndex(
+          index,
+          remainingValueToAdd * BYTE_WEIGHTS[byteNum]
+        );
+        return;
+      }
       this.noteLeaf(index, byteNum, packedIndex);
 
       // The low byte survives the int32 conversion, even above 2^32
@@ -223,6 +225,12 @@ export class PackedArray {
       }
       // Make sure byte is populated:
       const packedIndex = arrayContext.getPackedIndex(byteNum, index, true);
+      if (packedIndex < 0) {
+        // The packed storage is full
+        this.unpack();
+        this.arrayContext.setAtUnpackedIndex(index, value);
+        return;
+      }
       this.noteLeaf(index, byteNum, packedIndex);
 
       // Determine value to write, and prepare for next levels
@@ -231,6 +239,18 @@ export class PackedArray {
 
       arrayContext.setAtByteIndex(packedIndex, byteToWrite);
     }
+  }
+
+  /**
+   * Move the contents to a new unpacked context of the given virtual length,
+   * once the packed representation cannot grow any further
+   */
+  private unpack(virtualLength: number = this.length()) {
+    const unpacked = PackedArrayContext.unpacked(virtualLength);
+    for (let index = 0; index < this.length(); index++) {
+      unpacked.setAtUnpackedIndex(index, this.get(index));
+    }
+    this.arrayContext = unpacked;
   }
 
   /**

@@ -160,6 +160,60 @@ describe("Packed array", () => {
   });
 });
 
+describe("Packed array outgrowing the packed representation", () => {
+  // 7 byte values at every index need far more storage than the
+  // 16 bit indexes of a packed context can address
+  const length = 5000;
+
+  it("Should keep storing values set once the packed storage is full", () => {
+    // given
+    const array = new PackedArray(length);
+
+    // when
+    for (let i = 0; i < length; i++) {
+      array.set(i, Number.MAX_SAFE_INTEGER - i);
+    }
+
+    // then
+    for (let i = 0; i < length; i++) {
+      expect(array.get(i)).toBe(Number.MAX_SAFE_INTEGER - i);
+    }
+  });
+
+  it("Should keep adding values once the packed storage is full", () => {
+    // given
+    const array = new PackedArray(length);
+
+    // when
+    for (let i = 0; i < length; i++) {
+      array.add(i, Number.MAX_SAFE_INTEGER - i);
+      array.add(i, i);
+    }
+
+    // then
+    for (let i = 0; i < length; i++) {
+      expect(array.get(i)).toBe(Number.MAX_SAFE_INTEGER);
+    }
+  });
+
+  it("Should keep values when resized after the packed storage is full", () => {
+    // given
+    const array = new PackedArray(length);
+    for (let i = 0; i < length; i++) {
+      array.set(i, Number.MAX_SAFE_INTEGER - i);
+    }
+
+    // when
+    array.setVirtualLength(2 * length);
+
+    // then
+    for (let i = 0; i < length; i++) {
+      expect(array.get(i)).toBe(Number.MAX_SAFE_INTEGER - i);
+    }
+    expect(array.get(2 * length - 1)).toBe(0);
+  });
+});
+
 describe("Unpacked array", () => {
   it("Should increment data stored in array", () => {
     // given

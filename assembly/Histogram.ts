@@ -518,6 +518,45 @@ export default class Histogram<T, U> extends AbstractHistogramBase<T, U> {
     }
   }
 
+  /**
+   * Lowest counts array index above 0 that may hold a non-zero count, derived
+   * from minNonZeroValue. Index 0 (the zero values, which minNonZeroValue
+   * ignores) is never covered by this bound and must be visited separately.
+   * Every index strictly between 0 and this one holds no count.
+   *
+   * When nothing above unitMagnitudeMask has been recorded, minNonZeroValue is
+   * a sentinel far past the covered range and countsArrayLength is returned.
+   */
+  lowestNonZeroCountsIndex(): i32 {
+    return min<i32>(
+      max<i32>(1, this.countsArrayIndex(this.minNonZeroValue)),
+      this.countsArrayLength
+    );
+  }
+
+  /**
+   * Highest counts array index that may hold a non-zero count, derived from
+   * maxValue. maxValue is 0 when nothing (or only zeros) has been recorded,
+   * so index 0 is always covered. maxValue can be wider than the recorded
+   * data (e.g. after a subtract), which only makes a scan visit more indexes.
+   */
+  highestNonZeroCountsIndex(): i32 {
+    return min<i32>(
+      this.countsArrayIndex(this.maxValue),
+      this.countsArrayLength - 1
+    );
+  }
+
+  /**
+   * Successor of `index` when scanning the counts array for non-zero counts:
+   * index 0 (where the zero values live) is followed by the index of
+   * minNonZeroValue, everything in between being empty by construction.
+   */
+  @inline
+  nextCountsIndexToScan(index: i32): i32 {
+    return index == 0 ? this.lowestNonZeroCountsIndex() : index + 1;
+  }
+
   @inline
   recordCountAtValue(count: u64, value: u64): void {
     const countsIndex = this.countsArrayIndex(value);
@@ -637,36 +676,43 @@ export default class Histogram<T, U> extends AbstractHistogramBase<T, U> {
       1 // Make sure we at least reach the first recorded entry
     );
 
-    let totalToCurrentIndex: u64 = 0;
-    const length = this.countsArrayLength;
-    let i = 0;
-    if (isFlatStorage<T>()) {
-      // Accumulate 64 bytes of counts per step; the scalar loop below only
-      // runs inside the block where the running total crosses countAtPercentile.
-      const base = this.countsDataStart;
-      const step = lanes<U>() << 2;
-      while (i + step <= length) {
-        const p = base + (<usize>i << alignof<U>());
-        let acc = widenSum<U>(v128.load(p));
-        acc = i64x2.add(acc, widenSum<U>(v128.load(p, 16)));
-        acc = i64x2.add(acc, widenSum<U>(v128.load(p, 32)));
-        acc = i64x2.add(acc, widenSum<U>(v128.load(p, 48)));
-        const totalToBlockEnd = totalToCurrentIndex + horizontalSum(acc);
-        if (totalToBlockEnd >= countAtPercentile) break;
-        totalToCurrentIndex = totalToBlockEnd;
-        i += step;
+    // Index 0 holds the zero values and is the only index below the one of
+    // minNonZeroValue that may hold a count; nothing is recorded past the
+    // index of maxValue. Scanning only those indexes is a large win on packed
+    // histograms, where every getCountAtIndex is a tree walk.
+    let totalToCurrentIndex: u64 = this.getCountAtIndex(0);
+    let i: i32 = 0;
+    if (totalToCurrentIndex < countAtPercentile) {
+      i = this.lowestNonZeroCountsIndex();
+      const end = this.highestNonZeroCountsIndex() + 1;
+      if (isFlatStorage<T>()) {
+        // Accumulate 64 bytes of counts per step; the scalar loop below only
+        // runs inside the block where the running total crosses countAtPercentile.
+        // The blocks start at the lower bound, so the loads may be unaligned.
+        const base = this.countsDataStart;
+        const step = lanes<U>() << 2;
+        while (i + step <= end) {
+          const p = base + (<usize>i << alignof<U>());
+          let acc = widenSum<U>(v128.load(p));
+          acc = i64x2.add(acc, widenSum<U>(v128.load(p, 16)));
+          acc = i64x2.add(acc, widenSum<U>(v128.load(p, 32)));
+          acc = i64x2.add(acc, widenSum<U>(v128.load(p, 48)));
+          const totalToBlockEnd = totalToCurrentIndex + horizontalSum(acc);
+          if (totalToBlockEnd >= countAtPercentile) break;
+          totalToCurrentIndex = totalToBlockEnd;
+          i += step;
+        }
       }
-    }
-    for (; i < length; i++) {
-      totalToCurrentIndex += this.getCountAtIndex(i);
-      if (totalToCurrentIndex >= countAtPercentile) {
-        var valueAtIndex: u64 = this.valueFromIndex(i);
-        return percentile === 0.0
-          ? this.lowestEquivalentValue(valueAtIndex)
-          : this.highestEquivalentValue(valueAtIndex);
+      for (; i < end; i++) {
+        totalToCurrentIndex += this.getCountAtIndex(i);
+        if (totalToCurrentIndex >= countAtPercentile) break;
       }
+      if (i >= end) return 0;
     }
-    return 0;
+    const valueAtIndex: u64 = this.valueFromIndex(i);
+    return percentile === 0.0
+      ? this.lowestEquivalentValue(valueAtIndex)
+      : this.highestEquivalentValue(valueAtIndex);
   }
 
   valueFromIndexes(bucketIndex: i32, subBucketIndex: i32): u64 {
@@ -767,30 +813,36 @@ export default class Histogram<T, U> extends AbstractHistogramBase<T, U> {
       this.subBucketCount === otherHistogram.subBucketCount &&
       this.unitMagnitude === otherHistogram.unitMagnitude
     ) {
-      // Counts arrays are of the same length and meaning, so we can just iterate and add directly:
-      let observedOtherTotalCount = <u64>0;
-      const length = otherHistogram.countsArrayLength;
-      let i = 0;
+      // Counts arrays are of the same length and meaning, so we can just iterate and add directly,
+      // visiting only the indexes of the other histogram that may hold a count: index 0 (the zero
+      // values), then the range between the indexes of its minNonZeroValue and maxValue.
+      let observedOtherTotalCount = otherHistogram.getCountAtIndex(0);
+      if (observedOtherTotalCount > 0) {
+        this.addToCountAtIndex(0, observedOtherTotalCount);
+      }
+      const end = otherHistogram.highestNonZeroCountsIndex() + 1;
+      let i = otherHistogram.lowestNonZeroCountsIndex();
       if (
         isFlatStorage<T>() &&
         isFlatStorage<V>() &&
         sizeof<U>() == sizeof<W>()
       ) {
         // Same element width on both sides: add one vector at a time and
-        // widen-sum the other side's lanes for the total.
+        // widen-sum the other side's lanes for the total. The vectors start
+        // at the lower bound, so the accesses may be unaligned.
         const dst = this.countsDataStart;
         const src = otherHistogram.countsDataStart;
         const step = lanes<U>();
         let acc = i64x2.splat(0);
-        for (; i + step <= length; i += step) {
+        for (; i + step <= end; i += step) {
           const offset = <usize>i << alignof<U>();
           const other = v128.load(src + offset);
           acc = i64x2.add(acc, widenSum<W>(other));
           v128.store(dst + offset, laneAdd<U>(v128.load(dst + offset), other));
         }
-        observedOtherTotalCount = horizontalSum(acc);
+        observedOtherTotalCount += horizontalSum(acc);
       }
-      for (; i < length; i++) {
+      for (; i < end; i++) {
         const otherCount = otherHistogram.getCountAtIndex(i);
         if (otherCount > 0) {
           this.addToCountAtIndex(i, otherCount);
@@ -818,7 +870,11 @@ export default class Histogram<T, U> extends AbstractHistogramBase<T, U> {
       );
 
       // Record the remaining values, up to but not including the max value:
-      for (let i = 0; i < otherMaxIndex; i++) {
+      for (
+        let i = 0;
+        i < otherMaxIndex;
+        i = otherHistogram.nextCountsIndexToScan(i)
+      ) {
         otherCount = otherHistogram.getCountAtIndex(i);
         if (otherCount > 0) {
           this.recordCountAtValue(otherCount, otherHistogram.valueFromIndex(i));
@@ -926,28 +982,34 @@ export default class Histogram<T, U> extends AbstractHistogramBase<T, U> {
       this.subBucketCount === otherHistogram.subBucketCount &&
       this.unitMagnitude === otherHistogram.unitMagnitude
     ) {
-      // Counts arrays are of the same length and meaning, so we can just iterate and subtract directly:
-      let observedOtherTotalCount: u64 = 0;
-      const length = otherHistogram.countsArrayLength;
-      let i = 0;
+      // Counts arrays are of the same length and meaning, so we can just iterate and subtract directly,
+      // visiting only the indexes of the other histogram that may hold a count: index 0 (the zero
+      // values), then the range between the indexes of its minNonZeroValue and maxValue.
+      let observedOtherTotalCount: u64 = otherHistogram.getCountAtIndex(0);
+      if (observedOtherTotalCount > 0) {
+        this.addToCountAtIndex(0, -observedOtherTotalCount);
+      }
+      const end = otherHistogram.highestNonZeroCountsIndex() + 1;
+      let i = otherHistogram.lowestNonZeroCountsIndex();
       if (
         isFlatStorage<T>() &&
         isFlatStorage<V>() &&
         sizeof<U>() == sizeof<W>()
       ) {
+        // The vectors start at the lower bound, so the accesses may be unaligned.
         const dst = this.countsDataStart;
         const src = otherHistogram.countsDataStart;
         const step = lanes<U>();
         let acc = i64x2.splat(0);
-        for (; i + step <= length; i += step) {
+        for (; i + step <= end; i += step) {
           const offset = <usize>i << alignof<U>();
           const other = v128.load(src + offset);
           acc = i64x2.add(acc, widenSum<W>(other));
           v128.store(dst + offset, laneSub<U>(v128.load(dst + offset), other));
         }
-        observedOtherTotalCount = horizontalSum(acc);
+        observedOtherTotalCount += horizontalSum(acc);
       }
-      for (; i < length; i++) {
+      for (; i < end; i++) {
         const otherCount = otherHistogram.getCountAtIndex(i);
         if (otherCount > 0) {
           this.addToCountAtIndex(i, -otherCount);
@@ -956,7 +1018,12 @@ export default class Histogram<T, U> extends AbstractHistogramBase<T, U> {
       }
       this.totalCount = this.totalCount - observedOtherTotalCount;
     } else {
-      for (let i = 0; i < otherHistogram.countsArrayLength; i++) {
+      const otherLastIndex = otherHistogram.highestNonZeroCountsIndex();
+      for (
+        let i = 0;
+        i <= otherLastIndex;
+        i = otherHistogram.nextCountsIndexToScan(i)
+      ) {
         const otherCount = otherHistogram.getCountAtIndex(i);
         if (otherCount > 0) {
           const otherValue = otherHistogram.valueFromIndex(i);
@@ -980,7 +1047,10 @@ export default class Histogram<T, U> extends AbstractHistogramBase<T, U> {
       this.getCountAtValue(this.maxValue) <= 0 ||
       this.getCountAtValue(this.minNonZeroValue) <= 0
     ) {
-      this.establishInternalTackingValues();
+      // Counts only went down, so the current maxValue still bounds the data.
+      this.establishInternalTackingValues(
+        this.highestNonZeroCountsIndex() + 1
+      );
     }
   }
 

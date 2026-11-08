@@ -128,7 +128,11 @@ abstract class JsHistogramIterator /* implements Iterator<HistogramIterationValu
 
   incrementSubBucket() {
     this.freshSubBucket = true;
-    this.currentIndex++;
+    // Index 0 holds the zero values; the indexes between it and the one of
+    // minNonZeroValue hold no count, so leaving index 0 jumps straight there.
+    // Nothing observable changes: an empty index adds nothing to the running
+    // totals and never reaches an iteration level.
+    this.currentIndex = this.histogram.nextCountsIndexToScan(this.currentIndex);
     this.currentValueAtIndex = this.histogram.valueFromIndex(this.currentIndex);
     this.nextValueAtIndex = this.histogram.valueFromIndex(
       this.currentIndex + 1

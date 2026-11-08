@@ -395,9 +395,13 @@ export abstract class JsHistogram implements Histogram {
    * a sentinel far past the covered range and countsArrayLength is returned.
    */
   lowestNonZeroCountsIndex(): number {
-    return min(
-      max(1, this.countsArrayIndex(this.minNonZeroValue)),
-      this.countsArrayLength
+    // `| 0`: countsArrayIndex is computed with floating point math; keep the
+    // bound a small integer so the loop indexes of the scans stay integers.
+    return (
+      min(
+        max(1, this.countsArrayIndex(this.minNonZeroValue)),
+        this.countsArrayLength
+      ) | 0
     );
   }
 
@@ -408,9 +412,8 @@ export abstract class JsHistogram implements Histogram {
    * data (e.g. after a subtract), which only makes a scan visit more indexes.
    */
   highestNonZeroCountsIndex(): number {
-    return min(
-      this.countsArrayIndex(this.maxValue),
-      this.countsArrayLength - 1
+    return (
+      min(this.countsArrayIndex(this.maxValue), this.countsArrayLength - 1) | 0
     );
   }
 
@@ -458,14 +461,10 @@ export abstract class JsHistogram implements Histogram {
     // minNonZeroValue that may hold a count; nothing is recorded past the
     // index of maxValue. Scanning only those indexes is a large win on packed
     // histograms, where every getCountAtIndex is a tree walk.
-    let totalToCurrentIndex = this.getCountAtIndex(0);
-    if (totalToCurrentIndex >= countAtPercentile) {
-      return percentile === 0.0
-        ? this.lowestEquivalentValue(0)
-        : this.highestEquivalentValue(0);
-    }
+    const firstNonZeroIndex = this.lowestNonZeroCountsIndex();
     const lastIndex = this.highestNonZeroCountsIndex();
-    for (let i = this.lowestNonZeroCountsIndex(); i <= lastIndex; i++) {
+    let totalToCurrentIndex = 0;
+    for (let i = 0; i <= lastIndex; i = i === 0 ? firstNonZeroIndex : i + 1) {
       totalToCurrentIndex += this.getCountAtIndex(i);
       if (totalToCurrentIndex >= countAtPercentile) {
         const valueAtIndex = this.valueFromIndex(i);

@@ -480,6 +480,84 @@
      return byteIndex;
    }
  
+   /**
+    * Lowest virtual index >= fromIndex whose group of 8 indexes has a leaf in
+    * set 0, i.e. whose values may be non-zero. Groups without a leaf are all
+    * zeros and are skipped by descending only into the populated slots of
+    * the set-0 tree, so the walk costs time proportional to the populated
+    * groups rather than to the virtual length.
+    *
+    * Sets are populated in order 0..7 (see PackedArray set/add), so a group
+    * with a leaf in any set has one in set 0: the set-0 tree covers every
+    * group that may hold a non-zero value. The converse does not hold (a leaf
+    * may be all zeros, or hold a byte 0 of 0 under a non-zero byte 1), so the
+    * caller still has to read the values of the group returned.
+    *
+    * @return the index, which may exceed the virtual length when the last
+    * group is partial, or -1 when no group at or after fromIndex has a leaf
+    */
+   nextIndexWithLeaf(fromIndex: i32): i32 {
+     if (fromIndex >= this.virtualLength) {
+       return -1;
+     }
+     const rootEntryIndex = <i32>this.getIndexAtShortIndex(SET_0_START_INDEX);
+     if (rootEntryIndex == 0) {
+       return -1; // Set 0 has no tree at all: nothing was ever stored
+     }
+     return this.nextIndexWithLeafBelow(
+       rootEntryIndex,
+       this.topLevelShift,
+       fromIndex
+     );
+   }
+
+   /**
+    * Walk the entry at entryIndex, which decodes the 4 index bits above
+    * indexShift, for the lowest index >= fromIndex with a leaf below it.
+    * fromIndex lies in the index range covered by the entry.
+    */
+   private nextIndexWithLeafBelow(
+     entryIndex: i32,
+     indexShift: i32,
+     fromIndex: i32
+   ): i32 {
+     const packedSlotIndicators = <i32>this.getPackedSlotIndicators(entryIndex);
+     // The indexes covered by this entry share the bits above the ones its slots decode
+     const entryBase = fromIndex & ~((1 << (indexShift + 4)) - 1);
+     const nextLevelIsLeaf = indexShift == LEAF_LEVEL_SHIFT;
+     for (
+       let slotBitNumber = (fromIndex >>> indexShift) & 0xf;
+       slotBitNumber < 16;
+       slotBitNumber++
+     ) {
+       const slotMask = 1 << slotBitNumber;
+       if ((packedSlotIndicators & slotMask) == 0) {
+         continue; // nothing was ever stored under this slot
+       }
+       const slotStart = entryBase | (slotBitNumber << indexShift);
+       // Past the slot holding fromIndex, resume from the start of each slot
+       const from = slotStart > fromIndex ? slotStart : fromIndex;
+       if (nextLevelIsLeaf) {
+         return from;
+       }
+       const slotNumber = popcnt(packedSlotIndicators & (slotMask - 1));
+       const nextLevelEntryIndex = <i32>(
+         this.getIndexAtShortIndex(
+           entryIndex + NON_LEAF_ENTRY_HEADER_SIZE_IN_SHORTS + slotNumber
+         )
+       );
+       const found = this.nextIndexWithLeafBelow(
+         nextLevelEntryIndex,
+         indexShift - 4,
+         from
+       );
+       if (found >= 0) {
+         return found;
+       }
+     }
+     return -1;
+   }
+
    determineTopLevelShiftForVirtualLength(virtualLength: i32): i32 {
      const sizeMagnitude = <i32>ceil(Math.log2(virtualLength));
      const eightsSizeMagnitude = sizeMagnitude - 3;

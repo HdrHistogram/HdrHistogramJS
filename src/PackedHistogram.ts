@@ -7,6 +7,9 @@
  */
 import JsHistogram from "./JsHistogram";
 import { PackedArray } from "./packedarray/PackedArray";
+import ulp from "./ulp";
+
+const { ceil, max, min } = Math;
 /**
  * <h3>A High Dynamic Range (HDR) Histogram that uses a packed internal representation</h3>
  * <p>
@@ -75,6 +78,49 @@ class PackedHistogram extends JsHistogram {
 
   getCountAtIndex(index: number) {
     return this.packedCounts.get(index);
+  }
+
+  /** @internal */
+  nextNonZeroIndex(fromIndex: number) {
+    return this.packedCounts.nextNonZeroIndex(fromIndex);
+  }
+
+  /**
+   * Same contract as {@link JsHistogram#getValueAtPercentile}, accumulating
+   * only the populated indexes of the packed counts instead of scanning the
+   * whole counts array.
+   */
+  getValueAtPercentile(percentile: number) {
+    const requestedPercentile = min(percentile, 100); // Truncate down to 100%
+
+    // round count up to nearest integer, to ensure that the largest value that the requested percentile
+    // of overall recorded values is actually included. However, this must be done with care:
+    //
+    // First, Compute fp value for count at the requested percentile. Note that fp result end up
+    // being 1 ulp larger than the correct integer count for this percentile:
+    const fpCountAtPercentile = (requestedPercentile / 100.0) * this.totalCount;
+    // Next, round up, but make sure to prevent <= 1 ulp inaccurancies in the above fp math from
+    // making us skip a count:
+    const countAtPercentile = max(
+      ceil(fpCountAtPercentile - ulp(fpCountAtPercentile)), // round up
+      1 // Make sure we at least reach the first recorded entry
+    );
+
+    let totalToCurrentIndex = 0;
+    for (
+      let i = this.nextNonZeroIndex(0);
+      i >= 0;
+      i = this.nextNonZeroIndex(i + 1)
+    ) {
+      totalToCurrentIndex += this.getCountAtIndex(i);
+      if (totalToCurrentIndex >= countAtPercentile) {
+        const valueAtIndex = this.valueFromIndex(i);
+        return percentile === 0.0
+          ? this.lowestEquivalentValue(valueAtIndex)
+          : this.highestEquivalentValue(valueAtIndex);
+      }
+    }
+    return 0;
   }
 
   protected _getEstimatedFootprintInBytes() {

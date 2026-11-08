@@ -705,6 +705,14 @@ export default class Histogram<T, U> extends AbstractHistogramBase<T, U> {
         }
       }
       for (; i < end; i++) {
+        if (!isFlatStorage<T>()) {
+          // Jump over the empty subtrees of the packed counts
+          i = this.nextNonZeroIndex(i);
+          if (i < 0 || i >= end) {
+            i = end;
+            break;
+          }
+        }
         totalToCurrentIndex += this.getCountAtIndex(i);
         if (totalToCurrentIndex >= countAtPercentile) break;
       }
@@ -783,6 +791,25 @@ export default class Histogram<T, U> extends AbstractHistogramBase<T, U> {
     return unchecked(<u64>this.counts[index]);
   }
 
+  /**
+   * Lowest index >= fromIndex with a non-zero count, or -1 when there is none.
+   * A packed histogram skips the empty subtrees of its counts array, so the
+   * scans built on this cost time proportional to the populated indexes
+   * rather than to the counts array length.
+   */
+  nextNonZeroIndex(fromIndex: i32): i32 {
+    if (idof<T>() == idof<PackedArray>()) {
+      return changetype<PackedArray>(this.counts).nextNonZeroIndex(fromIndex);
+    }
+    const length = this.countsArrayLength;
+    for (let i = fromIndex; i < length; i++) {
+      if (this.getCountAtIndex(i) != 0) {
+        return i;
+      }
+    }
+    return -1;
+  }
+
   /** Address of counts[0] in linear memory. Only valid when isFlatStorage<T>(). */
   @inline
   get countsDataStart(): usize {
@@ -844,6 +871,11 @@ export default class Histogram<T, U> extends AbstractHistogramBase<T, U> {
         observedOtherTotalCount += horizontalSum(acc);
       }
       for (; i < end; i++) {
+        if (!isFlatStorage<V>()) {
+          // Jump over the empty subtrees of the other packed counts
+          i = otherHistogram.nextNonZeroIndex(i);
+          if (i < 0 || i >= end) break;
+        }
         const otherCount = otherHistogram.getCountAtIndex(i);
         if (otherCount > 0) {
           this.addToCountAtIndex(i, otherCount);
@@ -876,6 +908,11 @@ export default class Histogram<T, U> extends AbstractHistogramBase<T, U> {
         i < otherMaxIndex;
         i = otherHistogram.nextCountsIndexToScan(i)
       ) {
+        if (!isFlatStorage<V>()) {
+          // Jump over the empty subtrees of the other packed counts
+          i = otherHistogram.nextNonZeroIndex(i);
+          if (i < 0 || i >= otherMaxIndex) break;
+        }
         otherCount = otherHistogram.getCountAtIndex(i);
         if (otherCount > 0) {
           this.recordCountAtValue(otherCount, otherHistogram.valueFromIndex(i));
@@ -945,6 +982,11 @@ export default class Histogram<T, U> extends AbstractHistogramBase<T, U> {
       }
     }
     for (; index < lengthToCover; index++) {
+      if (!isFlatStorage<T>()) {
+        // Jump over the empty subtrees of the packed counts
+        index = this.nextNonZeroIndex(index);
+        if (index < 0 || index >= lengthToCover) break;
+      }
       const countAtIndex: u64 = this.getCountAtIndex(index);
       if (countAtIndex > 0) {
         observedTotalCount += countAtIndex;
@@ -1011,6 +1053,11 @@ export default class Histogram<T, U> extends AbstractHistogramBase<T, U> {
         observedOtherTotalCount += horizontalSum(acc);
       }
       for (; i < end; i++) {
+        if (!isFlatStorage<V>()) {
+          // Jump over the empty subtrees of the other packed counts
+          i = otherHistogram.nextNonZeroIndex(i);
+          if (i < 0 || i >= end) break;
+        }
         const otherCount = otherHistogram.getCountAtIndex(i);
         if (otherCount > 0) {
           this.addToCountAtIndex(i, -otherCount);
@@ -1025,6 +1072,11 @@ export default class Histogram<T, U> extends AbstractHistogramBase<T, U> {
         i <= otherLastIndex;
         i = otherHistogram.nextCountsIndexToScan(i)
       ) {
+        if (!isFlatStorage<V>()) {
+          // Jump over the empty subtrees of the other packed counts
+          i = otherHistogram.nextNonZeroIndex(i);
+          if (i < 0 || i > otherLastIndex) break;
+        }
         const otherCount = otherHistogram.getCountAtIndex(i);
         if (otherCount > 0) {
           const otherValue = otherHistogram.valueFromIndex(i);

@@ -12,7 +12,7 @@ import { BitBucketSize } from "./Histogram";
 import { constructorFromBucketSize } from "./JsHistogramFactory";
 import ZigZagEncoding from "./ZigZagEncoding";
 
-const { max } = Math;
+const { max, min } = Math;
 
 const V2EncodingCookieBase = 0x1c849303;
 const V2CompressedEncodingCookieBase = 0x1c849304;
@@ -44,11 +44,13 @@ function fillBufferFromCountsArray(self: JsHistogram, buffer: ByteBuffer) {
     // Count trailing 0s (which follow this count):
     let zerosCount = 0;
     if (count == 0) {
-      zerosCount = 1;
-      while (srcIndex < countsLimit && self.getCountAtIndex(srcIndex) == 0) {
-        zerosCount++;
-        srcIndex++;
-      }
+      // The run of zeros extends to the next non-zero count (or to the limit);
+      // a packed histogram finds it without visiting every empty index.
+      const nextNonZeroIndex = self.nextNonZeroIndex(srcIndex);
+      const zerosEnd =
+        nextNonZeroIndex < 0 ? countsLimit : min(nextNonZeroIndex, countsLimit);
+      zerosCount = 1 + zerosEnd - srcIndex;
+      srcIndex = zerosEnd;
     }
     if (zerosCount > 1) {
       ZigZagEncoding.encode(buffer, -zerosCount);

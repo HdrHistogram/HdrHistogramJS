@@ -179,7 +179,8 @@ export default class Histogram<T, U> extends AbstractHistogramBase<T, U> {
     const largestValueWithSingleUnitResolution =
       2 * <u64>Math.pow(10, numberOfSignificantValueDigits);
 
-    this.unitMagnitude = <i32>floor(Math.log2(<f64>lowestDiscernibleValue));
+    // floor(log2(lowestDiscernibleValue)); Math.log2 rounds up for 2^k - m with k >= 49
+    this.unitMagnitude = 63 - <i32>clz<u64>(lowestDiscernibleValue);
 
     //this.lowestDiscernibleValueRounded = pow(2, this.unitMagnitude);
     this.unitMagnitudeMask = (1 << this.unitMagnitude) - 1;

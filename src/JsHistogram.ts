@@ -12,7 +12,22 @@ import { integerFormatter, floatFormatter } from "./formatters";
 import ulp from "./ulp";
 import Histogram, { NO_TAG, toSummary, HistogramSummary } from "./Histogram";
 
-const { pow, floor, ceil, log2, max, min } = Math;
+const { pow, floor, ceil, log2, clz32, max, min } = Math;
+
+const TWO_POW_32 = 4294967296; // 2^32
+
+/**
+ * floor(log2(value)), computed with Math.clz32 (a single instruction).
+ * Exact for every value in [1, 2^64), where Math.log2 is not: for instance
+ * Math.log2(2^53 - 1) rounds to 53. Returns -1 for 0 <= value < 1.
+ * Histogram values never exceed Number.MAX_SAFE_INTEGER (2^53 - 1).
+ */
+const floorLog2 = (value: number): number => {
+  if (value < TWO_POW_32) {
+    return 31 - clz32(value);
+  }
+  return 63 - clz32(floor(value / TWO_POW_32));
+};
 
 export abstract class JsHistogram implements Histogram {
   static identityBuilder: number;
@@ -187,7 +202,7 @@ export abstract class JsHistogram implements Histogram {
     const largestValueWithSingleUnitResolution =
       2 * floor(pow(10, numberOfSignificantValueDigits));
 
-    this.unitMagnitude = floor(log2(lowestDiscernibleValue));
+    this.unitMagnitude = floorLog2(lowestDiscernibleValue);
 
     this.lowestDiscernibleValueRounded = pow(2, this.unitMagnitude);
     this.unitMagnitudeMask = this.lowestDiscernibleValueRounded - 1;
@@ -339,8 +354,8 @@ export abstract class JsHistogram implements Histogram {
 
     // Calculate the index for the first entry that will be used in the bucket (halfway through subBucketCount).
     // For bucketIndex 0, all subBucketCount entries may be used, but bucketBaseIndex is still set in the middle.
-    const bucketBaseIndex =
-      (bucketIndex + 1) * pow(2, this.subBucketHalfCountMagnitude);
+    // subBucketHalfCount is 2^subBucketHalfCountMagnitude.
+    const bucketBaseIndex = (bucketIndex + 1) * this.subBucketHalfCount;
     // Calculate the offset in the bucket. This subtraction will result in a positive value in all buckets except
     // the 0th bucket (since a value in that bucket may be less than half the bucket's 0 to subBucketCount range).
     // However, this works out since we give bucket 0 twice as much space.
@@ -355,15 +370,12 @@ export abstract class JsHistogram implements Histogram {
   getBucketIndex(value: number) {
     // Calculates the number of powers of two by which the value is greater than the biggest value that fits in
     // bucket 0. This is the bucket index since each successive bucket can hold a value 2x greater.
-    // The mask maps small values to bucket 0.
-
-    // return this.leadingZeroCountBase - Long.numberOfLeadingZeros(value | subBucketMask);
-    return max(
-      floor(log2(value)) -
-        this.subBucketHalfCountMagnitude -
-        this.unitMagnitude,
-      0
-    );
+    // The mask maps small values to bucket 0 in the Java original:
+    //   leadingZeroCountBase - Long.numberOfLeadingZeros(value | subBucketMask)
+    // A bitwise OR would truncate to 32 bits in JavaScript, so the clamp to 0 is done explicitly instead.
+    const bucketIndex =
+      floorLog2(value) - this.subBucketHalfCountMagnitude - this.unitMagnitude;
+    return bucketIndex > 0 ? bucketIndex : 0;
   }
 
   getSubBucketIndex(value: number, bucketIndex: number) {
@@ -373,7 +385,13 @@ export abstract class JsHistogram implements Histogram {
     // buckets overlap, it would have also been in the top half of bucket k-1, and therefore would have
     // returned k-1 in getBucketIndex(). Since we would then shift it one fewer bits here, it would be twice as big,
     // and therefore in the top half of subBucketCount.
-    return floor(value / pow(2, bucketIndex + this.unitMagnitude));
+    const shift = bucketIndex + this.unitMagnitude;
+    if (value < TWO_POW_32) {
+      // value >>> shift is floor(value / 2^shift) for 0 <= value < 2^32 and shift < 32;
+      // a shift of 32 or more means unitMagnitude alone exceeds the value's bits.
+      return shift < 32 ? value >>> shift : 0;
+    }
+    return floor(value / pow(2, shift));
   }
 
   updateMinAndMax(value: number) {

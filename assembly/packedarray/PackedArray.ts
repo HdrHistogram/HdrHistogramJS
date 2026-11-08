@@ -298,6 +298,42 @@ export class PackedArray {
   }
 
   /**
+   * Lowest index >= fromIndex holding a non-zero value, or -1 when there is none.
+   *
+   * On a packed context the set-0 tree is walked to skip the groups of 8
+   * indexes that were never populated, so a scan over the whole array costs
+   * time proportional to the populated groups rather than to the virtual
+   * length. An unpacked context is scanned linearly.
+   */
+  nextNonZeroIndex(fromIndex: i32): i32 {
+    const arrayContext = this.arrayContext;
+    const length = arrayContext.getVirtualLength();
+    let index = fromIndex;
+    if (!arrayContext.isPacked) {
+      for (; index < length; index++) {
+        if (arrayContext.getAtUnpackedIndex(index) != 0) {
+          return index;
+        }
+      }
+      return -1;
+    }
+    while (index < length) {
+      index = arrayContext.nextIndexWithLeaf(index);
+      if (index < 0) {
+        return -1;
+      }
+      // The leaf found only vouches for the group of 8 indexes holding index
+      const groupEnd = min<i32>((index | 0x7) + 1, length);
+      for (; index < groupEnd; index++) {
+        if (this.get(index) != 0) {
+          return index;
+        }
+      }
+    }
+    return -1;
+  }
+
+  /**
    * Move the contents to a new unpacked context of the given virtual length,
    * once the packed representation cannot grow any further
    */

@@ -37,6 +37,18 @@ class TypedArrayHistogram extends JsHistogram {
     this._counts.fill(0);
   }
 
+  /** @internal */
+  nextNonZeroIndex(fromIndex: number) {
+    const counts = this._counts;
+    const length = this.countsArrayLength;
+    for (let i = fromIndex; i < length; i++) {
+      if (counts[i] !== 0) {
+        return i;
+      }
+    }
+    return -1;
+  }
+
   incrementCountAtIndex(index: number) {
     const currentCount = this._counts[index];
     const newCount = currentCount + 1;

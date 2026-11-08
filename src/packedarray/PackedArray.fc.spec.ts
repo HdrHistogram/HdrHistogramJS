@@ -12,14 +12,14 @@ const runFromStryker = __dirname.includes("stryker");
 
 const runnerOptions = {
   numRuns: runFromStryker ? 10 : 1000,
-  verbose: true
+  verbose: true,
 };
 
 describe("Packed array", () => {
   it("should store data as a regular sparse array", () => {
     const SIZE = 1000;
     fc.assert(
-      fc.property(arbData(SIZE), entries => {
+      fc.property(arbData(SIZE), (entries) => {
         const packedArray = new PackedArray(SIZE + 1);
         const sparseArray = new Array();
         entries.forEach(([index, value]) => packedArray.add(index, value));
@@ -35,6 +35,169 @@ describe("Packed array", () => {
         );
       }),
       runnerOptions
+    );
+  });
+});
+
+describe("Packed array non-zero iteration", () => {
+  const bruteForceNext = (model: number[], fromIndex: number) => {
+    for (let i = fromIndex; i < model.length; i++) {
+      if (model[i] !== 0) return i;
+    }
+    return -1;
+  };
+
+  /** The walk from 0 visits exactly the non-zero indexes of the model, in order */
+  const walkMatches = (packedArray: PackedArray, model: number[]) => {
+    const walked: number[] = [];
+    for (
+      let i = packedArray.nextNonZeroIndex(0);
+      i >= 0;
+      i = packedArray.nextNonZeroIndex(i + 1)
+    ) {
+      walked.push(i);
+    }
+    const expected: number[] = [];
+    model.forEach((value, index) => {
+      if (value !== 0) expected.push(index);
+    });
+    expect(walked).toEqual(expected);
+  };
+
+  /** nextNonZeroIndex agrees with a brute force scan from arbitrary start indexes */
+  const lookupsMatch = (
+    packedArray: PackedArray,
+    model: number[],
+    fromIndexes: number[]
+  ) => {
+    fromIndexes.forEach((fromIndex) => {
+      expect(packedArray.nextNonZeroIndex(fromIndex)).toBe(
+        bruteForceNext(model, fromIndex)
+      );
+    });
+  };
+
+  const arbFromIndexes = (size: number) =>
+    fc.array(fc.integer({ min: 0, max: size + 10 }), { maxLength: 20 });
+
+  it("should visit the non-zero indexes of a sparse array", () => {
+    const SIZE = 100000;
+    fc.assert(
+      fc.property(
+        arbSparseData(SIZE, 300),
+        arbFromIndexes(SIZE),
+        (entries, fromIndexes) => {
+          const packedArray = new PackedArray(SIZE);
+          const model = new Array(SIZE).fill(0);
+          entries.forEach(([index, value]) => {
+            packedArray.add(index, value);
+            model[index] += value;
+          });
+          walkMatches(packedArray, model);
+          lookupsMatch(packedArray, model, fromIndexes);
+        }
+      ),
+      runnerOptions
+    );
+  });
+
+  it("should visit the non-zero indexes of a dense array", () => {
+    const SIZE = 2048;
+    fc.assert(
+      fc.property(
+        fc.array(fc.integer({ min: 0, max: 0x1ffff }), {
+          minLength: SIZE,
+          maxLength: SIZE,
+        }),
+        arbFromIndexes(SIZE),
+        (values, fromIndexes) => {
+          const packedArray = new PackedArray(SIZE);
+          values.forEach((value, index) => packedArray.set(index, value));
+          walkMatches(packedArray, values);
+          lookupsMatch(packedArray, values, fromIndexes);
+        }
+      ),
+      { ...runnerOptions, numRuns: runFromStryker ? 5 : 100 }
+    );
+  });
+
+  it("should skip values set back to zero", () => {
+    const SIZE = 50000;
+    fc.assert(
+      fc.property(
+        arbSparseData(SIZE, 200),
+        fc.array(fc.nat(199), { maxLength: 100 }),
+        (entries, zeroedPositions) => {
+          const packedArray = new PackedArray(SIZE);
+          const model = new Array(SIZE).fill(0);
+          entries.forEach(([index, value]) => {
+            packedArray.set(index, value);
+            model[index] = value;
+          });
+          zeroedPositions.forEach((position) => {
+            if (position < entries.length) {
+              const [index] = entries[position];
+              packedArray.set(index, 0);
+              model[index] = 0;
+            }
+          });
+          walkMatches(packedArray, model);
+        }
+      ),
+      runnerOptions
+    );
+  });
+
+  it("should keep walking after the virtual length grows", () => {
+    fc.assert(
+      fc.property(
+        arbSparseData(500, 50),
+        arbSparseData(100000, 100),
+        (entriesBefore, entriesAfter) => {
+          const packedArray = new PackedArray(501);
+          const model = new Array(100001).fill(0);
+          entriesBefore.forEach(([index, value]) => {
+            packedArray.add(index, value);
+            model[index] += value;
+          });
+          packedArray.setVirtualLength(100001);
+          entriesAfter.forEach(([index, value]) => {
+            packedArray.add(index, value);
+            model[index] += value;
+          });
+          walkMatches(packedArray, model);
+        }
+      ),
+      runnerOptions
+    );
+  });
+
+  it("should scan linearly once the packed storage is full", () => {
+    // 64 bit values at every index outgrow the packed representation
+    const SIZE = 5000;
+    fc.assert(
+      fc.property(
+        fc.array(fc.boolean(), { minLength: SIZE, maxLength: SIZE }),
+        arbFromIndexes(SIZE),
+        (keep, fromIndexes) => {
+          const packedArray = new PackedArray(SIZE);
+          const model = new Array(SIZE).fill(0);
+          for (let index = 0; index < SIZE; index++) {
+            packedArray.set(index, Number.MAX_SAFE_INTEGER - index);
+          }
+          expect(packedArray.getPhysicalLength()).toBe(SIZE); // unpacked
+          keep.forEach((isKept, index) => {
+            if (isKept) {
+              model[index] = Number.MAX_SAFE_INTEGER - index;
+            } else {
+              packedArray.set(index, 0);
+            }
+          });
+          walkMatches(packedArray, model);
+          lookupsMatch(packedArray, model, fromIndexes);
+        }
+      ),
+      { ...runnerOptions, numRuns: runFromStryker ? 3 : 20 }
     );
   });
 });
@@ -149,3 +312,18 @@ const arbOperations = (size: number) => {
     { minLength: 1, maxLength: 200 }
   );
 };
+
+/** Up to maxEntries (index, value) pairs over [0, size), values spanning several bytes */
+const arbSparseData = (size: number, maxEntries: number) =>
+  fc.array(
+    fc.tuple(
+      fc.integer({ min: 0, max: size - 1 }),
+      fc.oneof(
+        fc.integer({ min: 1, max: 255 }),
+        fc.integer({ min: 256, max: 0xffffff }),
+        fc.constant(256),
+        fc.constant(0x10000)
+      )
+    ),
+    { maxLength: maxEntries }
+  );

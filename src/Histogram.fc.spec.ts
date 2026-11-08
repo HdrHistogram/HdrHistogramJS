@@ -9,6 +9,7 @@ import * as fc from "fast-check";
 import * as hdr from "./index";
 import { initWebAssembly } from "./wasm";
 import Histogram, { BitBucketSize } from "./Histogram";
+import JsHistogram from "./JsHistogram";
 
 const runFromStryker = __dirname.includes("stryker");
 
@@ -145,6 +146,132 @@ describe("Histogram encoding/decoding", () => {
             decodedHistogram.destroy();
             return actual === got;
           }),
+          runnerOptions
+        );
+      });
+    })
+  );
+});
+
+describe("Histogram scans bounded by recorded min and max (vs brute force scan)", () => {
+  beforeAll(initWebAssembly);
+
+  // Reference implementations walking every counts array index, as the
+  // histogram did before the scans were bounded by minNonZeroValue / maxValue.
+  const bruteForceValueAtPercentile = (
+    histogram: JsHistogram,
+    percentile: number
+  ) => {
+    const countAtPercentile = Math.max(
+      Math.ceil((Math.min(percentile, 100) / 100) * histogram.totalCount),
+      1
+    );
+    let total = 0;
+    for (let i = 0; i < histogram.countsArrayLength; i++) {
+      total += histogram.getCountAtIndex(i);
+      if (total >= countAtPercentile) {
+        const value = histogram.valueFromIndex(i);
+        return percentile === 0
+          ? histogram.lowestEquivalentValue(value)
+          : histogram.highestEquivalentValue(value);
+      }
+    }
+    return 0;
+  };
+
+  const bruteForceRecordedValues = (histogram: JsHistogram) => {
+    const recorded: { value: number; count: number }[] = [];
+    for (let i = 0; i < histogram.countsArrayLength; i++) {
+      const count = histogram.getCountAtIndex(i);
+      if (count !== 0) {
+        recorded.push({
+          value: histogram.highestEquivalentValue(histogram.valueFromIndex(i)),
+          count,
+        });
+      }
+    }
+    return recorded;
+  };
+
+  const iteratedRecordedValues = (histogram: JsHistogram) => {
+    const recorded: { value: number; count: number }[] = [];
+    const iterator = histogram.recordedValuesIterator;
+    iterator.reset();
+    while (iterator.hasNext()) {
+      const { valueIteratedTo, countAtValueIteratedTo } = iterator.next();
+      recorded.push({ value: valueIteratedTo, count: countAtValueIteratedTo });
+    }
+    return recorded;
+  };
+
+  // Zeros (index 0), small values and values spread over the whole range.
+  const arbValue = fc.oneof(
+    { weight: 1, arbitrary: fc.constant(0) },
+    { weight: 2, arbitrary: fc.integer({ min: 1, max: 5000 }) },
+    {
+      weight: 2,
+      arbitrary: fc.integer({ min: 1, max: Number.MAX_SAFE_INTEGER }),
+    }
+  );
+  const arbValues = fc.array(arbValue, { minLength: 0, maxLength: 40 });
+  const arbPercentile = fc.oneof(
+    fc.constant(0),
+    fc.constant(100),
+    fc.double({ min: 0, max: 100, noNaN: true })
+  );
+
+  [32, "packed"].forEach((bitBucketSize: BitBucketSize) =>
+    [1, 1000].forEach((lowestDiscernibleValue) => {
+      const buildJs = () =>
+        hdr.build({
+          bitBucketSize,
+          lowestDiscernibleValue,
+          highestTrackableValue: 2 * lowestDiscernibleValue,
+          autoResize: true,
+          numberOfSignificantValueDigits: 3,
+          useWebAssembly: false,
+        }) as JsHistogram;
+
+      it(`Histogram ${bitBucketSize} (lowestDiscernibleValue ${lowestDiscernibleValue}) should compute the same percentiles and recorded values as a full scan`, () => {
+        fc.assert(
+          fc.property(arbValues, arbPercentile, (values, percentile) => {
+            const histogram = buildJs();
+            values.forEach((v) => histogram.recordValue(v));
+            expect(histogram.getValueAtPercentile(percentile)).toBe(
+              bruteForceValueAtPercentile(histogram, percentile)
+            );
+            expect(iteratedRecordedValues(histogram)).toStrictEqual(
+              bruteForceRecordedValues(histogram)
+            );
+          }),
+          runnerOptions
+        );
+      });
+
+      it(`Histogram ${bitBucketSize} (lowestDiscernibleValue ${lowestDiscernibleValue}) should compute the same percentiles as a full scan after subtracting`, () => {
+        fc.assert(
+          fc.property(
+            arbValues,
+            fc.array(fc.boolean(), { minLength: 40, maxLength: 40 }),
+            arbPercentile,
+            (values, subtracted, percentile) => {
+              const histogram = buildJs();
+              const other = buildJs();
+              values.forEach((v, i) => {
+                histogram.recordValue(v);
+                if (subtracted[i]) {
+                  other.recordValue(v);
+                }
+              });
+              histogram.subtract(other);
+              expect(histogram.getValueAtPercentile(percentile)).toBe(
+                bruteForceValueAtPercentile(histogram, percentile)
+              );
+              expect(iteratedRecordedValues(histogram)).toStrictEqual(
+                bruteForceRecordedValues(histogram)
+              );
+            }
+          ),
           runnerOptions
         );
       });

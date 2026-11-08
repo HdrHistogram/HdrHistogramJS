@@ -5,6 +5,11 @@ import Int32Histogram from "./Int32Histogram";
 import { initWebAssembly, WasmHistogram } from "./wasm";
 import Int8Histogram from "./Int8Histogram";
 import Histogram from "./Histogram";
+import { BuildRequest } from "./HistogramBuilder";
+import {
+  decodeFromCompressedBase64,
+  encodeIntoCompressedBase64,
+} from "./encoding";
 
 class HistogramForTests extends JsHistogram {
   //constructor() {}
@@ -284,9 +289,8 @@ describe("Histogram correcting coordinated omissions", () => {
     histogram.recordValue(207);
     histogram.recordValue(207);
     // when
-    const correctedHistogram = histogram.copyCorrectedForCoordinatedOmission(
-      100
-    );
+    const correctedHistogram =
+      histogram.copyCorrectedForCoordinatedOmission(100);
     // then
     expect(correctedHistogram.totalCount).toBe(4);
     expect(correctedHistogram.minNonZeroValue).toBe(107);
@@ -299,9 +303,8 @@ describe("Histogram correcting coordinated omissions", () => {
     histogram.recordValue(207);
     histogram.recordValue(207);
     // when
-    const correctedHistogram = histogram.copyCorrectedForCoordinatedOmission(
-      1000
-    );
+    const correctedHistogram =
+      histogram.copyCorrectedForCoordinatedOmission(1000);
     // then
     expect(correctedHistogram.totalCount).toBe(2);
     expect(correctedHistogram.minNonZeroValue).toBe(207);
@@ -405,9 +408,8 @@ describe("WASM Histogram correcting coordinated omissions", () => {
     histogram.recordValue(207);
     histogram.recordValue(207);
     // when
-    const correctedHistogram = histogram.copyCorrectedForCoordinatedOmission(
-      100
-    );
+    const correctedHistogram =
+      histogram.copyCorrectedForCoordinatedOmission(100);
     // then
     expect(correctedHistogram.totalCount).toBe(4);
     expect(correctedHistogram.minNonZeroValue).toBe(107);
@@ -420,9 +422,8 @@ describe("WASM Histogram correcting coordinated omissions", () => {
     histogram.recordValue(207);
     histogram.recordValue(207);
     // when
-    const correctedHistogram = histogram.copyCorrectedForCoordinatedOmission(
-      1000
-    );
+    const correctedHistogram =
+      histogram.copyCorrectedForCoordinatedOmission(1000);
     // then
     expect(correctedHistogram.totalCount).toBe(2);
     expect(correctedHistogram.minNonZeroValue).toBe(207);
@@ -602,5 +603,178 @@ describe("Histogram clearing support", () => {
 
     // then
     expect(histogram.mean).toBe(histogram2.mean);
+  });
+});
+
+describe("Histogram scans bounded by recorded min and max", () => {
+  beforeAll(initWebAssembly);
+
+  // Reference: the unbounded cumulative scan over every counts array index.
+  const bruteForceValueAtPercentile = (
+    histogram: JsHistogram,
+    percentile: number
+  ) => {
+    const countAtPercentile = Math.max(
+      Math.ceil((Math.min(percentile, 100) / 100) * histogram.totalCount),
+      1
+    );
+    let total = 0;
+    for (let i = 0; i < histogram.countsArrayLength; i++) {
+      total += histogram.getCountAtIndex(i);
+      if (total >= countAtPercentile) {
+        const value = histogram.valueFromIndex(i);
+        return percentile === 0
+          ? histogram.lowestEquivalentValue(value)
+          : histogram.highestEquivalentValue(value);
+      }
+    }
+    return 0;
+  };
+
+  const percentiles = [0, 0.1, 25, 50, 75, 99, 99.99, 100];
+
+  const variants: { bitBucketSize: 32 | "packed"; useWebAssembly: boolean }[] =
+    [
+      { bitBucketSize: 32, useWebAssembly: false },
+      { bitBucketSize: "packed", useWebAssembly: false },
+      { bitBucketSize: 32, useWebAssembly: true },
+      { bitBucketSize: "packed", useWebAssembly: true },
+    ];
+
+  variants.forEach(({ bitBucketSize, useWebAssembly }) => {
+    const label = `${bitBucketSize} (wasm: ${useWebAssembly})`;
+
+    // The JS twin is the oracle for the wasm variants, and is itself checked
+    // against the brute force scan. The percentile distribution output goes
+    // through the iterators.
+    const expectStatsToMatch = (
+      histogram: Histogram,
+      reference: JsHistogram
+    ) => {
+      percentiles.forEach((percentile) => {
+        const expected = bruteForceValueAtPercentile(reference, percentile);
+        expect(reference.getValueAtPercentile(percentile)).toBe(expected);
+        expect(histogram.getValueAtPercentile(percentile)).toBe(expected);
+      });
+      expect(histogram.mean).toBe(reference.mean);
+      expect(histogram.outputPercentileDistribution()).toBe(
+        reference.outputPercentileDistribution()
+      );
+    };
+
+    const buildPair = (
+      options: Partial<BuildRequest> = {}
+    ): [Histogram, JsHistogram] => [
+      build({ bitBucketSize, useWebAssembly, ...options }),
+      build({
+        bitBucketSize,
+        useWebAssembly: false,
+        ...options,
+      }) as JsHistogram,
+    ];
+
+    it(`${label} should compute percentiles when only zero values are recorded`, () => {
+      const [histogram, reference] = buildPair();
+      [histogram, reference].forEach((h) => h.recordValueWithCount(0, 3));
+      expect(histogram.totalCount).toBe(3);
+      expect(histogram.maxValue).toBe(0);
+      expect(histogram.getValueAtPercentile(50)).toBe(0);
+      expect(histogram.getValueAtPercentile(100)).toBe(0);
+      expectStatsToMatch(histogram, reference);
+      histogram.destroy();
+    });
+
+    it(`${label} should compute percentiles when zeros and large values are recorded`, () => {
+      const [histogram, reference] = buildPair();
+      [histogram, reference].forEach((h) => {
+        h.recordValueWithCount(0, 5);
+        h.recordValue(1000000000000);
+        h.recordValue(1000000000001);
+        h.recordValue(4000000000000);
+      });
+      expect(histogram.getValueAtPercentile(50)).toBe(0);
+      expect(histogram.getValueAtPercentile(100)).toBeGreaterThanOrEqual(
+        4000000000000
+      );
+      expectStatsToMatch(histogram, reference);
+      histogram.destroy();
+    });
+
+    it(`${label} should compute percentiles when non zero values below lowestDiscernibleValue sit at index 0`, () => {
+      // 300 and 500 are below the unit magnitude mask (511) of
+      // lowestDiscernibleValue 1000, so they are counted at index 0 and never
+      // update minNonZeroValue.
+      const options: Partial<BuildRequest> = {
+        lowestDiscernibleValue: 1000,
+        highestTrackableValue: 1000000000,
+        numberOfSignificantValueDigits: 3,
+      };
+      const [histogram, reference] = buildPair(options);
+      [histogram, reference].forEach((h) => {
+        h.recordValue(300);
+        h.recordValue(500);
+        h.recordValue(20000000);
+      });
+      expect(histogram.minNonZeroValue).toBeGreaterThan(19000000);
+      expect(histogram.getValueAtPercentile(0)).toBe(0);
+      expect(histogram.getValueAtPercentile(50)).toBe(511);
+      expectStatsToMatch(histogram, reference);
+      histogram.destroy();
+    });
+
+    it(`${label} should compute percentiles after subtracting the min and max values`, () => {
+      const [histogram, reference] = buildPair();
+      // (the wasm build has no packed-from-packed subtraction, so the other
+      // histogram is always a 32 bit one; the layouts still match)
+      const [other, otherReference] = buildPair({ bitBucketSize: 32 });
+      [histogram, reference].forEach((h) => {
+        h.recordValueWithCount(0, 2);
+        h.recordValue(100);
+        h.recordValueWithCount(5000, 3);
+        h.recordValue(1000000000);
+      });
+      [other, otherReference].forEach((h) => {
+        h.recordValue(100);
+        h.recordValue(1000000000);
+      });
+      histogram.subtract(other);
+      reference.subtract(otherReference);
+      expect(histogram.totalCount).toBe(5);
+      expect(histogram.getValueAtPercentile(100)).toBeGreaterThanOrEqual(5000);
+      expect(histogram.getValueAtPercentile(100)).toBeLessThan(5100);
+      expectStatsToMatch(histogram, reference);
+      histogram.destroy();
+      other.destroy();
+    });
+
+    it(`${label} should compute percentiles after a decoding roundtrip`, async () => {
+      const [histogram, reference] = buildPair();
+      [histogram, reference].forEach((h) => {
+        h.recordValueWithCount(0, 2);
+        h.recordValue(42);
+        h.recordValueWithCount(123456789, 7);
+      });
+      const encoded = await encodeIntoCompressedBase64(histogram);
+      const decoded = await decodeFromCompressedBase64(
+        encoded,
+        bitBucketSize,
+        useWebAssembly
+      );
+      // Decoding re-establishes maxValue from the bucket edges, so the oracle
+      // is a decoded JS histogram rather than the original one.
+      const decodedReference = (await decodeFromCompressedBase64(
+        encoded,
+        bitBucketSize,
+        false
+      )) as JsHistogram;
+      percentiles.forEach((percentile) => {
+        expect(decoded.getValueAtPercentile(percentile)).toBe(
+          reference.getValueAtPercentile(percentile)
+        );
+      });
+      expectStatsToMatch(decoded, decodedReference);
+      histogram.destroy();
+      decoded.destroy();
+    });
   });
 });

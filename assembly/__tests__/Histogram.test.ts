@@ -7,13 +7,16 @@
  */
 
 import { describe, test, expect } from "assemblyscript-unittest-framework/assembly";
+import Histogram from "../Histogram";
 import {
   Histogram8,
   Histogram16,
+  Histogram32,
   Storage,
   PackedHistogram,
   Histogram64,
 } from "../Histogram";
+import { PackedArray } from "../packedarray/PackedArray";
 
 const buildHistogram = (): Histogram8 =>
   new Histogram8(
@@ -400,6 +403,126 @@ describe("Packed Histogram", () => {
     );
     expect<u64>(packedHistogram.getValueAtPercentile(99.9)).equal(
       histogram.getValueAtPercentile(99.9)
+    );
+  });
+});
+
+// Reference: the unbounded cumulative scan over every counts array index.
+function bruteForceValueAtPercentile<T, U>(
+  histogram: Histogram<T, U>,
+  percentile: f64
+): u64 {
+  const countAtPercentile = <u64>max(
+    ceil((min(percentile, 100) / 100) * <f64>histogram.totalCount),
+    1
+  );
+  let total: u64 = 0;
+  for (let i = 0; i < histogram.countsArrayLength; i++) {
+    total += histogram.getCountAtIndex(i);
+    if (total >= countAtPercentile) {
+      const value = histogram.valueFromIndex(i);
+      return percentile == 0
+        ? histogram.lowestEquivalentValue(value)
+        : histogram.highestEquivalentValue(value);
+    }
+  }
+  return 0;
+}
+
+function expectPercentilesToMatchBruteForce<T, U>(
+  histogram: Histogram<T, U>
+): void {
+  const percentiles: f64[] = [0, 0.1, 25, 50, 75, 99, 99.99, 100];
+  for (let i = 0; i < percentiles.length; i++) {
+    expect<u64>(histogram.getValueAtPercentile(percentiles[i])).equal(
+      bruteForceValueAtPercentile<T, U>(histogram, percentiles[i])
+    );
+  }
+}
+
+describe("Histogram scans bounded by recorded min and max", () => {
+  test("should compute percentiles when only zero values are recorded", () => {
+    const histogram = new Histogram64(1, 9007199254740991, 3);
+    const packedHistogram = new PackedHistogram(1, 9007199254740991, 3);
+    histogram.recordCountAtValue(3, 0);
+    packedHistogram.recordCountAtValue(3, 0);
+    expect<u64>(histogram.maxValue).equal(0);
+    expect<u64>(histogram.getValueAtPercentile(50)).equal(0);
+    expect<u64>(histogram.getValueAtPercentile(100)).equal(0);
+    expect<u64>(packedHistogram.getValueAtPercentile(100)).equal(0);
+    expect<f64>(histogram.getMean()).equal(0);
+    expectPercentilesToMatchBruteForce<Storage<u64>, u64>(histogram);
+    expectPercentilesToMatchBruteForce<PackedArray, u64>(packedHistogram);
+  });
+
+  test("should compute percentiles when zeros and large values are recorded", () => {
+    const histogram = new Histogram32(1, 9007199254740991, 3);
+    const packedHistogram = new PackedHistogram(1, 9007199254740991, 3);
+    histogram.recordCountAtValue(5, 0);
+    histogram.recordValue(1000000000000);
+    histogram.recordValue(1000000000001);
+    histogram.recordValue(4000000000000);
+    packedHistogram.recordCountAtValue(5, 0);
+    packedHistogram.recordValue(1000000000000);
+    packedHistogram.recordValue(1000000000001);
+    packedHistogram.recordValue(4000000000000);
+    expect<u64>(histogram.getValueAtPercentile(50)).equal(0);
+    expect<u64>(histogram.getValueAtPercentile(100)).greaterThan(
+      4000000000000 - 1
+    );
+    expectPercentilesToMatchBruteForce<Storage<u32>, u32>(histogram);
+    expectPercentilesToMatchBruteForce<PackedArray, u64>(packedHistogram);
+    expect<string>(packedHistogram.outputPercentileDistribution()).equal(
+      histogram.outputPercentileDistribution()
+    );
+  });
+
+  test("should compute percentiles when non zero values below lowestDiscernibleValue sit at index 0", () => {
+    // 300 and 500 are below the unit magnitude mask (511) of
+    // lowestDiscernibleValue 1000, so they are counted at index 0 and never
+    // update minNonZeroValue.
+    const histogram = new Histogram32(1000, 1000000000, 3);
+    histogram.recordValue(300);
+    histogram.recordValue(500);
+    histogram.recordValue(20000000);
+    expect<u64>(histogram.minNonZeroValue).equal(
+      <u64>20000000 & ~histogram.unitMagnitudeMask
+    );
+    expect<u64>(histogram.getValueAtPercentile(0)).equal(0);
+    expect<u64>(histogram.getValueAtPercentile(50)).equal(511);
+    expectPercentilesToMatchBruteForce<Storage<u32>, u32>(histogram);
+  });
+
+  test("should compute percentiles after subtracting the min and max values", () => {
+    const histogram = new Histogram32(1, 9007199254740991, 3);
+    const other = new Histogram32(1, 9007199254740991, 3);
+    histogram.recordCountAtValue(2, 0);
+    histogram.recordValue(100);
+    histogram.recordCountAtValue(3, 5000);
+    histogram.recordValue(1000000000);
+    other.recordValue(100);
+    other.recordValue(1000000000);
+    histogram.subtract<Storage<u32>, u32>(other);
+    expect<u64>(histogram.totalCount).equal(5);
+    expect<u64>(histogram.getValueAtPercentile(100)).greaterThan(4999);
+    expect<u64>(histogram.getValueAtPercentile(100)).lessThan(5100);
+    expectPercentilesToMatchBruteForce<Storage<u32>, u32>(histogram);
+  });
+
+  test("should compute percentiles after adding to an empty histogram", () => {
+    const histogram = new Histogram32(1, 9007199254740991, 3);
+    const other = new Histogram32(1, 9007199254740991, 3);
+    other.recordCountAtValue(2, 0);
+    other.recordValue(1000000);
+    other.recordValue(9007199254740991);
+    histogram.add<Storage<u32>, u32>(other);
+    expect<u64>(histogram.totalCount).equal(4);
+    expect<u64>(histogram.getValueAtPercentile(50)).equal(
+      other.getValueAtPercentile(50)
+    );
+    expectPercentilesToMatchBruteForce<Storage<u32>, u32>(histogram);
+    expect<string>(histogram.outputPercentileDistribution()).equal(
+      other.outputPercentileDistribution()
     );
   });
 });

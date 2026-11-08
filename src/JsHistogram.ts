@@ -386,6 +386,44 @@ export abstract class JsHistogram implements Histogram {
   }
 
   /**
+   * Lowest counts array index above 0 that may hold a non-zero count, derived
+   * from minNonZeroValue. Index 0 (the zero values, which minNonZeroValue
+   * ignores) is never covered by this bound and must be visited separately.
+   * Every index strictly between 0 and this one holds no count.
+   *
+   * When nothing above unitMagnitudeMask has been recorded, minNonZeroValue is
+   * a sentinel far past the covered range and countsArrayLength is returned.
+   */
+  lowestNonZeroCountsIndex(): number {
+    return min(
+      max(1, this.countsArrayIndex(this.minNonZeroValue)),
+      this.countsArrayLength
+    );
+  }
+
+  /**
+   * Highest counts array index that may hold a non-zero count, derived from
+   * maxValue. maxValue is 0 when nothing (or only zeros) has been recorded,
+   * so index 0 is always covered. maxValue can be wider than the recorded
+   * data (e.g. after a subtract), which only makes a scan visit more indexes.
+   */
+  highestNonZeroCountsIndex(): number {
+    return min(
+      this.countsArrayIndex(this.maxValue),
+      this.countsArrayLength - 1
+    );
+  }
+
+  /**
+   * Successor of `index` when scanning the counts array for non-zero counts:
+   * index 0 (where the zero values live) is followed by the index of
+   * minNonZeroValue, everything in between being empty by construction.
+   */
+  nextCountsIndexToScan(index: number): number {
+    return index === 0 ? this.lowestNonZeroCountsIndex() : index + 1;
+  }
+
+  /**
    * Get the value at a given percentile.
    * When the given percentile is &gt; 0.0, the value returned is the value that the given
    * percentage of the overall recorded value entries in the histogram are either smaller than
@@ -416,11 +454,21 @@ export abstract class JsHistogram implements Histogram {
       1 // Make sure we at least reach the first recorded entry
     );
 
-    let totalToCurrentIndex = 0;
-    for (let i = 0; i < this.countsArrayLength; i++) {
+    // Index 0 holds the zero values and is the only index below the one of
+    // minNonZeroValue that may hold a count; nothing is recorded past the
+    // index of maxValue. Scanning only those indexes is a large win on packed
+    // histograms, where every getCountAtIndex is a tree walk.
+    let totalToCurrentIndex = this.getCountAtIndex(0);
+    if (totalToCurrentIndex >= countAtPercentile) {
+      return percentile === 0.0
+        ? this.lowestEquivalentValue(0)
+        : this.highestEquivalentValue(0);
+    }
+    const lastIndex = this.highestNonZeroCountsIndex();
+    for (let i = this.lowestNonZeroCountsIndex(); i <= lastIndex; i++) {
       totalToCurrentIndex += this.getCountAtIndex(i);
       if (totalToCurrentIndex >= countAtPercentile) {
-        var valueAtIndex: number = this.valueFromIndex(i);
+        const valueAtIndex = this.valueFromIndex(i);
         return percentile === 0.0
           ? this.lowestEquivalentValue(valueAtIndex)
           : this.highestEquivalentValue(valueAtIndex);
@@ -937,9 +985,15 @@ export abstract class JsHistogram implements Histogram {
       this.subBucketCount === otherHistogram.subBucketCount &&
       this.unitMagnitude === otherHistogram.unitMagnitude
     ) {
-      // Counts arrays are of the same length and meaning, so we can just iterate and add directly:
+      // Counts arrays are of the same length and meaning, so we can just iterate and add directly,
+      // visiting only the indexes of the other histogram that may hold a count:
       let observedOtherTotalCount = 0;
-      for (let i = 0; i < otherHistogram.countsArrayLength; i++) {
+      const otherLastIndex = otherHistogram.highestNonZeroCountsIndex();
+      for (
+        let i = 0;
+        i <= otherLastIndex;
+        i = otherHistogram.nextCountsIndexToScan(i)
+      ) {
         const otherCount = otherHistogram.getCountAtIndex(i);
         if (otherCount > 0) {
           this.addToCountAtIndex(i, otherCount);
@@ -967,7 +1021,11 @@ export abstract class JsHistogram implements Histogram {
       );
 
       // Record the remaining values, up to but not including the max value:
-      for (let i = 0; i < otherMaxIndex; i++) {
+      for (
+        let i = 0;
+        i < otherMaxIndex;
+        i = otherHistogram.nextCountsIndexToScan(i)
+      ) {
         otherCount = otherHistogram.getCountAtIndex(i);
         if (otherCount > 0) {
           this.recordCountAtValue(otherCount, otherHistogram.valueFromIndex(i));
@@ -1028,15 +1086,21 @@ export abstract class JsHistogram implements Histogram {
       this.resize(otherHistogram.maxValue);
     }
 
+    const otherLastIndex = otherHistogram.highestNonZeroCountsIndex();
     if (
       this.bucketCount === otherHistogram.bucketCount &&
       this.subBucketCount === otherHistogram.subBucketCount &&
       this.unitMagnitude === otherHistogram.unitMagnitude
     ) {
       // optim
-      // Counts arrays are of the same length and meaning, so we can just iterate and add directly:
+      // Counts arrays are of the same length and meaning, so we can just iterate and subtract directly,
+      // visiting only the indexes of the other histogram that may hold a count:
       let observedOtherTotalCount = 0;
-      for (let i = 0; i < otherHistogram.countsArrayLength; i++) {
+      for (
+        let i = 0;
+        i <= otherLastIndex;
+        i = otherHistogram.nextCountsIndexToScan(i)
+      ) {
         const otherCount = otherHistogram.getCountAtIndex(i);
         if (otherCount > 0) {
           this.addToCountAtIndex(i, -otherCount);
@@ -1045,7 +1109,11 @@ export abstract class JsHistogram implements Histogram {
       }
       this.setTotalCount(this.totalCount - observedOtherTotalCount);
     } else {
-      for (let i = 0; i < otherHistogram.countsArrayLength; i++) {
+      for (
+        let i = 0;
+        i <= otherLastIndex;
+        i = otherHistogram.nextCountsIndexToScan(i)
+      ) {
         const otherCount = otherHistogram.getCountAtIndex(i);
         if (otherCount > 0) {
           const otherValue = otherHistogram.valueFromIndex(i);
@@ -1069,7 +1137,8 @@ export abstract class JsHistogram implements Histogram {
       this.getCountAtValue(this.maxValue) <= 0 ||
       this.getCountAtValue(this.minNonZeroValue) <= 0
     ) {
-      this.establishInternalTackingValues();
+      // Counts only went down, so the current maxValue still bounds the data.
+      this.establishInternalTackingValues(this.highestNonZeroCountsIndex() + 1);
     }
   }
 

@@ -778,3 +778,60 @@ describe("Histogram scans bounded by recorded min and max", () => {
     });
   });
 });
+
+describe("Histogram bucket boundaries near 2^53", () => {
+  beforeAll(initWebAssembly);
+
+  it("should not round 2^k - 1 up to the next bucket", () => {
+    // Math.log2(2^k - 1) rounds to k for k >= 49, which used to put those values
+    // one bucket too high and double their equivalent value range.
+    const histogram = new Int32Histogram(1, Number.MAX_SAFE_INTEGER, 3);
+    for (let exponent = 40; exponent <= 53; exponent++) {
+      const value = 2 ** exponent - 1;
+      // bucket 0 covers up to 2^(subBucketHalfCountMagnitude + 1), each next bucket doubles the range
+      const bucketIndex = exponent - 1 - histogram.subBucketHalfCountMagnitude;
+      expect(histogram.sizeOfEquivalentValueRange(value)).toBe(
+        2 ** bucketIndex
+      );
+      expect(histogram.lowestEquivalentValue(value)).toBeLessThanOrEqual(value);
+      expect(histogram.highestEquivalentValue(value)).toBeGreaterThanOrEqual(
+        value
+      );
+    }
+  });
+
+  // Math.log2(2^49 - 1) rounds to 49, which used to make the finest resolvable
+  // range 2^49 wide: the configured lowest discernible value itself then fell
+  // below unitMagnitudeMask and could never become minNonZeroValue.
+  const lowestDiscernibleValue = 2 ** 49 - 1;
+
+  it("should round lowestDiscernibleValue down to a power of two (JS)", () => {
+    const histogram = new Int32Histogram(
+      lowestDiscernibleValue,
+      Number.MAX_SAFE_INTEGER,
+      3
+    );
+    expect(histogram.unitMagnitude).toBe(48);
+    histogram.recordValue(lowestDiscernibleValue);
+    expect(histogram.minNonZeroValue).toBeGreaterThan(0);
+    expect(histogram.minNonZeroValue).toBeLessThanOrEqual(
+      lowestDiscernibleValue
+    );
+  });
+
+  it("should round lowestDiscernibleValue down to a power of two (WASM)", () => {
+    const histogram = build({
+      lowestDiscernibleValue,
+      highestTrackableValue: Number.MAX_SAFE_INTEGER,
+      numberOfSignificantValueDigits: 3,
+      bitBucketSize: 32,
+      useWebAssembly: true,
+    });
+    histogram.recordValue(lowestDiscernibleValue);
+    expect(histogram.minNonZeroValue).toBeGreaterThan(0);
+    expect(histogram.minNonZeroValue).toBeLessThanOrEqual(
+      lowestDiscernibleValue
+    );
+    histogram.destroy();
+  });
+});

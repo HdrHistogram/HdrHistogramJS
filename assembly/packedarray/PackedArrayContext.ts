@@ -22,7 +22,12 @@
  *
  */
  export const MINIMUM_INITIAL_PACKED_ARRAY_CAPACITY = 16;
- const MAX_SUPPORTED_PACKED_COUNTS_ARRAY_LENGTH = Math.pow(2, 13) - 1; //(Short.MAX_VALUE / 4);  TODO ALEX why ???
+ /**
+  * A packed context addresses its entries with 16 bit indexes (Java shorts, hence
+  * Short.MAX_VALUE / 4 longs). Beyond this physical length the context is unpacked:
+  * one u64 per virtual index.
+  */
+ export const MAX_SUPPORTED_PACKED_COUNTS_ARRAY_LENGTH: i32 = 8191;
  const SET_0_START_INDEX = 0;
  const NUMBER_OF_SETS = 8;
  const LEAF_LEVEL_SHIFT = 3;
@@ -92,6 +97,14 @@
      this.init(this.virtualLength);
    }
  
+   /** A context storing one u64 per virtual index, for contents the packed representation cannot hold */
+   static unpacked(virtualLength: i32): PackedArrayContext {
+     return new PackedArrayContext(
+       virtualLength,
+       MAX_SUPPORTED_PACKED_COUNTS_ARRAY_LENGTH + 1
+     );
+   }
+
    public copyAndIncreaseSize(
      newPhysicalArrayLength: i32,
      newVirtualArrayLength: i32
@@ -100,9 +113,7 @@
        newVirtualArrayLength,
        newPhysicalArrayLength
      );
-     if (this.isPacked) {
-       ctx.populateEquivalentEntriesWithEntriesFromOther(this);
-     }
+     ctx.populateEquivalentEntriesWithEntriesFromOther(this);
      return ctx;
    }
  
@@ -196,7 +207,11 @@
      );
    }
  
-   private expandArrayIfNeeded(entryLengthInLongs: i32): void {
+   /**
+    * @return false when the array is full: it cannot grow beyond
+    * MAX_SUPPORTED_PACKED_COUNTS_ARRAY_LENGTH (the Java version throws a ResizeException)
+    */
+   private expandArrayIfNeeded(entryLengthInLongs: i32): bool {
      const currentLength = this.length();
      if (currentLength < this.getPopulatedLongLength() + entryLengthInLongs) {
        const growthIncrement = <i32>(
@@ -205,15 +220,23 @@
            this.getPopulatedLongLength() >> PACKED_ARRAY_GROWTH_FRACTION_POW2
          )
        );
-       this.resizeArray(currentLength + growthIncrement);
+       const newLength = currentLength + growthIncrement;
+       if (newLength > MAX_SUPPORTED_PACKED_COUNTS_ARRAY_LENGTH) {
+         return false;
+       }
+       this.resizeArray(newLength);
      }
+     return true;
    }
- 
+
+   /** @return the short index of the new entry, or -1 if the array is full */
    private newEntry(entryLengthInShorts: i32): i32 {
      // Add entry at the end of the array:
- 
+
      const newEntryIndex = this.populatedShortLength;
-     this.expandArrayIfNeeded((entryLengthInShorts >> 2) + 1);
+     if (!this.expandArrayIfNeeded((entryLengthInShorts >> 2) + 1)) {
+       return -1;
+     }
      this.populatedShortLength = newEntryIndex + entryLengthInShorts;
  
      for (let i = 0; i < entryLengthInShorts; i++) {
@@ -222,11 +245,14 @@
      return newEntryIndex;
    }
  
+   /** @return the long index of the new leaf, or -1 if the array is full */
    private newLeafEntry(): i32 {
      // Add entry at the end of the array:
      let newEntryIndex = this.getPopulatedLongLength();
-     this.expandArrayIfNeeded(1);
- 
+     if (!this.expandArrayIfNeeded(1)) {
+       return -1;
+     }
+
      this.setPopulatedLongLength(newEntryIndex + 1);
  
      this.setAtLongIndex(newEntryIndex, 0);
@@ -282,8 +308,7 @@
     * @param insertedSlotIndex  realtive [packed] index of slot being inserted into entry
     * @param insertedSlotMask   mask value fo slot being inserted
     * @param nextLevelIsLeaf    the level below this one is a leaf level
-    * @return the updated index of the entry (-1 if epansion failed due to conflict)
-    * @throws RetryException if expansion fails due to concurrent conflict, and caller should try again.
+    * @return the updated index of the entry, or -1 if the array is full (the entry is then left untouched)
     */
    expandEntry(
      existingEntryIndex: i32,
@@ -310,21 +335,30 @@
      let indexOfNewNextLevelEntry = 0;
      if (nextLevelIsLeaf) {
        indexOfNewNextLevelEntry = this.newLeafEntry(); // Establish long-index to new leaf entry
+       if (indexOfNewNextLevelEntry < 0) {
+         return -1;
+       }
      } else {
        // TODO: Optimize this by creating the whole sub-tree here, rather than a step that will immediaterly expand
- 
+
        // Create a new 1 word (empty, no slots set) entry for the next level:
        indexOfNewNextLevelEntry = this.newEntry(
          NON_LEAF_ENTRY_HEADER_SIZE_IN_SHORTS
        ); // Establish short-index to new leaf entry
- 
+       if (indexOfNewNextLevelEntry < 0) {
+         return -1;
+       }
+
        this.setPackedSlotIndicators(indexOfNewNextLevelEntry, 0);
      }
- 
+
      const insertedSlotValue = indexOfNewNextLevelEntry;
- 
+
      const expandedEntryIndex = this.newEntry(expandedEntryLength);
- 
+     if (expandedEntryIndex < 0) {
+       return -1;
+     }
+
      // populate the packed indicators word:
      this.setPackedSlotIndicators(expandedEntryIndex, <u16>packedSlotIndicators);
  
@@ -361,6 +395,9 @@
        }
  
        entryIndex = this.newEntry(NON_LEAF_ENTRY_HEADER_SIZE_IN_SHORTS);
+       if (entryIndex < 0) {
+         return 0; // The array is full, the index cannot be added
+       }
        // Create a new empty (no slots set) entry for the next level:
        this.setPackedSlotIndicators(entryIndex, 0);
  
@@ -376,7 +413,9 @@
     * @param setNumber      The set tree number (0-7, 0 corresponding with the LSByte set tree)
     * @param virtualIndex   The virtual index into the PackedArray
     * @param insertAsNeeded If true, will insert new set tree nodes as needed if they do not already exist
-    * @return the byte-index corresponding to the given (set tree) value byte of the given virtual index
+    * @return the byte-index corresponding to the given (set tree) value byte of the given virtual index,
+    * or -1 if it does not exist and could not be inserted (either not asked to, or the array is full:
+    * the caller then has to move to an unpacked context, see {@link PackedArray})
     */
    getPackedIndex(
      setNumber: i32,
@@ -423,6 +462,9 @@
            slotMask,
            nextLevelIsLeaf
          );
+         if (entryIndex < 0) {
+           return -1; // The array is full, the index cannot be added
+         }
        }
  
        // Next level's entry pointer index is in the appropriate slot in in the entries array in this entry:

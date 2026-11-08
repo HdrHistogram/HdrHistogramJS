@@ -1,4 +1,5 @@
 import Histogram from "./PackedHistogram";
+import Float64Histogram from "./Float64Histogram";
 
 describe("Packed histogram", () => {
   it("should compute median value in first bucket", () => {
@@ -54,6 +55,27 @@ describe("Packed histogram", () => {
     histogram.recordValue(123456);
     // then
     expect(histogram.totalCount).toBe(1);
+  });
+
+  it("should record many large counts as the non packed version", () => {
+    // given
+    const histogram = new Histogram(1, 1000000000, 3);
+    const histogram64 = new Float64Histogram(1, 1000000000, 3);
+
+    // when
+    for (let value = 1; value < 1000000000; value += 100000) {
+      histogram.recordValueWithCount(value, value * 2 ** 20);
+      histogram64.recordValueWithCount(value, value * 2 ** 20);
+    }
+
+    // then
+    expect(histogram.totalCount).toBe(histogram64.totalCount);
+    expect(histogram.getValueAtPercentile(50)).toBe(
+      histogram64.getValueAtPercentile(50)
+    );
+    expect(histogram.getValueAtPercentile(99.9)).toBe(
+      histogram64.getValueAtPercentile(99.9)
+    );
   });
 });
 

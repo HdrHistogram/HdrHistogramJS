@@ -44,3 +44,57 @@ describe("Packed Array", () => {
     expect(storedDataAt0).equal(0);
   });
 });
+
+describe("Packed Array outgrowing the packed representation", () => {
+  // 64 bit values at every index need far more storage than the
+  // 16 bit indexes of a packed context can address
+  const length = 5000;
+
+  test("should keep storing values set once the packed storage is full", () => {
+    // given
+    const array = new PackedArray(length);
+
+    // when
+    for (let i = 0; i < length; i++) {
+      array.set(i, u64.MAX_VALUE - i);
+    }
+
+    // then
+    for (let i = 0; i < length; i++) {
+      expect(array.get(i)).equal(u64.MAX_VALUE - i);
+    }
+  });
+
+  test("should keep adding values once the packed storage is full", () => {
+    // given
+    const array = new PackedArray(length);
+
+    // when
+    for (let i = 0; i < length; i++) {
+      array.add(i, u64.MAX_VALUE - i);
+      array.add(i, i);
+    }
+
+    // then
+    for (let i = 0; i < length; i++) {
+      expect(array.get(i)).equal(u64.MAX_VALUE);
+    }
+  });
+
+  test("should keep values when resized after the packed storage is full", () => {
+    // given
+    const array = new PackedArray(length);
+    for (let i = 0; i < length; i++) {
+      array.set(i, u64.MAX_VALUE - i);
+    }
+
+    // when
+    array.resize(2 * length);
+
+    // then
+    for (let i = 0; i < length; i++) {
+      expect(array.get(i)).equal(u64.MAX_VALUE - i);
+    }
+    expect(array.get(2 * length - 1)).equal(0);
+  });
+});

@@ -502,6 +502,40 @@ describe("Histogram add & substract", () => {
     expect(histogram.summary).toStrictEqual(before);
   });
 
+  const wasmBucketSizes = [8, 16, 32, 64, "packed"] as const;
+  wasmBucketSizes.forEach((thisSize) => {
+    wasmBucketSizes.forEach((otherSize) => {
+      it(`should add and subtract a WASM ${otherSize} histogram to/from a WASM ${thisSize} histogram`, () => {
+        // given
+        const histogram = build({
+          bitBucketSize: thisSize,
+          useWebAssembly: true,
+          numberOfSignificantValueDigits: 3,
+        });
+        const histogram2 = build({
+          bitBucketSize: otherSize,
+          useWebAssembly: true,
+          numberOfSignificantValueDigits: 3,
+        });
+        histogram.recordValueWithCount(100, 2);
+        histogram2.recordValueWithCount(100, 1);
+        histogram2.recordValueWithCount(42000, 1);
+        const before = histogram.summary;
+        // when
+        histogram.add(histogram2);
+        // then
+        expect(histogram.totalCount).toBe(4);
+        expect(histogram.maxValue).toBeGreaterThanOrEqual(42000);
+        // when
+        histogram.subtract(histogram2);
+        // then
+        expect(histogram.summary).toStrictEqual(before);
+        histogram.destroy();
+        histogram2.destroy();
+      });
+    });
+  });
+
   it("should update percentiles when another histogram of same characteristics is substracted", () => {
     // given
     const histogram = build({ numberOfSignificantValueDigits: 3 });

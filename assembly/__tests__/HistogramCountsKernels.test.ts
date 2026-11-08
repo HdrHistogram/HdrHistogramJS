@@ -111,7 +111,7 @@ function checkEstablishTrackingValues<T, U>(h: Histogram<T, U>): void {
   expect<u64>(h.totalCount).equal(total);
   if (maxIndex >= 0) {
     expect<u64>(h.maxValue).equal(
-      h.highestEquivalentValue(h.valueFromIndex(maxIndex)) + h.unitMagnitudeMask
+      h.highestEquivalentValue(h.valueFromIndex(maxIndex)) | h.unitMagnitudeMask
     );
   } else {
     expect<u64>(h.maxValue).equal(0);

@@ -280,4 +280,19 @@ describe("Packed array leaf cache", () => {
     array.clear();
     expect(array.get(3)).toBe(0);
   });
+
+  it("Should reject indexes beyond the virtual length in a cached group", () => {
+    // given a 30-long array whose last group (indexes 24..31) is in the leaf cache
+    const array = new PackedArray(30);
+    array.add(24, 0x1ff);
+    // then indexes 30 and 31 belong to the cached group but not to the array
+    expect(() => array.add(31, 5)).toThrow(/beyond virtualLength 30/);
+    expect(() => array.set(31, 7)).toThrow(/beyond virtualLength 30/);
+    expect(() => array.increment(30)).toThrow(/beyond virtualLength 30/);
+    expect(() => array.get(31)).toThrow(/beyond virtualLength 30/);
+    expect(() => array.get(30)).toThrow(/beyond virtualLength 30/);
+    // and in-range accesses are unaffected
+    expect(array.get(24)).toBe(0x1ff);
+    expect(array.get(29)).toBe(0);
+  });
 });

@@ -29,6 +29,7 @@ let wasm: any = undefined;
 
 // Cached at first decode call to avoid re-reading a getter on every array creation
 let cachedUint8ArrayId: number = 0;
+let cachedFloat64ArrayId: number = 0;
 
 // Per-suffix function tables — built once per histogram type, shared by all instances.
 // Avoids the 25+ property lookups that would otherwise happen in every constructor.
@@ -59,6 +60,7 @@ interface WasmFns {
     expectedInterval: number
   ) => void;
   getValueAtPercentile: (ptr: number, percentile: number) => number;
+  getValuesAtPercentiles: (ptr: number, percentiles: number) => number;
   outputPercentileDistribution: (
     ptr: number,
     ticksPerHalfDistance: number,
@@ -107,6 +109,7 @@ function buildWasmFns(s: string): WasmFns {
     recordValueWithCount: wasm[`recordValueWithCount${s}`],
     recordValueWithExpectedInterval: wasm[`recordValueWithExpectedInterval${s}`],
     getValueAtPercentile: wasm[`getValueAtPercentile${s}`],
+    getValuesAtPercentiles: wasm[`getValuesAtPercentiles${s}`],
     outputPercentileDistribution: wasm[`outputPercentileDistribution${s}`],
     encode: wasm[`encode${s}`],
     reset: wasm[`reset${s}`],
@@ -210,6 +213,29 @@ function newUint8Array(data: Uint8Array): number {
   U32[viewPtr >>> 2] = bufPtr; // buffer ref
   U32[(viewPtr + 4) >>> 2] = bufPtr; // dataStart
   U32[(viewPtr + 8) >>> 2] = length; // byteLength
+  wasm.__unpin(bufPtr);
+  return viewPtr;
+}
+
+/**
+ * Copies a JS number array into WASM memory as a Float64Array, the same way
+ * newUint8Array does. The returned view is pinned: the caller unpins it.
+ */
+function newFloat64Array(values: number[]): number {
+  if (!cachedFloat64ArrayId) {
+    cachedFloat64ArrayId =
+      typeof wasm.FLOAT64ARRAY_ID === "number"
+        ? wasm.FLOAT64ARRAY_ID
+        : (wasm.FLOAT64ARRAY_ID as any).value;
+  }
+  const byteLength = values.length * 8;
+  const bufPtr = wasm.__pin(wasm.__new(byteLength, 1));
+  new Float64Array(wasm.memory.buffer, bufPtr, values.length).set(values);
+  const viewPtr = wasm.__pin(wasm.__new(12, cachedFloat64ArrayId));
+  const U32 = new Uint32Array(wasm.memory.buffer);
+  U32[viewPtr >>> 2] = bufPtr; // buffer ref
+  U32[(viewPtr + 4) >>> 2] = bufPtr; // dataStart
+  U32[(viewPtr + 8) >>> 2] = byteLength; // byteLength
   wasm.__unpin(bufPtr);
   return viewPtr;
 }
@@ -388,6 +414,18 @@ export class WasmHistogram implements Histogram {
 
   getValueAtPercentile(percentile: number): number {
     return this._fns.getValueAtPercentile(this._ptr, percentile);
+  }
+
+  getValuesAtPercentiles(percentiles: number[]): number[] {
+    if (percentiles.length === 0) return [];
+    const inputPtr = newFloat64Array(percentiles);
+    const arrPtr: number = wasm.__pin(
+      this._fns.getValuesAtPercentiles(this._ptr, inputPtr)
+    );
+    const result = Array.from(getFloat64Array(arrPtr));
+    wasm.__unpin(arrPtr);
+    wasm.__unpin(inputPtr);
+    return result;
   }
 
   outputPercentileDistribution(

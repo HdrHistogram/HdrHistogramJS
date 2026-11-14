@@ -133,6 +133,68 @@ describe("Packed Array leaf cache", () => {
     expect<i32>(mismatches(packed, model)).equal(0);
   });
 
+  test("writes within a group see each other without reads in between", () => {
+    // Writes alone cache their group, so the leaves looked up by one write
+    // serve the next writes of the group, including sets never looked up yet.
+    const packed = new PackedArray(64);
+    packed.add(24, 1); // caches group 3, set 0 only
+    packed.add(25, 0x200); // inserts set 1 while group 3 is cached
+    packed.increment(25);
+    packed.set(26, 0x030201); // inserts set 2
+    packed.set(24, 0x7f); // set 0 known, higher sets looked up: no leaf yet for set 3
+    expect<u64>(packed.get(24)).equal(0x7f);
+    expect<u64>(packed.get(25)).equal(0x201);
+    expect<u64>(packed.get(26)).equal(0x030201);
+    expect<u64>(packed.get(27)).equal(0);
+  });
+
+  test("carries propagate through cached and uncached sets", () => {
+    const packed = new PackedArray(64);
+    packed.set(40, 0xffff); // sets 0 and 1
+    expect<u64>(packed.get(40)).equal(0xffff);
+    packed.add(41, 1); // cached group 5, set 0 known
+    packed.increment(40); // carries into set 1 (cached) then inserts set 2
+    expect<u64>(packed.get(40)).equal(0x10000);
+    packed.add(40, 0xffffffffffff0000); // carries up to the top set
+    expect<u64>(packed.get(40)).equal(0);
+    expect<u64>(packed.get(41)).equal(1);
+  });
+
+  test("set to a smaller value through the cache clears the higher bytes", () => {
+    const packed = new PackedArray(64);
+    packed.set(50, 0x01020304);
+    packed.set(51, 0x05); // group 6 cached by the write above
+    packed.set(50, 0x0102); // sets 2 and 3 are cached leaves, zeroed
+    expect<u64>(packed.get(50)).equal(0x0102);
+    packed.set(50, 0);
+    expect<u64>(packed.get(50)).equal(0);
+    packed.set(52, 0); // no leaf created for a zero at an unknown set
+    expect<u64>(packed.get(52)).equal(0);
+    expect<u64>(packed.get(51)).equal(5);
+  });
+
+  test("cached writes keep their values when the packed storage fills up", () => {
+    const length = 5000;
+    const packed = new PackedArray(length);
+    const model = new StaticArray<u64>(length);
+    for (let i = 0; i < length; i++) {
+      // the cached group gets extra writes before the unpacking one
+      const v = u64.MAX_VALUE - i;
+      packed.add(i, v);
+      model[i] += v;
+      const neighbour = i & ~7;
+      packed.add(neighbour, 1);
+      model[neighbour] += 1;
+    }
+    expect<i32>(mismatches(packed, model)).equal(0);
+    // and the array keeps working once unpacked
+    packed.set(10, 42);
+    model[10] = 42;
+    packed.increment(11);
+    model[11] += 1;
+    expect<i32>(mismatches(packed, model)).equal(0);
+  });
+
   test("physical array growth during a cached group keeps the cache valid", () => {
     // Small initial capacity so inserts trigger resizeArray() repeatedly.
     const packed = new PackedArray(8192, 16);

@@ -81,6 +81,18 @@ export default interface Histogram {
   recordValueWithCount(value: number, count: number): void;
 
   /**
+   * Record many values in one call. Equivalent to calling {@link recordValue} for each element
+   * of `values`, in order.
+   * <p>
+   * If a value is out of range and auto-resize is off, the same error as {@link recordValue} is
+   * thrown, and the values before it stay recorded.
+   *
+   * @param values The values to be recorded
+   * @throws may throw Error if a value exceeds highestTrackableValue
+   */
+  recordValues(values: ArrayLike<number>): void;
+
+  /**
    * Get the value at a given percentile.
    * When the given percentile is &gt; 0.0, the value returned is the value that the given
    * percentage of the overall recorded value entries in the histogram are either smaller than

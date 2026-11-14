@@ -288,6 +288,15 @@ export default class Histogram<T, U> extends AbstractHistogramBase<T, U> {
     this.recordSingleValue(value);
   }
 
+  /**
+   * Records every value of the array, in order (same as calling recordValue for each)
+   */
+  recordValues(values: Float64Array): void {
+    for (let index = 0; index < values.length; index++) {
+      this.recordValue(<u64>values[index]);
+    }
+  }
+
   recordSingleValue(value: u64): void {
     const countsIndex = this.countsArrayIndex(value);
     if (countsIndex >= this.countsArrayLength) {

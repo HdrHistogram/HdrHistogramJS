@@ -905,6 +905,15 @@ export abstract class JsHistogram implements Histogram {
   }
 
   /**
+   * Record many values in one call, equivalent to calling recordValue for each element in order.
+   */
+  recordValues(values: ArrayLike<number>) {
+    for (let index = 0; index < values.length; index++) {
+      this.recordSingleValue(values[index]);
+    }
+  }
+
+  /**
    * Record a value in the histogram.
    * <p>
    * To compensate for the loss of sampled values when a recorded value is larger than the expected

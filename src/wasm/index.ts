@@ -54,6 +54,7 @@ interface WasmFns {
   getNonZeroCounts: (ptr: number) => number;
   recordValue: (ptr: number, value: number) => void;
   recordValueWithCount: (ptr: number, value: number, count: number) => void;
+  recordValues: (ptr: number, values: number) => void;
   recordValueWithExpectedInterval: (
     ptr: number,
     value: number,
@@ -107,6 +108,7 @@ function buildWasmFns(s: string): WasmFns {
     getNonZeroCounts: wasm[`getNonZeroCounts${s}`],
     recordValue: wasm[`recordValue${s}`],
     recordValueWithCount: wasm[`recordValueWithCount${s}`],
+    recordValues: wasm[`recordValues${s}`],
     recordValueWithExpectedInterval: wasm[`recordValueWithExpectedInterval${s}`],
     getValueAtPercentile: wasm[`getValueAtPercentile${s}`],
     getValuesAtPercentiles: wasm[`getValuesAtPercentiles${s}`],
@@ -217,27 +219,64 @@ function newUint8Array(data: Uint8Array): number {
   return viewPtr;
 }
 
-/**
- * Copies a JS number array into WASM memory as a Float64Array, the same way
- * newUint8Array does. The returned view is pinned: the caller unpins it.
- */
-function newFloat64Array(values: number[]): number {
+function float64ArrayId(): number {
   if (!cachedFloat64ArrayId) {
     cachedFloat64ArrayId =
       typeof wasm.FLOAT64ARRAY_ID === "number"
         ? wasm.FLOAT64ARRAY_ID
         : (wasm.FLOAT64ARRAY_ID as any).value;
   }
+  return cachedFloat64ArrayId;
+}
+
+/**
+ * Copies a JS number array into WASM memory as a Float64Array, the same way
+ * newUint8Array does. The returned view is pinned: the caller unpins it.
+ */
+function newFloat64Array(values: number[]): number {
   const byteLength = values.length * 8;
   const bufPtr = wasm.__pin(wasm.__new(byteLength, 1));
   new Float64Array(wasm.memory.buffer, bufPtr, values.length).set(values);
-  const viewPtr = wasm.__pin(wasm.__new(12, cachedFloat64ArrayId));
+  const viewPtr = wasm.__pin(wasm.__new(12, float64ArrayId()));
   const U32 = new Uint32Array(wasm.memory.buffer);
   U32[viewPtr >>> 2] = bufPtr; // buffer ref
   U32[(viewPtr + 4) >>> 2] = bufPtr; // dataStart
   U32[(viewPtr + 8) >>> 2] = byteLength; // byteLength
   wasm.__unpin(bufPtr);
   return viewPtr;
+}
+
+// Scratch Float64Array reused by recordValues. A fresh one per call would never be freed:
+// the minimal (tcms) runtime only reclaims memory on __collect, so per-call allocations
+// would grow the wasm heap until its pointers overflow. The view is pinned once and grown
+// only when a larger batch arrives; its byteLength is rewritten on each call.
+let scratchFloat64View = 0;
+let scratchFloat64Capacity = 0; // in elements
+
+/**
+ * Copies `values` into the scratch Float64Array and returns its (pinned, reused) view pointer.
+ * Takes fresh memory views after any allocation, as memory may grow.
+ */
+function fillScratchFloat64Array(values: ArrayLike<number>): number {
+  const length = values.length;
+  if (!scratchFloat64View || length > scratchFloat64Capacity) {
+    const capacity = Math.max(length, scratchFloat64Capacity * 2, 256);
+    const bufPtr = wasm.__pin(wasm.__new(capacity * 8, 1));
+    const viewPtr = wasm.__pin(wasm.__new(12, float64ArrayId()));
+    const U32 = new Uint32Array(wasm.memory.buffer);
+    U32[viewPtr >>> 2] = bufPtr; // buffer ref
+    U32[(viewPtr + 4) >>> 2] = bufPtr; // dataStart
+    U32[(viewPtr + 8) >>> 2] = capacity * 8; // byteLength
+    wasm.__unpin(bufPtr);
+    if (scratchFloat64View) wasm.__unpin(scratchFloat64View);
+    scratchFloat64View = viewPtr;
+    scratchFloat64Capacity = capacity;
+  }
+  const U32 = new Uint32Array(wasm.memory.buffer);
+  const dataStart = U32[(scratchFloat64View + 4) >>> 2];
+  new Float64Array(wasm.memory.buffer, dataStart, length).set(values);
+  U32[(scratchFloat64View + 8) >>> 2] = length * 8; // byteLength
+  return scratchFloat64View;
 }
 
 const defaultRequest: BuildRequest = {
@@ -399,6 +438,12 @@ export class WasmHistogram implements Histogram {
 
   recordValueWithCount(value: number, count: number): void {
     this._fns.recordValueWithCount(this._ptr, value, count);
+  }
+
+  recordValues(values: ArrayLike<number>): void {
+    if (this._ptr === 0) throw new Error("Cannot use a destroyed histogram");
+    // One copy into wasm memory, then one call for the whole batch
+    this._fns.recordValues(this._ptr, fillScratchFloat64Array(values));
   }
 
   recordValueWithExpectedInterval(

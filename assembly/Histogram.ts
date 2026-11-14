@@ -661,21 +661,7 @@ export default class Histogram<T, U> extends AbstractHistogramBase<T, U> {
    * value that all value entries in the histogram are either larger than or equivalent to.
    */
   getValueAtPercentile(percentile: f64): u64 {
-    const requestedPercentile = min(percentile, <f64>100); // Truncate down to 100%
-
-    // round count up to nearest integer, to ensure that the largest value that the requested percentile
-    // of overall recorded values is actually included. However, this must be done with care:
-    //
-    // First, Compute fp value for count at the requested percentile. Note that fp result end up
-    // being 1 ulp larger than the correct integer count for this percentile:
-    const fpCountAtPercentile =
-      (requestedPercentile / 100.0) * <f64>this.totalCount;
-    // Next, round up, but make sure to prevent <= 1 ulp inaccurancies in the above fp math from
-    // making us skip a count:
-    const countAtPercentile = <u64>max(
-      ceil(fpCountAtPercentile - ulp(fpCountAtPercentile)), // round up
-      1 // Make sure we at least reach the first recorded entry
-    );
+    const countAtPercentile = <u64>this.countAtPercentile(percentile);
 
     // Index 0 holds the zero values and is the only index below the one of
     // minNonZeroValue that may hold a count; nothing is recorded past the
@@ -714,6 +700,102 @@ export default class Histogram<T, U> extends AbstractHistogramBase<T, U> {
     return percentile === 0.0
       ? this.lowestEquivalentValue(valueAtIndex)
       : this.highestEquivalentValue(valueAtIndex);
+  }
+
+  /**
+   * Get the values at several percentiles with a single scan of the counts.
+   * Each entry is what getValueAtPercentile returns for the same percentile;
+   * results are in the input order. The percentiles may be unsorted or repeated.
+   */
+  getValuesAtPercentiles(percentiles: Float64Array): Float64Array {
+    const count = percentiles.length;
+    const results = new Float64Array(count);
+    // Positions sorted by the count each one has to reach (`thresholds`).
+    // NaN percentiles are left out and stay at 0, as getValueAtPercentile.
+    const thresholds = new Float64Array(count);
+    const order = new Array<i32>(0);
+    for (let position = 0; position < count; position++) {
+      const percentile = percentiles[position];
+      if (isNaN<f64>(percentile)) continue;
+      const threshold = this.countAtPercentile(percentile);
+      thresholds[position] = threshold;
+      // Insertion sort: a summary asks for 8 percentiles, lists stay short.
+      let j = order.length;
+      order.push(position);
+      while (j > 0 && thresholds[order[j - 1]] > threshold) {
+        order[j] = order[j - 1];
+        j--;
+      }
+      order[j] = position;
+    }
+    const valid = order.length;
+    if (valid == 0) return results;
+
+    const step = lanes<U>() << 2; // indexes per 64-byte block
+    const end = this.highestNonZeroCountsIndex() + 1;
+    const lowest = this.lowestNonZeroCountsIndex();
+    let next = 0; // First entry of `order` not yet resolved
+    let total: f64 = 0; // Sum of the counts below index i
+    let i: i32 = 0;
+    while (next < valid && i < end) {
+      // Index 0 is a chunk of its own; the other chunks are one index or, on
+      // flat storage, one 64-byte block that the next threshold does not reach.
+      let chunkEnd: i32 = i + 1;
+      if (isFlatStorage<T>()) {
+        if (i > 0 && i + step <= end) {
+          const p = this.countsDataStart + (<usize>i << alignof<U>());
+          let acc = widenSum<U>(v128.load(p));
+          acc = i64x2.add(acc, widenSum<U>(v128.load(p, 16)));
+          acc = i64x2.add(acc, widenSum<U>(v128.load(p, 32)));
+          acc = i64x2.add(acc, widenSum<U>(v128.load(p, 48)));
+          const totalToBlockEnd = total + <f64>horizontalSum(acc);
+          if (totalToBlockEnd < thresholds[order[next]]) {
+            total = totalToBlockEnd;
+            i += step;
+            continue;
+          }
+          chunkEnd = i + step;
+        }
+      }
+      for (; i < chunkEnd; i++) {
+        total += <f64>this.getCountAtIndex(i);
+        while (next < valid && total >= thresholds[order[next]]) {
+          const position = order[next];
+          const valueAtIndex: u64 = this.valueFromIndex(i);
+          results[position] = <f64>(
+            percentiles[position] === 0.0
+              ? this.lowestEquivalentValue(valueAtIndex)
+              : this.highestEquivalentValue(valueAtIndex)
+          );
+          next++;
+        }
+        if (next == valid) break;
+      }
+      if (chunkEnd == 1) i = lowest; // index 0 is followed by the lowest non-zero index
+    }
+    return results;
+  }
+
+  /**
+   * Number of recorded values a percentile must reach, rounded as
+   * getValueAtPercentile has always rounded it.
+   */
+  countAtPercentile(percentile: f64): f64 {
+    const requestedPercentile = min(percentile, <f64>100); // Truncate down to 100%
+
+    // round count up to nearest integer, to ensure that the largest value that the requested percentile
+    // of overall recorded values is actually included. However, this must be done with care:
+    //
+    // First, Compute fp value for count at the requested percentile. Note that fp result end up
+    // being 1 ulp larger than the correct integer count for this percentile:
+    const fpCountAtPercentile =
+      (requestedPercentile / 100.0) * <f64>this.totalCount;
+    // Next, round up, but make sure to prevent <= 1 ulp inaccurancies in the above fp math from
+    // making us skip a count:
+    return max(
+      ceil(fpCountAtPercentile - ulp(fpCountAtPercentile)), // round up
+      1 // Make sure we at least reach the first recorded entry
+    );
   }
 
   valueFromIndexes(bucketIndex: i32, subBucketIndex: i32): u64 {

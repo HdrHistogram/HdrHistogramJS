@@ -18,6 +18,7 @@ import ByteBuffer from "./ByteBuffer";
 import { PackedArray } from "./packedarray/PackedArray";
 
 export const UINT8ARRAY_ID = idof<Uint8Array>();
+export const FLOAT64ARRAY_ID = idof<Float64Array>();
 
 class HistogramAdapter<T, U> {
   private _histogram!: Histogram<T, U>;
@@ -154,6 +155,10 @@ class HistogramAdapter<T, U> {
 
   getValueAtPercentile(percentile: f64): f64 {
     return <f64>this._histogram.getValueAtPercentile(percentile);
+  }
+
+  getValuesAtPercentiles(percentiles: Float64Array): Float64Array {
+    return this._histogram.getValuesAtPercentiles(percentiles);
   }
 
   outputPercentileDistribution(
@@ -446,6 +451,12 @@ export function getValueAtPercentile16(h: Histogram16, percentile: f64): f64 { r
 export function getValueAtPercentile32(h: Histogram32, percentile: f64): f64 { return h.getValueAtPercentile(percentile); }
 export function getValueAtPercentile64(h: Histogram64, percentile: f64): f64 { return h.getValueAtPercentile(percentile); }
 export function getValueAtPercentilePacked(h: PackedHistogram, percentile: f64): f64 { return h.getValueAtPercentile(percentile); }
+
+export function getValuesAtPercentiles8(h: Histogram8, percentiles: Float64Array): Float64Array { return h.getValuesAtPercentiles(percentiles); }
+export function getValuesAtPercentiles16(h: Histogram16, percentiles: Float64Array): Float64Array { return h.getValuesAtPercentiles(percentiles); }
+export function getValuesAtPercentiles32(h: Histogram32, percentiles: Float64Array): Float64Array { return h.getValuesAtPercentiles(percentiles); }
+export function getValuesAtPercentiles64(h: Histogram64, percentiles: Float64Array): Float64Array { return h.getValuesAtPercentiles(percentiles); }
+export function getValuesAtPercentilesPacked(h: PackedHistogram, percentiles: Float64Array): Float64Array { return h.getValuesAtPercentiles(percentiles); }
 
 export function outputPercentileDistribution8(h: Histogram8, percentileTicksPerHalfDistance: f64, outputValueUnitScalingRatio: f64): string { return h.outputPercentileDistribution(percentileTicksPerHalfDistance, outputValueUnitScalingRatio); }
 export function outputPercentileDistribution16(h: Histogram16, percentileTicksPerHalfDistance: f64, outputValueUnitScalingRatio: f64): string { return h.outputPercentileDistribution(percentileTicksPerHalfDistance, outputValueUnitScalingRatio); }

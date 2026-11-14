@@ -460,20 +460,7 @@ export abstract class JsHistogram implements Histogram {
    * value that all value entries in the histogram are either larger than or equivalent to.
    */
   getValueAtPercentile(percentile: number) {
-    const requestedPercentile = min(percentile, 100); // Truncate down to 100%
-
-    // round count up to nearest integer, to ensure that the largest value that the requested percentile
-    // of overall recorded values is actually included. However, this must be done with care:
-    //
-    // First, Compute fp value for count at the requested percentile. Note that fp result end up
-    // being 1 ulp larger than the correct integer count for this percentile:
-    const fpCountAtPercentile = (requestedPercentile / 100.0) * this.totalCount;
-    // Next, round up, but make sure to prevent <= 1 ulp inaccurancies in the above fp math from
-    // making us skip a count:
-    const countAtPercentile = max(
-      ceil(fpCountAtPercentile - ulp(fpCountAtPercentile)), // round up
-      1 // Make sure we at least reach the first recorded entry
-    );
+    const countAtPercentile = this.countAtPercentile(percentile);
 
     // Index 0 holds the zero values and is the only index below the one of
     // minNonZeroValue that may hold a count; nothing is recorded past the
@@ -492,6 +479,71 @@ export abstract class JsHistogram implements Histogram {
       }
     }
     return 0;
+  }
+
+  /**
+   * Get the values at several percentiles with a single scan of the counts.
+   * Each entry is what {@link getValueAtPercentile} returns for the same
+   * percentile; results are in the input order. The percentiles may be
+   * unsorted or repeated.
+   *
+   * @param percentiles The percentiles for which to return the associated values
+   * @return The values, one per requested percentile
+   */
+  getValuesAtPercentiles(percentiles: number[]): number[] {
+    const results = new Array<number>(percentiles.length).fill(0);
+    const thresholds = percentiles.map((p) => this.countAtPercentile(p));
+    // Requested positions sorted by the count each one has to reach. NaN
+    // percentiles stay at 0, as getValueAtPercentile returns for them.
+    const order = thresholds
+      .map((_, position) => position)
+      .filter((position) => !Number.isNaN(thresholds[position]))
+      .sort((a, b) => thresholds[a] - thresholds[b]);
+
+    const lastIndex = this.highestNonZeroCountsIndex();
+    let next = 0; // First entry of `order` not yet resolved
+    let totalToCurrentIndex = 0;
+    for (
+      let i = 0;
+      next < order.length && i <= lastIndex;
+      i = this.nextCountsIndexToScan(i)
+    ) {
+      totalToCurrentIndex += this.getCountAtIndex(i);
+      while (
+        next < order.length &&
+        totalToCurrentIndex >= thresholds[order[next]]
+      ) {
+        const position = order[next];
+        const valueAtIndex = this.valueFromIndex(i);
+        results[position] =
+          percentiles[position] === 0.0
+            ? this.lowestEquivalentValue(valueAtIndex)
+            : this.highestEquivalentValue(valueAtIndex);
+        next++;
+      }
+    }
+    return results;
+  }
+
+  /**
+   * Number of recorded values a percentile must reach, rounded as
+   * getValueAtPercentile has always rounded it.
+   */
+  private countAtPercentile(percentile: number): number {
+    const requestedPercentile = min(percentile, 100); // Truncate down to 100%
+
+    // round count up to nearest integer, to ensure that the largest value that the requested percentile
+    // of overall recorded values is actually included. However, this must be done with care:
+    //
+    // First, Compute fp value for count at the requested percentile. Note that fp result end up
+    // being 1 ulp larger than the correct integer count for this percentile:
+    const fpCountAtPercentile = (requestedPercentile / 100.0) * this.totalCount;
+    // Next, round up, but make sure to prevent <= 1 ulp inaccurancies in the above fp math from
+    // making us skip a count:
+    return max(
+      ceil(fpCountAtPercentile - ulp(fpCountAtPercentile)), // round up
+      1 // Make sure we at least reach the first recorded entry
+    );
   }
 
   valueFromIndexes(bucketIndex: number, subBucketIndex: number) {

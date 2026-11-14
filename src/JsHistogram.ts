@@ -116,6 +116,23 @@ export abstract class JsHistogram implements Histogram {
 
   abstract getCountAtIndex(index: number): number;
 
+  /**
+   * Lowest index >= fromIndex with a non-zero count, or -1 when there is none.
+   * Storage that can skip empty regions of the counts array (PackedHistogram)
+   * overrides this so that whole-array scans cost time proportional to the
+   * populated indexes rather than to the counts array length.
+   * @internal
+   */
+  nextNonZeroIndex(fromIndex: number): number {
+    const length = this.countsArrayLength;
+    for (let i = fromIndex; i < length; i++) {
+      if (this.getCountAtIndex(i) !== 0) {
+        return i;
+      }
+    }
+    return -1;
+  }
+
   abstract incrementCountAtIndex(index: number): void;
 
   abstract addToCountAtIndex(index: number, value: number): void;
@@ -442,6 +459,25 @@ export abstract class JsHistogram implements Histogram {
    */
   nextCountsIndexToScan(index: number): number {
     return index === 0 ? this.lowestNonZeroCountsIndex() : index + 1;
+  }
+
+  /**
+   * Smallest index in [fromIndex, lastIndex] whose count may be non-zero, or
+   * -1. Index 0 aside, no count lives below the index of minNonZeroValue, and
+   * the storage then skips its empty counts (whole subtrees when packed).
+   */
+  nextNonZeroIndexInRange(fromIndex: number, lastIndex: number): number {
+    if (fromIndex > lastIndex) {
+      return -1;
+    }
+    if (fromIndex === 0) {
+      if (this.getCountAtIndex(0) !== 0) {
+        return 0;
+      }
+      fromIndex = this.lowestNonZeroCountsIndex();
+    }
+    const index = this.nextNonZeroIndex(fromIndex);
+    return index > lastIndex ? -1 : index;
   }
 
   /**
@@ -1007,9 +1043,9 @@ export abstract class JsHistogram implements Histogram {
       let observedOtherTotalCount = 0;
       const otherLastIndex = otherHistogram.highestNonZeroCountsIndex();
       for (
-        let i = 0;
-        i <= otherLastIndex;
-        i = otherHistogram.nextCountsIndexToScan(i)
+        let i = otherHistogram.nextNonZeroIndexInRange(0, otherLastIndex);
+        i >= 0;
+        i = otherHistogram.nextNonZeroIndexInRange(i + 1, otherLastIndex)
       ) {
         const otherCount = otherHistogram.getCountAtIndex(i);
         if (otherCount > 0) {
@@ -1039,9 +1075,9 @@ export abstract class JsHistogram implements Histogram {
 
       // Record the remaining values, up to but not including the max value:
       for (
-        let i = 0;
-        i < otherMaxIndex;
-        i = otherHistogram.nextCountsIndexToScan(i)
+        let i = otherHistogram.nextNonZeroIndexInRange(0, otherMaxIndex - 1);
+        i >= 0;
+        i = otherHistogram.nextNonZeroIndexInRange(i + 1, otherMaxIndex - 1)
       ) {
         otherCount = otherHistogram.getCountAtIndex(i);
         if (otherCount > 0) {
@@ -1114,9 +1150,9 @@ export abstract class JsHistogram implements Histogram {
       // visiting only the indexes of the other histogram that may hold a count:
       let observedOtherTotalCount = 0;
       for (
-        let i = 0;
-        i <= otherLastIndex;
-        i = otherHistogram.nextCountsIndexToScan(i)
+        let i = otherHistogram.nextNonZeroIndexInRange(0, otherLastIndex);
+        i >= 0;
+        i = otherHistogram.nextNonZeroIndexInRange(i + 1, otherLastIndex)
       ) {
         const otherCount = otherHistogram.getCountAtIndex(i);
         if (otherCount > 0) {
@@ -1127,9 +1163,9 @@ export abstract class JsHistogram implements Histogram {
       this.setTotalCount(this.totalCount - observedOtherTotalCount);
     } else {
       for (
-        let i = 0;
-        i <= otherLastIndex;
-        i = otherHistogram.nextCountsIndexToScan(i)
+        let i = otherHistogram.nextNonZeroIndexInRange(0, otherLastIndex);
+        i >= 0;
+        i = otherHistogram.nextNonZeroIndexInRange(i + 1, otherLastIndex)
       ) {
         const otherCount = otherHistogram.getCountAtIndex(i);
         if (otherCount > 0) {
@@ -1165,7 +1201,11 @@ export abstract class JsHistogram implements Histogram {
     let maxIndex = -1;
     let minNonZeroIndex = -1;
     let observedTotalCount = 0;
-    for (let index = 0; index < lengthToCover; index++) {
+    for (
+      let index = this.nextNonZeroIndex(0);
+      index >= 0 && index < lengthToCover;
+      index = this.nextNonZeroIndex(index + 1)
+    ) {
       const countAtIndex = this.getCountAtIndex(index);
       if (countAtIndex > 0) {
         observedTotalCount += countAtIndex;

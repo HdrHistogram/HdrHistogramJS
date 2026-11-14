@@ -98,6 +98,17 @@ export default interface Histogram {
   getValueAtPercentile(percentile: number): number;
 
   /**
+   * Get the values at several percentiles with a single scan of the counts.
+   * Each entry is what {@link getValueAtPercentile} returns for the same
+   * percentile. Results are in the input order; the percentiles may be
+   * unsorted or repeated, and an empty list returns an empty array.
+   *
+   * @param percentiles The percentiles for which to return the associated values
+   * @return The values, one per requested percentile
+   */
+  getValuesAtPercentiles(percentiles: number[]): number[];
+
+  /**
    * Produce textual representation of the value distribution of histogram data by percentile. The distribution is
    * output with exponentially increasing resolution, with each exponentially decreasing half-distance containing
    * <i>dumpTicksPerHalf</i> percentile reporting tick points.
@@ -240,15 +251,18 @@ export interface HistogramConstructor {
 export const toSummary = (histogram: Histogram): HistogramSummary => {
   const { totalCount, maxValue, numberOfSignificantValueDigits } = histogram;
   const round = keepSignificantDigits(numberOfSignificantValueDigits);
+  const [p50, p75, p90, p97_5, p99, p99_9, p99_99, p99_999] = histogram
+    .getValuesAtPercentiles([50, 75, 90, 97.5, 99, 99.9, 99.99, 99.999])
+    .map((value) => round(value));
   return {
-    p50: round(histogram.getValueAtPercentile(50)),
-    p75: round(histogram.getValueAtPercentile(75)),
-    p90: round(histogram.getValueAtPercentile(90)),
-    p97_5: round(histogram.getValueAtPercentile(97.5)),
-    p99: round(histogram.getValueAtPercentile(99)),
-    p99_9: round(histogram.getValueAtPercentile(99.9)),
-    p99_99: round(histogram.getValueAtPercentile(99.99)),
-    p99_999: round(histogram.getValueAtPercentile(99.999)),
+    p50,
+    p75,
+    p90,
+    p97_5,
+    p99,
+    p99_9,
+    p99_99,
+    p99_999,
     max: maxValue,
     totalCount,
   };

@@ -31,25 +31,21 @@
  const SET_0_START_INDEX = 0;
  const NUMBER_OF_SETS = 8;
  // A leaf of a set covers the 2^leafLevelShift virtual indexes sharing their high bits.
- // Set 0 is the dense byte (most recorded values only use it), so its leaves are 16 bytes wide:
- // the set tree is one level shallower for some virtual lengths. The other sets keep 8 bytes,
- // as a populated leaf costs its whole width.
+ // Set 0 is the dense byte (most recorded values only use it), so its leaves can be 16 bytes wide:
+ // the set tree is one level shallower for some virtual lengths, and a 16 index block shares one
+ // leaf. A populated leaf costs its whole width, though: a lone value costs 16 bytes instead of 8,
+ // which fills the 16 bit packed addresses sooner for large sparse arrays. So the wide leaves are
+ // only used up to WIDE_SET_0_LEAVES_MAX_VIRTUAL_LENGTH, and the other sets keep 8 bytes.
  const LEAF_LEVEL_SHIFT: i32 = 3;
- const SET_0_LEAF_LEVEL_SHIFT: i32 = 4;
- export const LEAF_LEVEL_SHIFT_BY_SET: StaticArray<i32> = [
-   SET_0_LEAF_LEVEL_SHIFT,
-   LEAF_LEVEL_SHIFT,
-   LEAF_LEVEL_SHIFT,
-   LEAF_LEVEL_SHIFT,
-   LEAF_LEVEL_SHIFT,
-   LEAF_LEVEL_SHIFT,
-   LEAF_LEVEL_SHIFT,
-   LEAF_LEVEL_SHIFT
- ];
- // Mask of the virtual index bits selecting the byte within a leaf, per set
- export const LEAF_BYTE_MASK_BY_SET: StaticArray<i32> = [15, 7, 7, 7, 7, 7, 7, 7];
- // Length of a leaf in longs (8 bytes each), per set
- const LEAF_LENGTH_IN_LONGS_BY_SET: StaticArray<i32> = [2, 1, 1, 1, 1, 1, 1, 1];
+ const WIDE_SET_0_LEAF_LEVEL_SHIFT: i32 = 4;
+ export const WIDE_SET_0_LEAVES_MAX_VIRTUAL_LENGTH: i32 = 1 << 15;
+
+ /** @return the leaf level shift of a set, for a virtual length */
+ function leafLevelShiftFor(setNumber: i32, virtualLength: i32): i32 {
+   return setNumber == 0 && virtualLength <= WIDE_SET_0_LEAVES_MAX_VIRTUAL_LENGTH
+     ? WIDE_SET_0_LEAF_LEVEL_SHIFT
+     : LEAF_LEVEL_SHIFT;
+ }
  const NON_LEAF_ENTRY_SLOT_INDICATORS_OFFSET = 0;
  const NON_LEAF_ENTRY_HEADER_SIZE_IN_SHORTS = <u16>1;
  const PACKED_ARRAY_GROWTH_INCREMENT = 16;
@@ -75,7 +71,18 @@
    private topLevelShiftBySet: StaticArray<i32> = new StaticArray<i32>(
      NUMBER_OF_SETS
    ).fill(i32.MAX_VALUE);
- 
+   // Per set layout of the leaves, for the virtual length of this context
+   private leafLevelShiftBySet: StaticArray<i32> = new StaticArray<i32>(
+     NUMBER_OF_SETS
+   ).fill(LEAF_LEVEL_SHIFT);
+   /** Mask of the virtual index bits selecting the byte within a leaf, per set */
+   public leafByteMaskBySet: StaticArray<i32> = new StaticArray<i32>(
+     NUMBER_OF_SETS
+   ).fill((1 << LEAF_LEVEL_SHIFT) - 1);
+   private leafLengthInLongsBySet: StaticArray<i32> = new StaticArray<i32>(
+     NUMBER_OF_SETS
+   ).fill(1);
+
    constructor(virtualLength: i32, initialPhysicalLength: i32) {
      this.physicalLength = <i32>(
        Math.max(initialPhysicalLength, MINIMUM_INITIAL_PACKED_ARRAY_CAPACITY)
@@ -127,16 +134,24 @@
      );
    }
 
+   /**
+    * @return a context of the new virtual length holding the same values, or null if the packed
+    * storage cannot hold them (the caller then moves to an unpacked context)
+    */
    public copyAndIncreaseSize(
      newPhysicalArrayLength: i32,
      newVirtualArrayLength: i32
-   ): PackedArrayContext {
+   ): PackedArrayContext | null {
      const ctx = new PackedArrayContext(
        newVirtualArrayLength,
        newPhysicalArrayLength
      );
-     ctx.populateEquivalentEntriesWithEntriesFromOther(this);
-     return ctx;
+     return ctx.populateEquivalentEntriesWithEntriesFromOther(this) ? ctx : null;
+   }
+
+   /** @return whether set 0 leaves cover two 8 index groups (16 bytes), so a group shares them */
+   public hasWideSet0Leaves(): boolean {
+     return this.leafLevelShiftBySet[0] == WIDE_SET_0_LEAF_LEVEL_SHIFT;
    }
  
    public getPopulatedShortLength(): i32 {
@@ -464,8 +479,8 @@
      }
  
      // Work down the levels of non-leaf entries:
-     const leafLevelShift = LEAF_LEVEL_SHIFT_BY_SET[setNumber];
-     const leafLengthInLongs = LEAF_LENGTH_IN_LONGS_BY_SET[setNumber];
+     const leafLevelShift = this.leafLevelShiftBySet[setNumber];
+     const leafLengthInLongs = this.leafLengthInLongsBySet[setNumber];
      for (
        let indexShift = this.topLevelShiftBySet[setNumber];
        indexShift >= leafLevelShift;
@@ -510,7 +525,7 @@
  
      // Byte index offset within leaf entry, the leaf entry being the long index
      const byteIndex =
-       (entryIndex << 3) + (virtualIndex & LEAF_BYTE_MASK_BY_SET[setNumber]);
+       (entryIndex << 3) + (virtualIndex & this.leafByteMaskBySet[setNumber]);
      return byteIndex;
    }
  
@@ -601,7 +616,7 @@
      virtualLength: i32,
      setNumber: i32 = 1
    ): i32 {
-     const leafLevelShift = LEAF_LEVEL_SHIFT_BY_SET[setNumber];
+     const leafLevelShift = leafLevelShiftFor(setNumber, virtualLength);
      const sizeMagnitude = <i32>ceil(Math.log2(virtualLength));
      const levelsAboveTheFirst = max(
        <i32>ceil(<f64>(sizeMagnitude - leafLevelShift - 4) / 4.0),
@@ -611,18 +626,20 @@
    }
 
    /** @return whether the set trees of this context are laid out for the given virtual length */
-   hasTopLevelShiftsFor(virtualLength: i32): boolean {
+   hasLayoutFor(virtualLength: i32): boolean {
      for (let setNumber = 0; setNumber < NUMBER_OF_SETS; setNumber++) {
        if (
+         leafLevelShiftFor(setNumber, virtualLength) !==
+           this.leafLevelShiftBySet[setNumber] ||
          this.determineTopLevelShiftForVirtualLength(virtualLength, setNumber) !==
-         this.topLevelShiftBySet[setNumber]
+           this.topLevelShiftBySet[setNumber]
        ) {
          return false;
        }
      }
      return true;
    }
- 
+
    setVirtualLength(virtualLength: i32): void {
      if (!this.isPacked) {
        throw new Error(
@@ -630,6 +647,11 @@
        );
      }
      for (let setNumber = 0; setNumber < NUMBER_OF_SETS; setNumber++) {
+       const leafLevelShift = leafLevelShiftFor(setNumber, virtualLength);
+       this.leafLevelShiftBySet[setNumber] = leafLevelShift;
+       this.leafByteMaskBySet[setNumber] = (1 << leafLevelShift) - 1;
+       this.leafLengthInLongsBySet[setNumber] =
+         1 << (leafLevelShift - LEAF_LEVEL_SHIFT);
        this.topLevelShiftBySet[setNumber] = this.determineTopLevelShiftForVirtualLength(
          virtualLength,
          setNumber
@@ -657,14 +679,25 @@
      this.physicalLength = newLength;
    }
  
+   /** @return false if the packed storage runs out while copying */
    private populateEquivalentEntriesWithEntriesFromOther(
      other: PackedArrayContext
-   ): void {
+   ): boolean {
      if (this.virtualLength < other.getVirtualLength()) {
        throw new Error("Cannot populate array of smaller virtual length");
      }
- 
+
      for (let setNumber = 0; setNumber < NUMBER_OF_SETS; setNumber++) {
+       if (
+         setNumber == 0 &&
+         this.leafLevelShiftBySet[0] != other.leafLevelShiftBySet[0]
+       ) {
+         // The leaves of set 0 have another width: their layout cannot be copied as is
+         if (!this.copySet0ValuesFromOther(other)) {
+           return false;
+         }
+         continue;
+       }
        const otherEntryIndex = other.getAtShortIndex(
          SET_0_START_INDEX + setNumber
        );
@@ -696,6 +729,25 @@
          setNumber
        );
      }
+     return true;
+   }
+
+   /**
+    * Copies set 0 of other, one virtual index at a time: for a set 0 whose leaves have another
+    * width the trees are not aligned, so the layout cannot be copied. A leaf is created wherever
+    * other has one, zero byte or not: get() stops at the first set without a leaf, so the higher
+    * sets must only be present where set 0 is.
+    * @return false if the packed storage runs out
+    */
+   private copySet0ValuesFromOther(other: PackedArrayContext): boolean {
+     for (let virtualIndex = 0; virtualIndex < other.virtualLength; virtualIndex++) {
+       const otherByteIndex = other.getPackedIndex(0, virtualIndex, false);
+       if (otherByteIndex < 0) continue;
+       const byteIndex = this.getPackedIndex(0, virtualIndex, true);
+       if (byteIndex < 0) return false;
+       this.setAtByteIndex(byteIndex, other.getAtByteIndex(otherByteIndex));
+     }
+     return true;
    }
  
    private copyEntriesAtLevelFromOther(
@@ -705,8 +757,8 @@
      otherIndexShift: i32,
      setNumber: i32
    ): void {
-     const leafLevelShift = LEAF_LEVEL_SHIFT_BY_SET[setNumber];
-     const leafLengthInLongs = LEAF_LENGTH_IN_LONGS_BY_SET[setNumber];
+     const leafLevelShift = this.leafLevelShiftBySet[setNumber];
+     const leafLengthInLongs = this.leafLengthInLongsBySet[setNumber];
      const nextLevelIsLeaf = otherIndexShift == leafLevelShift;
      const packedSlotIndicators = other.getPackedSlotIndicators(
        otherLevelEntryIndex
@@ -863,7 +915,7 @@
           entryIndex,
           this.topLevelShiftBySet[setNumber],
           4,
-          LEAF_LEVEL_SHIFT_BY_SET[setNumber]
+          this.leafLevelShiftBySet[setNumber]
         );
      }
      //output += recordedValuesToString();

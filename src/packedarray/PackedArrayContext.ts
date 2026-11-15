@@ -31,29 +31,20 @@ export const MAX_SUPPORTED_PACKED_COUNTS_ARRAY_LENGTH = 8191;
 const SET_0_START_INDEX = 0;
 const NUMBER_OF_SETS = 8;
 // A leaf of a set covers the 2^leafLevelShift virtual indexes sharing their high bits.
-// Set 0 is the dense byte (most recorded values only use it), so its leaves are 16 bytes wide:
-// the set tree is one level shallower for some virtual lengths. The other sets keep 8 bytes,
-// as a populated leaf costs its whole width.
+// Set 0 is the dense byte (most recorded values only use it), so its leaves can be 16 bytes wide:
+// the set tree is one level shallower for some virtual lengths, and a 16 index block shares one
+// leaf. A populated leaf costs its whole width, though: a lone value costs 16 bytes instead of 8,
+// which fills the 16 bit packed addresses sooner for large sparse arrays. So the wide leaves are
+// only used up to WIDE_SET_0_LEAVES_MAX_VIRTUAL_LENGTH, and the other sets keep 8 bytes.
 const LEAF_LEVEL_SHIFT = 3;
-const SET_0_LEAF_LEVEL_SHIFT = 4;
-export const LEAF_LEVEL_SHIFT_BY_SET = [
-  SET_0_LEAF_LEVEL_SHIFT,
-  LEAF_LEVEL_SHIFT,
-  LEAF_LEVEL_SHIFT,
-  LEAF_LEVEL_SHIFT,
-  LEAF_LEVEL_SHIFT,
-  LEAF_LEVEL_SHIFT,
-  LEAF_LEVEL_SHIFT,
-  LEAF_LEVEL_SHIFT,
-];
-// Mask of the virtual index bits selecting the byte within a leaf, per set
-export const LEAF_BYTE_MASK_BY_SET = LEAF_LEVEL_SHIFT_BY_SET.map(
-  (leafLevelShift) => (1 << leafLevelShift) - 1
-);
-// Length of a leaf in longs (8 bytes each), per set
-const LEAF_LENGTH_IN_LONGS_BY_SET = LEAF_LEVEL_SHIFT_BY_SET.map(
-  (leafLevelShift) => 1 << (leafLevelShift - LEAF_LEVEL_SHIFT)
-);
+const WIDE_SET_0_LEAF_LEVEL_SHIFT = 4;
+export const WIDE_SET_0_LEAVES_MAX_VIRTUAL_LENGTH = 1 << 15;
+
+/** @return the leaf level shift of a set, for a virtual length */
+const leafLevelShiftFor = (setNumber: number, virtualLength: number) =>
+  setNumber === 0 && virtualLength <= WIDE_SET_0_LEAVES_MAX_VIRTUAL_LENGTH
+    ? WIDE_SET_0_LEAF_LEVEL_SHIFT
+    : LEAF_LEVEL_SHIFT;
 const NON_LEAF_ENTRY_SLOT_INDICATORS_OFFSET = 0;
 const NON_LEAF_ENTRY_HEADER_SIZE_IN_SHORTS = 1;
 const PACKED_ARRAY_GROWTH_INCREMENT = 16;
@@ -90,6 +81,13 @@ export class PackedArrayContext {
   private topLevelShiftBySet: number[] = new Array(NUMBER_OF_SETS).fill(
     Number.MAX_VALUE
   );
+  // Per set layout of the leaves, for the virtual length of this context
+  private leafLevelShiftBySet: number[] = new Array(NUMBER_OF_SETS).fill(
+    LEAF_LEVEL_SHIFT
+  );
+  /** Mask of the virtual index bits selecting the byte within a leaf, per set (read by the hot loops) */
+  public leafByteMaskBySet: number[] = [7, 7, 7, 7, 7, 7, 7, 7];
+  private leafLengthInLongsBySet: number[] = new Array(NUMBER_OF_SETS).fill(1);
 
   constructor(virtualLength: number, initialPhysicalLength: number) {
     this.physicalLength = Math.max(
@@ -142,16 +140,24 @@ export class PackedArrayContext {
     );
   }
 
+  /**
+   * @return a context of the new virtual length holding the same values, or null if the packed
+   * storage cannot hold them (the caller then moves to an unpacked context)
+   */
   public copyAndIncreaseSize(
     newPhysicalArrayLength: number,
     newVirtualArrayLength: number
-  ) {
+  ): PackedArrayContext | null {
     const ctx = new PackedArrayContext(
       newVirtualArrayLength,
       newPhysicalArrayLength
     );
-    ctx.populateEquivalentEntriesWithEntriesFromOther(this);
-    return ctx;
+    return ctx.populateEquivalentEntriesWithEntriesFromOther(this) ? ctx : null;
+  }
+
+  /** @return whether set 0 leaves cover two 8 index groups (16 bytes), so a group shares them */
+  public hasWideSet0Leaves() {
+    return this.leafLevelShiftBySet[0] === WIDE_SET_0_LEAF_LEVEL_SHIFT;
   }
 
   public getPopulatedShortLength() {
@@ -465,8 +471,8 @@ export class PackedArrayContext {
     }
 
     // Work down the levels of non-leaf entries:
-    const leafLevelShift = LEAF_LEVEL_SHIFT_BY_SET[setNumber];
-    const leafLengthInLongs = LEAF_LENGTH_IN_LONGS_BY_SET[setNumber];
+    const leafLevelShift = this.leafLevelShiftBySet[setNumber];
+    const leafLengthInLongs = this.leafLengthInLongsBySet[setNumber];
     for (
       let indexShift = this.topLevelShiftBySet[setNumber];
       indexShift >= leafLevelShift;
@@ -511,7 +517,7 @@ export class PackedArrayContext {
 
     // Byte index offset within leaf entry. The leaf entry is the long index
     const byteIndex =
-      (entryIndex << 3) + (virtualIndex & LEAF_BYTE_MASK_BY_SET[setNumber]);
+      (entryIndex << 3) + (virtualIndex & this.leafByteMaskBySet[setNumber]);
     return byteIndex;
   }
 
@@ -600,7 +606,7 @@ export class PackedArrayContext {
     virtualLength: number,
     setNumber: number = 1
   ) {
-    const leafLevelShift = LEAF_LEVEL_SHIFT_BY_SET[setNumber];
+    const leafLevelShift = leafLevelShiftFor(setNumber, virtualLength);
     const sizeMagnitude = ceil(log2(virtualLength));
     const levelsAboveTheFirst = max(
       ceil((sizeMagnitude - leafLevelShift - 4) / 4),
@@ -616,6 +622,11 @@ export class PackedArrayContext {
       );
     }
     for (let setNumber = 0; setNumber < NUMBER_OF_SETS; setNumber++) {
+      const leafLevelShift = leafLevelShiftFor(setNumber, virtualLength);
+      this.leafLevelShiftBySet[setNumber] = leafLevelShift;
+      this.leafByteMaskBySet[setNumber] = (1 << leafLevelShift) - 1;
+      this.leafLengthInLongsBySet[setNumber] =
+        1 << (leafLevelShift - LEAF_LEVEL_SHIFT);
       this.topLevelShiftBySet[setNumber] =
         this.determineTopLevelShiftForVirtualLength(virtualLength, setNumber);
     }
@@ -623,9 +634,11 @@ export class PackedArrayContext {
   }
 
   /** @return whether the set trees of this context are laid out for the given virtual length */
-  hasTopLevelShiftsFor(virtualLength: number) {
+  hasLayoutFor(virtualLength: number) {
     for (let setNumber = 0; setNumber < NUMBER_OF_SETS; setNumber++) {
       if (
+        leafLevelShiftFor(setNumber, virtualLength) !==
+          this.leafLevelShiftBySet[setNumber] ||
         this.determineTopLevelShiftForVirtualLength(
           virtualLength,
           setNumber
@@ -655,14 +668,25 @@ export class PackedArrayContext {
     this.physicalLength = newLength;
   }
 
+  /** @return false if the packed storage runs out while copying */
   private populateEquivalentEntriesWithEntriesFromOther(
     other: PackedArrayContext
-  ) {
+  ): boolean {
     if (this.virtualLength < other.getVirtualLength()) {
       throw new Error("Cannot populate array of smaller virtual length");
     }
 
     for (let setNumber = 0; setNumber < NUMBER_OF_SETS; setNumber++) {
+      if (
+        setNumber === 0 &&
+        this.leafLevelShiftBySet[0] !== other.leafLevelShiftBySet[0]
+      ) {
+        // The leaves of set 0 have another width: their layout cannot be copied as is
+        if (!this.copySet0ValuesFromOther(other)) {
+          return false;
+        }
+        continue;
+      }
       const otherEntryIndex = other.getAtShortIndex(
         SET_0_START_INDEX + setNumber
       );
@@ -694,6 +718,29 @@ export class PackedArrayContext {
         setNumber
       );
     }
+    return true;
+  }
+
+  /**
+   * Copies set 0 of other, one virtual index at a time: for a set 0 whose leaves have another
+   * width the trees are not aligned, so the layout cannot be copied. A leaf is created wherever
+   * other has one, zero byte or not: get() stops at the first set without a leaf, so the higher
+   * sets must only be present where set 0 is.
+   * @return false if the packed storage runs out
+   */
+  private copySet0ValuesFromOther(other: PackedArrayContext): boolean {
+    for (
+      let virtualIndex = 0;
+      virtualIndex < other.virtualLength;
+      virtualIndex++
+    ) {
+      const otherByteIndex = other.getPackedIndex(0, virtualIndex, false);
+      if (otherByteIndex < 0) continue;
+      const byteIndex = this.getPackedIndex(0, virtualIndex, true);
+      if (byteIndex < 0) return false;
+      this.setAtByteIndex(byteIndex, other.getAtByteIndex(otherByteIndex));
+    }
+    return true;
   }
 
   private copyEntriesAtLevelFromOther(
@@ -703,8 +750,8 @@ export class PackedArrayContext {
     otherIndexShift: number,
     setNumber: number
   ) {
-    const leafLevelShift = LEAF_LEVEL_SHIFT_BY_SET[setNumber];
-    const leafLengthInLongs = LEAF_LENGTH_IN_LONGS_BY_SET[setNumber];
+    const leafLevelShift = this.leafLevelShiftBySet[setNumber];
+    const leafLengthInLongs = this.leafLengthInLongsBySet[setNumber];
     const nextLevelIsLeaf = otherIndexShift == leafLevelShift;
     const packedSlotIndicators =
       other.getPackedSlotIndicators(otherLevelEntryIndex);
@@ -862,7 +909,7 @@ export class PackedArrayContext {
           entryIndex,
           this.topLevelShiftBySet[setNumber],
           4,
-          LEAF_LEVEL_SHIFT_BY_SET[setNumber]
+          this.leafLevelShiftBySet[setNumber]
         );
       } catch (ex) {
         output += `Exception thrown in set ${setNumber}%d\n`;

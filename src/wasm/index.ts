@@ -3,7 +3,7 @@ import Histogram, {
   NO_TAG,
   BitBucketSize,
   toSummary,
-  HistogramSummary
+  HistogramSummary,
 } from "../Histogram";
 import * as base64 from "../base64";
 import { inflate } from "../JsHistogram.encoding";
@@ -87,7 +87,8 @@ const COLLECT_INTERVAL = 1;
 
 function buildWasmFns(s: string): WasmFns {
   return {
-    getNumberOfSignificantValueDigits: wasm[`getNumberOfSignificantValueDigits${s}`],
+    getNumberOfSignificantValueDigits:
+      wasm[`getNumberOfSignificantValueDigits${s}`],
     getAutoResize: wasm[`getAutoResize${s}`],
     setAutoResize: wasm[`setAutoResize${s}`],
     getHighestTrackableValue: wasm[`getHighestTrackableValue${s}`],
@@ -107,14 +108,17 @@ function buildWasmFns(s: string): WasmFns {
     getNonZeroCounts: wasm[`getNonZeroCounts${s}`],
     recordValue: wasm[`recordValue${s}`],
     recordValueWithCount: wasm[`recordValueWithCount${s}`],
-    recordValueWithExpectedInterval: wasm[`recordValueWithExpectedInterval${s}`],
+    recordValueWithExpectedInterval:
+      wasm[`recordValueWithExpectedInterval${s}`],
     getValueAtPercentile: wasm[`getValueAtPercentile${s}`],
     getValuesAtPercentiles: wasm[`getValuesAtPercentiles${s}`],
     outputPercentileDistribution: wasm[`outputPercentileDistribution${s}`],
     encode: wasm[`encode${s}`],
     reset: wasm[`reset${s}`],
-    addWhileCorrectingForCoordinatedOmission: wasm[`addWhileCorrectingForCoordinatedOmission${s}`],
-    copyCorrectedForCoordinatedOmission: wasm[`copyCorrectedForCoordinatedOmission${s}`],
+    addWhileCorrectingForCoordinatedOmission:
+      wasm[`addWhileCorrectingForCoordinatedOmission${s}`],
+    copyCorrectedForCoordinatedOmission:
+      wasm[`copyCorrectedForCoordinatedOmission${s}`],
   };
 }
 
@@ -135,11 +139,9 @@ const wasmImports = {
       lineNumber: number,
       columnNumber: number
     ) {
-      throw new Error(
-        `Abort in WebAssembly at ${lineNumber}:${columnNumber}`
-      );
-    }
-  }
+      throw new Error(`Abort in WebAssembly at ${lineNumber}:${columnNumber}`);
+    },
+  },
 };
 
 // @ts-ignore
@@ -187,7 +189,11 @@ function getFloat64Array(ptr: number): Float64Array {
   const U32 = new Uint32Array(wasm.memory.buffer);
   const dataStart = U32[(ptr + 4) >>> 2];
   const byteLength = U32[(ptr + 8) >>> 2];
-  return new Float64Array(wasm.memory.buffer, dataStart, byteLength / 8).slice();
+  return new Float64Array(
+    wasm.memory.buffer,
+    dataStart,
+    byteLength / 8
+  ).slice();
 }
 
 /**
@@ -206,32 +212,21 @@ function newUint8Array(data: Uint8Array): number {
   // Allocate underlying ArrayBuffer (id=1) and pin it during construction
   const bufPtr = wasm.__pin(wasm.__new(length, 1));
   new Uint8Array(wasm.memory.buffer).set(data, bufPtr);
-  // Allocate the Uint8Array view (12-byte ArrayBufferView struct) and pin it
-  // so it stays alive through the GC cycles triggered by the decode allocation storm.
-  const viewPtr = wasm.__pin(wasm.__new(12, cachedUint8ArrayId));
-  const U32 = new Uint32Array(wasm.memory.buffer);
-  U32[viewPtr >>> 2] = bufPtr; // buffer ref
-  U32[(viewPtr + 4) >>> 2] = bufPtr; // dataStart
-  U32[(viewPtr + 8) >>> 2] = length; // byteLength
-  wasm.__unpin(bufPtr);
-  return viewPtr;
+  return newArrayBufferView(cachedUint8ArrayId, bufPtr, length);
 }
 
 /**
- * Copies a JS number array into WASM memory as a Float64Array, the same way
- * newUint8Array does. The returned view is pinned: the caller unpins it.
+ * Allocates a pinned 12-byte ArrayBufferView of class `id` over the buffer
+ * at bufPtr, and releases the construction pin of that buffer. The view
+ * stays alive through the GC cycles triggered by later allocations until
+ * the caller unpins it.
  */
-function newFloat64Array(values: number[]): number {
-  if (!cachedFloat64ArrayId) {
-    cachedFloat64ArrayId =
-      typeof wasm.FLOAT64ARRAY_ID === "number"
-        ? wasm.FLOAT64ARRAY_ID
-        : (wasm.FLOAT64ARRAY_ID as any).value;
-  }
-  const byteLength = values.length * 8;
-  const bufPtr = wasm.__pin(wasm.__new(byteLength, 1));
-  new Float64Array(wasm.memory.buffer, bufPtr, values.length).set(values);
-  const viewPtr = wasm.__pin(wasm.__new(12, cachedFloat64ArrayId));
+function newArrayBufferView(
+  id: number,
+  bufPtr: number,
+  byteLength: number
+): number {
+  const viewPtr = wasm.__pin(wasm.__new(12, id));
   const U32 = new Uint32Array(wasm.memory.buffer);
   U32[viewPtr >>> 2] = bufPtr; // buffer ref
   U32[(viewPtr + 4) >>> 2] = bufPtr; // dataStart
@@ -240,12 +235,52 @@ function newFloat64Array(values: number[]): number {
   return viewPtr;
 }
 
+function float64ArrayId(): number {
+  if (!cachedFloat64ArrayId) {
+    cachedFloat64ArrayId =
+      typeof wasm.FLOAT64ARRAY_ID === "number"
+        ? wasm.FLOAT64ARRAY_ID
+        : (wasm.FLOAT64ARRAY_ID as any).value;
+  }
+  return cachedFloat64ArrayId;
+}
+
+// Scratch Float64Array shared by the calls that pass a batch of numbers to
+// WASM. A fresh array per call would never be freed: the minimal (tcms)
+// runtime only reclaims memory on __collect, so per-call allocations would
+// grow the wasm heap of a long-lived module. The view is pinned once and
+// grown only when a larger batch arrives; its byteLength is set on each call.
+let scratchFloat64View = 0;
+let scratchFloat64Capacity = 0; // in elements
+
+/**
+ * Copies `values` into the scratch Float64Array and returns its (pinned,
+ * reused) view pointer. Memory views are taken after any allocation, as the
+ * wasm memory may have grown.
+ */
+function fillScratchFloat64Array(values: ArrayLike<number>): number {
+  const length = values.length;
+  if (!scratchFloat64View || length > scratchFloat64Capacity) {
+    const capacity = Math.max(length, scratchFloat64Capacity * 2, 256);
+    const bufPtr = wasm.__pin(wasm.__new(capacity * 8, 1));
+    const viewPtr = newArrayBufferView(float64ArrayId(), bufPtr, capacity * 8);
+    if (scratchFloat64View) wasm.__unpin(scratchFloat64View);
+    scratchFloat64View = viewPtr;
+    scratchFloat64Capacity = capacity;
+  }
+  const U32 = new Uint32Array(wasm.memory.buffer);
+  const dataStart = U32[(scratchFloat64View + 4) >>> 2];
+  new Float64Array(wasm.memory.buffer, dataStart, length).set(values);
+  U32[(scratchFloat64View + 8) >>> 2] = length * 8; // byteLength
+  return scratchFloat64View;
+}
+
 const defaultRequest: BuildRequest = {
   bitBucketSize: 32,
   autoResize: true,
   lowestDiscernibleValue: 1,
   highestTrackableValue: 2,
-  numberOfSignificantValueDigits: 3
+  numberOfSignificantValueDigits: 3,
 };
 
 const remoteHistogramClassFor = (size?: BitBucketSize) =>
@@ -264,7 +299,10 @@ export class WasmHistogram implements Histogram {
   private _suffix: string;
   private _fns: WasmFns;
 
-  constructor(wasmPtr: number, private _remoteHistogramClass: string) {
+  constructor(
+    wasmPtr: number,
+    private _remoteHistogramClass: string
+  ) {
     this.tag = NO_TAG;
     this._suffix = suffixFor(_remoteHistogramClass);
     this._fns = getWasmFns(this._suffix);
@@ -417,15 +455,12 @@ export class WasmHistogram implements Histogram {
   }
 
   getValuesAtPercentiles(percentiles: number[]): number[] {
+    if (this._ptr === 0) throw new Error("Cannot use a destroyed histogram");
     if (percentiles.length === 0) return [];
-    const inputPtr = newFloat64Array(percentiles);
-    const arrPtr: number = wasm.__pin(
-      this._fns.getValuesAtPercentiles(this._ptr, inputPtr)
-    );
-    const result = Array.from(getFloat64Array(arrPtr));
-    wasm.__unpin(arrPtr);
-    wasm.__unpin(inputPtr);
-    return result;
+    // The WASM side overwrites the scratch array with the values, in place
+    const viewPtr = fillScratchFloat64Array(percentiles);
+    this._fns.getValuesAtPercentiles(this._ptr, viewPtr);
+    return Array.from(getFloat64Array(viewPtr));
   }
 
   outputPercentileDistribution(
@@ -498,9 +533,7 @@ export class WasmHistogram implements Histogram {
 
   add(otherHistogram: WasmHistogram): void {
     if (!(otherHistogram instanceof WasmHistogram)) {
-      throw new Error(
-        "Cannot add a regular JS histogram to a WASM histogram"
-      );
+      throw new Error("Cannot add a regular JS histogram to a WASM histogram");
     }
     wasm[`addHistogram${otherHistogram._suffix}to${this._suffix}`](
       this._ptr,

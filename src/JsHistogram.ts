@@ -508,13 +508,18 @@ export abstract class JsHistogram implements Histogram {
     for (let i = 0; i <= lastIndex; i = i === 0 ? firstNonZeroIndex : i + 1) {
       totalToCurrentIndex += this.getCountAtIndex(i);
       if (totalToCurrentIndex >= countAtPercentile) {
-        const valueAtIndex = this.valueFromIndex(i);
-        return percentile === 0.0
-          ? this.lowestEquivalentValue(valueAtIndex)
-          : this.highestEquivalentValue(valueAtIndex);
+        return this.valueAtPercentileIndex(i, percentile);
       }
     }
     return 0;
+  }
+
+  /** The value reported for a percentile whose count is reached at index i. */
+  private valueAtPercentileIndex(i: number, percentile: number): number {
+    const valueAtIndex = this.valueFromIndex(i);
+    return percentile === 0.0
+      ? this.lowestEquivalentValue(valueAtIndex)
+      : this.highestEquivalentValue(valueAtIndex);
   }
 
   /**
@@ -550,11 +555,10 @@ export abstract class JsHistogram implements Histogram {
         totalToCurrentIndex >= thresholds[order[next]]
       ) {
         const position = order[next];
-        const valueAtIndex = this.valueFromIndex(i);
-        results[position] =
-          percentiles[position] === 0.0
-            ? this.lowestEquivalentValue(valueAtIndex)
-            : this.highestEquivalentValue(valueAtIndex);
+        results[position] = this.valueAtPercentileIndex(
+          i,
+          percentiles[position]
+        );
         next++;
       }
     }
@@ -566,7 +570,8 @@ export abstract class JsHistogram implements Histogram {
    * getValueAtPercentile has always rounded it.
    */
   private countAtPercentile(percentile: number): number {
-    const requestedPercentile = min(percentile, 100); // Truncate down to 100%
+    // Clamp to [0, 100]; a NaN percentile stays NaN
+    const requestedPercentile = max(min(percentile, 100), 0);
 
     // round count up to nearest integer, to ensure that the largest value that the requested percentile
     // of overall recorded values is actually included. However, this must be done with care:

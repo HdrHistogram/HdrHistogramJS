@@ -69,11 +69,26 @@ const recordsArb = fc.array(
   { maxLength: 300 }
 );
 
-// Unsorted, possibly repeated, including the edges (0, 100, above 100).
+// Unsorted, possibly repeated, including the edges (0, 100, above 100,
+// negative, infinite).
 const percentilesArb = fc.array(
   fc.oneof(
-    fc.constantFrom(0, 50, 75, 97.5, 99, 99.9, 99.99, 99.999, 100, 150),
-    fc.double({ min: 0, max: 100, noNaN: true })
+    fc.constantFrom(
+      0,
+      50,
+      75,
+      97.5,
+      99,
+      99.9,
+      99.99,
+      99.999,
+      100,
+      150,
+      -1,
+      -Infinity,
+      Infinity
+    ),
+    fc.double({ min: -10, max: 110, noNaN: true })
   ),
   { maxLength: 20 }
 );
@@ -89,8 +104,33 @@ const fill = (histogram: Histogram, records: Record[]) => {
 
 describe.each(implementations)(
   "getValuesAtPercentiles on $name",
-  ({ build }) => {
+  ({ build, name }) => {
     beforeAll(initWebAssembly);
+
+    it("returns 0 for NaN when the unit magnitude is not 0", () => {
+      const useWebAssembly = name.startsWith("WASM");
+      const bitBucketSize = name.endsWith("packed") ? "packed" : 32;
+      const histogram = hdr.build({
+        bitBucketSize,
+        useWebAssembly,
+        lowestDiscernibleValue: 1000,
+        highestTrackableValue: 1_000_000,
+        numberOfSignificantValueDigits,
+      });
+      histogram.recordValue(5000);
+      expect(histogram.getValueAtPercentile(NaN)).toBe(0);
+      expect(histogram.getValuesAtPercentiles([NaN, 50])).toEqual([
+        0,
+        histogram.getValueAtPercentile(50),
+      ]);
+      histogram.destroy();
+    });
+
+    it.runIf(name.startsWith("WASM"))("throws after destroy", () => {
+      const histogram = fill(build(), [{ value: 42, count: 3 }]);
+      histogram.destroy();
+      expect(() => histogram.getValuesAtPercentiles([50])).toThrow();
+    });
 
     it("matches getValueAtPercentile for each requested percentile", () => {
       fc.assert(
@@ -153,6 +193,19 @@ describe.each(implementations)(
         0,
         histogram.getValueAtPercentile(50),
       ]);
+      histogram.destroy();
+    });
+
+    it("treats negative and -Infinity percentiles as 0", () => {
+      const histogram = fill(
+        build(),
+        Array.from({ length: 100 }, (_, i) => ({ value: i + 1, count: 1 }))
+      );
+      expect(histogram.getValueAtPercentile(-1)).toBe(1);
+      expect(histogram.getValueAtPercentile(-Infinity)).toBe(1);
+      expect(
+        histogram.getValuesAtPercentiles([-Infinity, 50, -1, Infinity])
+      ).toEqual([1, 50, 1, 100]);
       histogram.destroy();
     });
 

@@ -526,3 +526,28 @@ describe("Histogram scans bounded by recorded min and max", () => {
     );
   });
 });
+
+describe("Histogram count range", () => {
+  // Overflow and underflow abort the module (AssemblyScript has no throw assertion here),
+  // so these cover the in-range boundaries; the throwing paths are covered by the
+  // WASM tests in src/Histogram.spec.ts.
+  test("should accept a count equal to the 8-bit maximum", () => {
+    const histogram = new Histogram8(1, 9007199254740991, 3);
+    histogram.setCountAtIndex(5, 255);
+    expect<u64>(histogram.getCountAtIndex(5)).equal(255);
+  });
+
+  test("should add up to exactly the 16-bit maximum", () => {
+    const histogram = new Histogram16(1, 1000000, 3);
+    histogram.setCountAtIndex(7, 65000);
+    histogram.addToCountAtIndex(7, 535);
+    expect<u64>(histogram.getCountAtIndex(7)).equal(65535);
+  });
+
+  test("should subtract down to exactly zero without wrapping", () => {
+    const histogram = new Histogram32(1, 1000000, 3);
+    histogram.setCountAtIndex(9, 4294967295);
+    histogram.addToCountAtIndex(9, <u64>0 - 4294967295);
+    expect<u64>(histogram.getCountAtIndex(9)).equal(0);
+  });
+});

@@ -119,6 +119,42 @@ function laneSub<U>(a: v128, b: v128): v128 {
   }
 }
 
+/**
+ * Largest count a U-wide cell can hold. u64 cells never overflow in practice, so
+ * their checks are compiled out (guarded by sizeof<U>() < 8 at each call site).
+ */
+// @ts-ignore: decorator
+@inline
+function countMax<U>(): u64 {
+  return (<u64>1 << (sizeof<U>() << 3)) - 1;
+}
+
+// Aborts with the message (AssemblyScript's throw of an Error carries no message in the
+// minimal runtime, so the JS wrapper would only see the location).
+
+/** Aborts for a count that would overflow a narrow U cell, naming the width. */
+function overflowAbort<U>(count: u64): void {
+  abort(count.toString() + " would overflow " + (sizeof<U>() << 3).toString() + "-bit integer count");
+}
+
+/** Aborts for a count that would underflow a narrow U cell, naming the width. */
+function underflowAbort<U>(count: i64): void {
+  abort(count.toString() + " would underflow " + (sizeof<U>() << 3).toString() + "-bit integer count");
+}
+
+/** Lane-wise unsigned a < b for narrow U (u64 lanes are never compared this way). */
+// @ts-ignore: decorator
+@inline
+function laneLtU<U>(a: v128, b: v128): v128 {
+  if (sizeof<U>() == 1) {
+    return i8x16.lt_u(a, b);
+  } else if (sizeof<U>() == 2) {
+    return i16x8.lt_u(a, b);
+  } else {
+    return i32x4.lt_u(a, b);
+  }
+}
+
 export default class Histogram<T, U> extends AbstractHistogramBase<T, U> {
   // "Hot" accessed fields (used in the the value recording code path) are bunched here, such
   // that they will have a good chance of ending up in the same cache line as the totalCounts and
@@ -583,6 +619,17 @@ export default class Histogram<T, U> extends AbstractHistogramBase<T, U> {
   }
 
   @inline
+  /**
+   * Entry point for count arguments that arrive as f64 (the JS boundary). A negative
+   * count would otherwise saturate to 0 in the u64 cast and be dropped silently.
+   */
+  recordCountAtValueFromF64(count: f64, value: f64): void {
+    if (sizeof<U>() < 8 && count < 0) {
+      underflowAbort<U>(<i64>count);
+    }
+    this.recordCountAtValue(<u64>count, <u64>value);
+  }
+
   recordCountAtValue(count: u64, value: u64): void {
     const countsIndex = this.countsArrayIndex(value);
     if (countsIndex >= this.countsArrayLength) {
@@ -870,18 +917,24 @@ export default class Histogram<T, U> extends AbstractHistogramBase<T, U> {
       return;
     }
     // @ts-ignore
-    const currentCount = unchecked(this.counts[index]);
-    const newCount = currentCount + 1;
-    if (newCount < 0) {
-      throw new Error(
-        newCount.toString() + " would overflow short integer count"
-      );
+    // @ts-ignore
+    const newCount = <u64>unchecked(this.counts[index]) + 1;
+    if (sizeof<U>() < 8 && newCount > countMax<U>()) {
+      overflowAbort<U>(newCount);
     }
     // @ts-ignore
-    unchecked((this.counts[index] = newCount));
+    unchecked((this.counts[index] = <U>newCount));
   }
 
   setCountAtIndex(index: i32, value: u64): void {
+    if (sizeof<U>() < 8) {
+      if (<i64>value < 0) {
+        underflowAbort<U>(<i64>value);
+      }
+      if (value > countMax<U>()) {
+        overflowAbort<U>(value);
+      }
+    }
     // @ts-ignore
     unchecked((this.counts[index] = <U>value));
   }
@@ -895,13 +948,28 @@ export default class Histogram<T, U> extends AbstractHistogramBase<T, U> {
       return;
     }
     // @ts-ignore
-    const currentCount = unchecked(this.counts[index]);
-    const newCount = currentCount + value;
-    if (newCount < 0) {
-      throw newCount + " would overflow short integer count";
+    const currentCount = <u64>unchecked(this.counts[index]);
+    if (sizeof<U>() == 8) {
+      // @ts-ignore
+      unchecked((this.counts[index] = <U>(currentCount + value)));
+      return;
     }
-    // @ts-ignore
-    unchecked((this.counts[index] = <U>newCount));
+    if (<i64>value >= 0) {
+      const newCount = currentCount + value;
+      if (newCount > countMax<U>()) {
+        overflowAbort<U>(newCount);
+      }
+      // @ts-ignore
+      unchecked((this.counts[index] = <U>newCount));
+    } else {
+      // Negative values arrive as two's complement (subtract); the magnitude is their negation.
+      const decrement = (<u64>0) - value;
+      if (decrement > currentCount) {
+        underflowAbort<U>(<i64>currentCount - <i64>decrement);
+      }
+      // @ts-ignore
+      unchecked((this.counts[index] = <U>(currentCount - decrement)));
+    }
   }
 
   incrementTotalCount(): void {
@@ -988,8 +1056,15 @@ export default class Histogram<T, U> extends AbstractHistogramBase<T, U> {
         for (; i + step <= end; i += step) {
           const offset = <usize>i << alignof<U>();
           const other = v128.load(src + offset);
+          const current = v128.load(dst + offset);
+          const sum = laneAdd<U>(current, other);
+          if (sizeof<U>() < 8 && v128.any_true(laneLtU<U>(sum, current))) {
+            // A lane would wrap: leave this block to the checked scalar loop below,
+            // which reports the exact cell and width.
+            break;
+          }
           acc = i64x2.add(acc, widenSum<W>(other));
-          v128.store(dst + offset, laneAdd<U>(v128.load(dst + offset), other));
+          v128.store(dst + offset, sum);
         }
         observedOtherTotalCount += horizontalSum(acc);
       }
@@ -1176,8 +1251,13 @@ export default class Histogram<T, U> extends AbstractHistogramBase<T, U> {
         for (; i + step <= end; i += step) {
           const offset = <usize>i << alignof<U>();
           const other = v128.load(src + offset);
+          const current = v128.load(dst + offset);
+          if (sizeof<U>() < 8 && v128.any_true(laneLtU<U>(current, other))) {
+            // A lane would go negative: leave this block to the checked scalar loop below.
+            break;
+          }
           acc = i64x2.add(acc, widenSum<W>(other));
-          v128.store(dst + offset, laneSub<U>(v128.load(dst + offset), other));
+          v128.store(dst + offset, laneSub<U>(current, other));
         }
         observedOtherTotalCount += horizontalSum(acc);
       }

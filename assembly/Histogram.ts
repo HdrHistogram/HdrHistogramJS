@@ -65,6 +65,30 @@ function horizontalSum(v: v128): u64 {
   return <u64>i64x2.extract_lane(v, 0) + <u64>i64x2.extract_lane(v, 1);
 }
 
+/** Sum of the 64 bytes of U-wide counts starting at p (may be unaligned). */
+// @ts-ignore: decorator
+@inline
+function sumBlock<U>(p: usize): u64 {
+  let acc = widenSum<U>(v128.load(p));
+  acc = i64x2.add(acc, widenSum<U>(v128.load(p, 16)));
+  acc = i64x2.add(acc, widenSum<U>(v128.load(p, 32)));
+  acc = i64x2.add(acc, widenSum<U>(v128.load(p, 48)));
+  return horizontalSum(acc);
+}
+
+// Scratch state of getValuesAtPercentiles, kept across calls: the minimal
+// runtime only reclaims memory on __collect, so per-call allocations would
+// grow the heap of a long-lived module.
+let percentileThresholds = new Float64Array(0);
+const percentileOrder = new Array<i32>(0);
+
+/** Orders two positions of percentileOrder by their threshold. */
+function byThreshold(a: i32, b: i32): i32 {
+  const ta = unchecked(percentileThresholds[a]);
+  const tb = unchecked(percentileThresholds[b]);
+  return ta < tb ? -1 : ta > tb ? 1 : 0;
+}
+
 /** Lane-wise wrapping add of U-wide integers (same wrap semantics as the scalar `<U>` cast). */
 // @ts-ignore: decorator
 @inline
@@ -661,7 +685,9 @@ export default class Histogram<T, U> extends AbstractHistogramBase<T, U> {
    * value that all value entries in the histogram are either larger than or equivalent to.
    */
   getValueAtPercentile(percentile: f64): u64 {
-    const countAtPercentile = <u64>this.countAtPercentile(percentile);
+    const fpCountAtPercentile = this.countAtPercentile(percentile);
+    if (isNaN<f64>(fpCountAtPercentile)) return 0; // NaN percentile
+    const countAtPercentile = <u64>fpCountAtPercentile;
 
     // Index 0 holds the zero values and is the only index below the one of
     // minNonZeroValue that may hold a count; nothing is recorded past the
@@ -679,12 +705,8 @@ export default class Histogram<T, U> extends AbstractHistogramBase<T, U> {
         const base = this.countsDataStart;
         const step = lanes<U>() << 2;
         while (i + step <= end) {
-          const p = base + (<usize>i << alignof<U>());
-          let acc = widenSum<U>(v128.load(p));
-          acc = i64x2.add(acc, widenSum<U>(v128.load(p, 16)));
-          acc = i64x2.add(acc, widenSum<U>(v128.load(p, 32)));
-          acc = i64x2.add(acc, widenSum<U>(v128.load(p, 48)));
-          const totalToBlockEnd = totalToCurrentIndex + horizontalSum(acc);
+          const totalToBlockEnd =
+            totalToCurrentIndex + sumBlock<U>(base + (<usize>i << alignof<U>()));
           if (totalToBlockEnd >= countAtPercentile) break;
           totalToCurrentIndex = totalToBlockEnd;
           i += step;
@@ -704,6 +726,13 @@ export default class Histogram<T, U> extends AbstractHistogramBase<T, U> {
       }
       if (i >= end) return 0;
     }
+    return this.valueAtPercentileIndex(i, percentile);
+  }
+
+  /** The value reported for a percentile whose count is reached at index i. */
+  // @ts-ignore: decorator
+  @inline
+  private valueAtPercentileIndex(i: i32, percentile: f64): u64 {
     const valueAtIndex: u64 = this.valueFromIndex(i);
     return percentile === 0.0
       ? this.lowestEquivalentValue(valueAtIndex)
@@ -712,32 +741,34 @@ export default class Histogram<T, U> extends AbstractHistogramBase<T, U> {
 
   /**
    * Get the values at several percentiles with a single scan of the counts.
-   * Each entry is what getValueAtPercentile returns for the same percentile;
-   * results are in the input order. The percentiles may be unsorted or repeated.
+   * Each entry of `percentiles` is replaced by what getValueAtPercentile
+   * returns for it, so the results are in the input order; the array is
+   * returned. The percentiles may be unsorted or repeated. The caller keeps
+   * ownership of the array: nothing is allocated per call.
    */
   getValuesAtPercentiles(percentiles: Float64Array): Float64Array {
     const count = percentiles.length;
-    const results = new Float64Array(count);
-    // Positions sorted by the count each one has to reach (`thresholds`).
-    // NaN percentiles are left out and stay at 0, as getValueAtPercentile.
-    const thresholds = new Float64Array(count);
-    const order = new Array<i32>(0);
+    if (percentileThresholds.length < count) {
+      percentileThresholds = new Float64Array(count);
+    }
+    const thresholds = percentileThresholds;
+    // Positions sorted by the count each one has to reach. A NaN threshold
+    // (NaN percentile) is left out and its entry becomes 0, as in
+    // getValueAtPercentile.
+    const order = percentileOrder;
+    order.length = 0;
     for (let position = 0; position < count; position++) {
-      const percentile = percentiles[position];
-      if (isNaN<f64>(percentile)) continue;
-      const threshold = this.countAtPercentile(percentile);
-      thresholds[position] = threshold;
-      // Insertion sort: a summary asks for 8 percentiles, lists stay short.
-      let j = order.length;
-      order.push(position);
-      while (j > 0 && thresholds[order[j - 1]] > threshold) {
-        order[j] = order[j - 1];
-        j--;
+      const threshold = this.countAtPercentile(unchecked(percentiles[position]));
+      if (isNaN<f64>(threshold)) {
+        unchecked((percentiles[position] = 0));
+        continue;
       }
-      order[j] = position;
+      unchecked((thresholds[position] = threshold));
+      order.push(position);
     }
     const valid = order.length;
-    if (valid == 0) return results;
+    if (valid == 0) return percentiles;
+    order.sort(byThreshold);
 
     const step = lanes<U>() << 2; // indexes per 64-byte block
     const end = this.highestNonZeroCountsIndex() + 1;
@@ -751,13 +782,10 @@ export default class Histogram<T, U> extends AbstractHistogramBase<T, U> {
       let chunkEnd: i32 = i + 1;
       if (isFlatStorage<T>()) {
         if (i > 0 && i + step <= end) {
-          const p = this.countsDataStart + (<usize>i << alignof<U>());
-          let acc = widenSum<U>(v128.load(p));
-          acc = i64x2.add(acc, widenSum<U>(v128.load(p, 16)));
-          acc = i64x2.add(acc, widenSum<U>(v128.load(p, 32)));
-          acc = i64x2.add(acc, widenSum<U>(v128.load(p, 48)));
-          const totalToBlockEnd = total + <f64>horizontalSum(acc);
-          if (totalToBlockEnd < thresholds[order[next]]) {
+          const totalToBlockEnd =
+            total +
+            <f64>sumBlock<U>(this.countsDataStart + (<usize>i << alignof<U>()));
+          if (totalToBlockEnd < unchecked(thresholds[unchecked(order[next])])) {
             total = totalToBlockEnd;
             i += step;
             continue;
@@ -767,13 +795,14 @@ export default class Histogram<T, U> extends AbstractHistogramBase<T, U> {
       }
       for (; i < chunkEnd; i++) {
         total += <f64>this.getCountAtIndex(i);
-        while (next < valid && total >= thresholds[order[next]]) {
-          const position = order[next];
-          const valueAtIndex: u64 = this.valueFromIndex(i);
-          results[position] = <f64>(
-            percentiles[position] === 0.0
-              ? this.lowestEquivalentValue(valueAtIndex)
-              : this.highestEquivalentValue(valueAtIndex)
+        while (next < valid && total >= unchecked(thresholds[unchecked(order[next])])) {
+          // Each position is resolved once, so its percentile is read before
+          // the result overwrites it.
+          const position = unchecked(order[next]);
+          unchecked(
+            (percentiles[position] = <f64>(
+              this.valueAtPercentileIndex(i, unchecked(percentiles[position]))
+            ))
           );
           next++;
         }
@@ -781,7 +810,12 @@ export default class Histogram<T, U> extends AbstractHistogramBase<T, U> {
       }
       if (chunkEnd == 1) i = lowest; // index 0 is followed by the lowest non-zero index
     }
-    return results;
+    // Thresholds never reached (an empty histogram, or a count above the
+    // recorded total that cannot happen) leave their entry at 0.
+    for (; next < valid; next++) {
+      unchecked((percentiles[unchecked(order[next])] = 0));
+    }
+    return percentiles;
   }
 
   /**
@@ -789,7 +823,8 @@ export default class Histogram<T, U> extends AbstractHistogramBase<T, U> {
    * getValueAtPercentile has always rounded it.
    */
   countAtPercentile(percentile: f64): f64 {
-    const requestedPercentile = min(percentile, <f64>100); // Truncate down to 100%
+    // Clamp to [0, 100]; a NaN percentile stays NaN
+    const requestedPercentile = max(min(percentile, <f64>100), <f64>0);
 
     // round count up to nearest integer, to ensure that the largest value that the requested percentile
     // of overall recorded values is actually included. However, this must be done with care:

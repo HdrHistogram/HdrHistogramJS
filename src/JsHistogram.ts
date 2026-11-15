@@ -515,7 +515,7 @@ export abstract class JsHistogram implements Histogram {
   }
 
   /** The value reported for a percentile whose count is reached at index i. */
-  private valueAtPercentileIndex(i: number, percentile: number): number {
+  protected valueAtPercentileIndex(i: number, percentile: number): number {
     const valueAtIndex = this.valueFromIndex(i);
     return percentile === 0.0
       ? this.lowestEquivalentValue(valueAtIndex)
@@ -545,9 +545,9 @@ export abstract class JsHistogram implements Histogram {
     let next = 0; // First entry of `order` not yet resolved
     let totalToCurrentIndex = 0;
     for (
-      let i = 0;
-      next < order.length && i <= lastIndex;
-      i = this.nextCountsIndexToScan(i)
+      let i = this.nextNonZeroIndexInRange(0, lastIndex);
+      next < order.length && i >= 0;
+      i = this.nextNonZeroIndexInRange(i + 1, lastIndex)
     ) {
       totalToCurrentIndex += this.getCountAtIndex(i);
       while (
@@ -569,7 +569,7 @@ export abstract class JsHistogram implements Histogram {
    * Number of recorded values a percentile must reach, rounded as
    * getValueAtPercentile has always rounded it.
    */
-  private countAtPercentile(percentile: number): number {
+  protected countAtPercentile(percentile: number): number {
     // Clamp to [0, 100]; a NaN percentile stays NaN
     const requestedPercentile = max(min(percentile, 100), 0);
 

@@ -103,51 +103,63 @@ describe("Histogram recordValues", () => {
   implementations.forEach(({ name, build }) => {
     describe(name, () => {
       it("should be equivalent to calling recordValue for each value", async () => {
+        // given
         const values = [1, 2, 3, 100, 12345, 999_999, 42, 42, 42];
         const batch = build();
         const loop = build();
 
+        // when
         batch.recordValues(values);
         values.forEach((value) => loop.recordValue(value));
 
+        // then
         expect(await summarize(batch)).toEqual(await summarize(loop));
         expect(batch.totalCount).toBe(values.length);
       });
 
       it("should accept a Float64Array as well as a number array", async () => {
+        // given
         const values = [7, 8, 9, 10_000, 500_000];
         const fromArray = build();
         const fromTypedArray = build();
 
+        // when
         fromArray.recordValues(values);
         fromTypedArray.recordValues(Float64Array.from(values));
 
+        // then
         expect(await summarize(fromTypedArray)).toEqual(
           await summarize(fromArray)
         );
       });
 
       it("should do nothing when given an empty input", async () => {
+        // given
         const histogram = build();
         const reference = build();
 
+        // when
         histogram.recordValues([]);
         histogram.recordValues(new Float64Array(0));
 
+        // then
         expect(await summarize(histogram)).toEqual(await summarize(reference));
         expect(histogram.totalCount).toBe(0);
       });
 
       it("should grow the histogram when autoResize is on and a value is out of range", async () => {
+        // given
         const batch = build(true);
         const loop = build(true);
         batch.highestTrackableValue = 1000;
         loop.highestTrackableValue = 1000;
         const values = [5, 10, 50_000, 3, 2_000_000];
 
+        // when
         batch.recordValues(values);
         values.forEach((value) => loop.recordValue(value));
 
+        // then
         expect(batch.totalCount).toBe(values.length);
         expect(batch.highestTrackableValue).toBe(loop.highestTrackableValue);
         expect(batch.maxValue).toBeGreaterThanOrEqual(2_000_000);
@@ -155,35 +167,42 @@ describe("Histogram recordValues", () => {
       });
 
       it("should throw the same error as recordValue when a value is out of range and autoResize is off", () => {
+        // given
         const outOfRange = 1_000_000_000_000;
         const expectedMessage = errorMessageOf(() =>
           build().recordValue(outOfRange)
         );
-        expect(expectedMessage).not.toBe("no error");
-
         const histogram = build();
+
+        // when
         const message = errorMessageOf(() =>
           histogram.recordValues([1, 2, outOfRange, 3])
         );
 
+        // then
+        expect(expectedMessage).not.toBe("no error");
         expect(message).toBe(expectedMessage);
       });
 
       it("should keep the values recorded before an out of range value", () => {
+        // given
         const histogram = build();
         const reference = build();
-
-        expect(() =>
-          histogram.recordValues([1, 2, 3, 1_000_000_000_000, 4])
-        ).toThrow();
         [1, 2, 3].forEach((value) => reference.recordValue(value));
 
+        // when
+        const record = () =>
+          histogram.recordValues([1, 2, 3, 1_000_000_000_000, 4]);
+
+        // then
+        expect(record).toThrow();
         expect(histogram.totalCount).toBe(3);
         expect(histogram.maxValue).toBe(reference.maxValue);
         expect(histogram.minNonZeroValue).toBe(1);
       });
 
       it("should handle an input large enough to grow wasm memory", async () => {
+        // given
         const count = 200_000;
         const values = new Float64Array(count);
         for (let index = 0; index < count; index++) {
@@ -192,11 +211,13 @@ describe("Histogram recordValues", () => {
         const batch = build();
         const loop = build();
 
+        // when
         batch.recordValues(values);
         for (let index = 0; index < count; index++) {
           loop.recordValue(values[index]);
         }
 
+        // then
         expect(batch.totalCount).toBe(count);
         expect(await summarize(batch)).toEqual(await summarize(loop));
       });

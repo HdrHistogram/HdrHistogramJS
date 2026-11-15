@@ -442,7 +442,9 @@ export class WasmHistogram implements Histogram {
   }
 
   recordValues(values: ArrayLike<number>): void {
-    if (this._ptr === 0) throw new Error("Cannot use a destroyed histogram");
+    if (this._ptr === 0) {
+      throw new Error("Cannot use a destroyed histogram");
+    }
     // One copy into wasm memory, then one call for the whole batch
     this._fns.recordValues(this._ptr, fillScratchFloat64Array(values));
   }

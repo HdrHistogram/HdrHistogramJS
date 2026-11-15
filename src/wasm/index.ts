@@ -54,6 +54,7 @@ interface WasmFns {
   getNonZeroCounts: (ptr: number) => number;
   recordValue: (ptr: number, value: number) => void;
   recordValueWithCount: (ptr: number, value: number, count: number) => void;
+  recordValues: (ptr: number, values: number) => void;
   recordValueWithExpectedInterval: (
     ptr: number,
     value: number,
@@ -108,6 +109,7 @@ function buildWasmFns(s: string): WasmFns {
     getNonZeroCounts: wasm[`getNonZeroCounts${s}`],
     recordValue: wasm[`recordValue${s}`],
     recordValueWithCount: wasm[`recordValueWithCount${s}`],
+    recordValues: wasm[`recordValues${s}`],
     recordValueWithExpectedInterval:
       wasm[`recordValueWithExpectedInterval${s}`],
     getValueAtPercentile: wasm[`getValueAtPercentile${s}`],
@@ -437,6 +439,14 @@ export class WasmHistogram implements Histogram {
 
   recordValueWithCount(value: number, count: number): void {
     this._fns.recordValueWithCount(this._ptr, value, count);
+  }
+
+  recordValues(values: ArrayLike<number>): void {
+    if (this._ptr === 0) {
+      throw new Error("Cannot use a destroyed histogram");
+    }
+    // One copy into wasm memory, then one call for the whole batch
+    this._fns.recordValues(this._ptr, fillScratchFloat64Array(values));
   }
 
   recordValueWithExpectedInterval(

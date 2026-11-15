@@ -143,6 +143,10 @@ class HistogramAdapter<T, U> {
     this._histogram.recordCountAtValue(<u64>count, <u64>value);
   }
 
+  recordValues(values: Float64Array): void {
+    this._histogram.recordValues(values);
+  }
+
   recordValueWithExpectedInterval(
     value: f64,
     expectedIntervalBetweenValueSamples: f64
@@ -439,6 +443,12 @@ export function recordValueWithCount16(h: Histogram16, value: f64, count: f64): 
 export function recordValueWithCount32(h: Histogram32, value: f64, count: f64): void { h.recordValueWithCount(value, count); }
 export function recordValueWithCount64(h: Histogram64, value: f64, count: f64): void { h.recordValueWithCount(value, count); }
 export function recordValueWithCountPacked(h: PackedHistogram, value: f64, count: f64): void { h.recordValueWithCount(value, count); }
+
+export function recordValues8(h: Histogram8, values: Float64Array): void { h.recordValues(values); }
+export function recordValues16(h: Histogram16, values: Float64Array): void { h.recordValues(values); }
+export function recordValues32(h: Histogram32, values: Float64Array): void { h.recordValues(values); }
+export function recordValues64(h: Histogram64, values: Float64Array): void { h.recordValues(values); }
+export function recordValuesPacked(h: PackedHistogram, values: Float64Array): void { h.recordValues(values); }
 
 export function recordValueWithExpectedInterval8(h: Histogram8, value: f64, expectedIntervalBetweenValueSamples: f64): void { h.recordValueWithExpectedInterval(value, expectedIntervalBetweenValueSamples); }
 export function recordValueWithExpectedInterval16(h: Histogram16, value: f64, expectedIntervalBetweenValueSamples: f64): void { h.recordValueWithExpectedInterval(value, expectedIntervalBetweenValueSamples); }

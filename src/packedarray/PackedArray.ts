@@ -8,12 +8,9 @@
 import {
   PackedArrayContext,
   MINIMUM_INITIAL_PACKED_ARRAY_CAPACITY,
-  LEAF_BYTE_MASK_BY_SET,
 } from "./PackedArrayContext";
 
 const NUMBER_OF_SETS = 8;
-// Read once: the hot loops below index a module-local array, not an import binding
-const BYTE_IN_LEAF_MASK_BY_SET = LEAF_BYTE_MASK_BY_SET;
 // Leaf cache entry states, besides a leaf long index (>= 0)
 const NO_LEAF = -1; // the set has no leaf for the cached group
 const UNKNOWN_LEAF = -2; // the set is beyond knownSets (not looked up yet)
@@ -38,7 +35,8 @@ export class PackedArray {
   // Leaf cache for sequential reads and writes.
   //
   // The 8 virtual indexes of a group (index >> 3) share one leaf per byte set
-  // (set 0 leaves are 16 bytes and cover two groups, the cache still holds one group),
+  // (set 0 leaves are 16 bytes when the virtual length allows it and then cover two groups;
+  // the cache still holds one group),
   // so a scan over consecutive indexes would otherwise repeat the same set-tree
   // walks 8 times. For the group last accessed, leafIndexBySet[0 .. knownSets)
   // holds the long index of each set's leaf, or NO_LEAF when the set has no
@@ -83,15 +81,21 @@ export class PackedArray {
       this.unpack(newVirtualArrayLength);
       return;
     }
-    if (currentArrayContext.hasTopLevelShiftsFor(newVirtualArrayLength)) {
+    if (currentArrayContext.hasLayoutFor(newVirtualArrayLength)) {
       // No changes to the array context contents is needed. Just change the virtual length.
       currentArrayContext.setVirtualLength(newVirtualArrayLength);
       return;
     }
-    this.arrayContext = currentArrayContext.copyAndIncreaseSize(
+    const resizedArrayContext = currentArrayContext.copyAndIncreaseSize(
       this.getPhysicalLength(),
       newVirtualArrayLength
     );
+    if (resizedArrayContext === null) {
+      // The packed storage cannot hold the layout of the new virtual length
+      this.unpack(newVirtualArrayLength);
+      return;
+    }
+    this.arrayContext = resizedArrayContext;
   }
 
   /**
@@ -108,9 +112,10 @@ export class PackedArray {
     // Context is packed:
     this.cacheGroupOf(index);
     const leafIndexBySet = this.leafIndexBySet;
+    const byteMaskBySet = arrayContext.leafByteMaskBySet;
     let value = 0;
     for (let byteNum = 0; byteNum < NUMBER_OF_SETS; byteNum++) {
-      const byteInLeaf = index & BYTE_IN_LEAF_MASK_BY_SET[byteNum];
+      const byteInLeaf = index & byteMaskBySet[byteNum];
       let leafIndex =
         byteNum < this.knownSets ? leafIndexBySet[byteNum] : UNKNOWN_LEAF;
       if (leafIndex < 0) {
@@ -148,10 +153,13 @@ export class PackedArray {
     }
     const group = floor(index / 8);
     if (group !== this.cachedGroup) {
-      // Set 0 leaves cover 16 indexes, two groups: its entry stays valid when the
+      // Wide set 0 leaves cover 16 indexes, two groups: its entry stays valid when the
       // new group is in the same block. Any other set walks again.
       this.knownSets =
-        group >> 1 === this.cachedGroup >> 1 ? min(this.knownSets, 1) : 0;
+        group >> 1 === this.cachedGroup >> 1 &&
+        this.arrayContext.hasWideSet0Leaves()
+          ? min(this.knownSets, 1)
+          : 0;
       this.cachedGroup = group;
     }
   }
@@ -179,9 +187,10 @@ export class PackedArray {
     // Context is packed:
     this.cacheGroupOf(index);
     const leafIndexBySet = this.leafIndexBySet;
+    const byteMaskBySet = arrayContext.leafByteMaskBySet;
     let remainingValueToAdd = value;
     for (let byteNum = 0; byteNum < NUMBER_OF_SETS; byteNum++) {
-      const byteInLeaf = index & BYTE_IN_LEAF_MASK_BY_SET[byteNum];
+      const byteInLeaf = index & byteMaskBySet[byteNum];
       let leafIndex =
         byteNum < this.knownSets ? leafIndexBySet[byteNum] : UNKNOWN_LEAF;
       if (leafIndex < 0) {
@@ -235,9 +244,10 @@ export class PackedArray {
     // Context is packed:
     this.cacheGroupOf(index);
     const leafIndexBySet = this.leafIndexBySet;
+    const byteMaskBySet = arrayContext.leafByteMaskBySet;
     let valueForNextLevels = value;
     for (let byteNum = 0; byteNum < NUMBER_OF_SETS; byteNum++) {
-      const byteInLeaf = index & BYTE_IN_LEAF_MASK_BY_SET[byteNum];
+      const byteInLeaf = index & byteMaskBySet[byteNum];
       let leafIndex =
         byteNum < this.knownSets ? leafIndexBySet[byteNum] : UNKNOWN_LEAF;
       if (leafIndex < 0) {
@@ -305,7 +315,7 @@ export class PackedArray {
       }
       // The leaf found only vouches for the group of indexes sharing its set-0 leaf
       const groupEnd = Math.min(
-        (index | BYTE_IN_LEAF_MASK_BY_SET[0]) + 1,
+        (index | arrayContext.leafByteMaskBySet[0]) + 1,
         length
       );
       for (; index < groupEnd; index++) {

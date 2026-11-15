@@ -43,14 +43,21 @@ function mismatches(packed: PackedArray, model: StaticArray<u64>): i32 {
 }
 
 describe("Packed Array non-zero iteration", () => {
-  test("empty array has no non-zero index", () => {
+  test("should find no non-zero index in an empty array", () => {
+    // given
     const packed = new PackedArray(100000);
-    expect<i32>(packed.nextNonZeroIndex(0)).equal(-1);
-    expect<i32>(packed.nextNonZeroIndex(99999)).equal(-1);
-    expect<i32>(packed.nextNonZeroIndex(100000)).equal(-1);
+    // when
+    const fromStart = packed.nextNonZeroIndex(0);
+    const fromLastIndex = packed.nextNonZeroIndex(99999);
+    const fromEnd = packed.nextNonZeroIndex(100000);
+    // then
+    expect<i32>(fromStart).equal(-1);
+    expect<i32>(fromLastIndex).equal(-1);
+    expect<i32>(fromEnd).equal(-1);
   });
 
-  test("walks a sparse array", () => {
+  test("should walk a sparse array", () => {
+    // given
     const length = 100000;
     const packed = new PackedArray(length);
     const model = new StaticArray<u64>(length);
@@ -60,10 +67,14 @@ describe("Packed Array non-zero iteration", () => {
       packed.add(i, v);
       model[i] += v;
     }
-    expect<i32>(mismatches(packed, model)).equal(0);
+    // when
+    const count = mismatches(packed, model);
+    // then
+    expect<i32>(count).equal(0);
   });
 
-  test("finds values whose low byte is zero", () => {
+  test("should find values whose low byte is zero", () => {
+    // given
     const packed = new PackedArray(4096);
     const model = new StaticArray<u64>(4096);
     packed.set(300, 256);
@@ -72,13 +83,20 @@ describe("Packed Array non-zero iteration", () => {
     model[2000] = 0x10000;
     packed.set(4095, 0x0100000000000000);
     model[4095] = 0x0100000000000000;
-    expect<i32>(packed.nextNonZeroIndex(0)).equal(300);
-    expect<i32>(packed.nextNonZeroIndex(301)).equal(2000);
-    expect<i32>(packed.nextNonZeroIndex(2001)).equal(4095);
-    expect<i32>(mismatches(packed, model)).equal(0);
+    // when
+    const first = packed.nextNonZeroIndex(0);
+    const second = packed.nextNonZeroIndex(301);
+    const third = packed.nextNonZeroIndex(2001);
+    const count = mismatches(packed, model);
+    // then
+    expect<i32>(first).equal(300);
+    expect<i32>(second).equal(2000);
+    expect<i32>(third).equal(4095);
+    expect<i32>(count).equal(0);
   });
 
-  test("walks a dense array", () => {
+  test("should walk a dense array", () => {
+    // given
     const length = 4096;
     const packed = new PackedArray(length);
     const model = new StaticArray<u64>(length);
@@ -87,10 +105,14 @@ describe("Packed Array non-zero iteration", () => {
       packed.set(i, v);
       model[i] = v;
     }
-    expect<i32>(mismatches(packed, model)).equal(0);
+    // when
+    const count = mismatches(packed, model);
+    // then
+    expect<i32>(count).equal(0);
   });
 
-  test("skips values set back to zero, leaving their leaf in place", () => {
+  test("should skip values set back to zero, leaving their leaf in place", () => {
+    // given
     const length = 20000;
     const packed = new PackedArray(length);
     const model = new StaticArray<u64>(length);
@@ -100,16 +122,20 @@ describe("Packed Array non-zero iteration", () => {
       packed.set(i, v);
       model[i] = v;
     }
+    // when
     for (let i = 0; i < length; i++) {
       if (model[i] != 0 && nextRandom() % 2 == 0) {
         packed.set(i, 0);
         model[i] = 0;
       }
     }
-    expect<i32>(mismatches(packed, model)).equal(0);
+    const count = mismatches(packed, model);
+    // then
+    expect<i32>(count).equal(0);
   });
 
-  test("walks the whole array after a resize", () => {
+  test("should walk the whole array after a resize", () => {
+    // given
     const packed = new PackedArray(256, 16);
     const model = new StaticArray<u64>(100000);
     for (let i = 0; i < 256; i += 5) {
@@ -118,17 +144,21 @@ describe("Packed Array non-zero iteration", () => {
       model[i] = v;
     }
     packed.resize(100000);
+    // when
     for (let n = 0; n < 200; n++) {
       const i = <i32>(nextRandom() % 100000);
       const v = <u64>(1 + (nextRandom() % 1000000));
       packed.add(i, v);
       model[i] += v;
     }
-    expect<i32>(mismatches(packed, model)).equal(0);
+    const count = mismatches(packed, model);
+    // then
+    expect<i32>(count).equal(0);
   });
 
-  test("scans linearly once the array is unpacked", () => {
+  test("should scan linearly once the array is unpacked", () => {
     // 64 bit values at every index outgrow the packed representation
+    // given
     const length = 5000;
     const packed = new PackedArray(length);
     const model = new StaticArray<u64>(length);
@@ -142,12 +172,20 @@ describe("Packed Array non-zero iteration", () => {
         model[i] = 0;
       }
     }
-    expect<i32>(mismatches(packed, model)).equal(0);
+    // when
+    const countBeforeResize = mismatches(packed, model);
+    // then
+    expect<i32>(countBeforeResize).equal(0);
+
+    // given
     packed.resize(6000);
     const grown = new StaticArray<u64>(6000);
     for (let i = 0; i < length; i++) grown[i] = model[i];
     packed.set(5999, 7);
     grown[5999] = 7;
-    expect<i32>(mismatches(packed, grown)).equal(0);
+    // when
+    const countAfterResize = mismatches(packed, grown);
+    // then
+    expect<i32>(countAfterResize).equal(0);
   });
 });

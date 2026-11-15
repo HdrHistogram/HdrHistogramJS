@@ -41,21 +41,28 @@ describe("Sparse packed histogram vs its flat counterpart", () => {
   };
 
   it("should compute the same percentiles", () => {
-    const { packed, flat } = buildPair(sparseValues(300, 1));
+    // given
+    const values = sparseValues(300, 1);
+    // when
+    const { packed, flat } = buildPair(values);
+    // then
     expectSameStatistics(packed, flat);
   });
 
   it("should compute the same percentiles with counts spanning several bytes", () => {
+    // given
     const packed = new Histogram(1, Number.MAX_SAFE_INTEGER, 3);
     const flat = new Float64Histogram(1, Number.MAX_SAFE_INTEGER, 3);
     sparseValues(50, 2).forEach((value) => {
       packed.recordValue(value);
       flat.recordValue(value);
     });
+    // when
     [256, 65536, 2 ** 24, 2 ** 32].forEach((count, i) => {
       packed.recordValueWithCount(1000 * (i + 1), count);
       flat.recordValueWithCount(1000 * (i + 1), count);
     });
+    // then
     expect(packed.totalCount).toBe(flat.totalCount);
     PERCENTILES.forEach((percentile) => {
       expect(packed.getValueAtPercentile(percentile)).toBe(
@@ -65,18 +72,24 @@ describe("Sparse packed histogram vs its flat counterpart", () => {
   });
 
   it("should encode to the same bytes", async () => {
+    // given
     const { packed, flat } = buildPair(sparseValues(300, 3));
-    expect(await packed.encodeIntoCompressedBase64()).toBe(
-      await flat.encodeIntoCompressedBase64()
-    );
+    // when
+    const packedEncoded = await packed.encodeIntoCompressedBase64();
+    const flatEncoded = await flat.encodeIntoCompressedBase64();
+    // then
+    expect(packedEncoded).toBe(flatEncoded);
   });
 
   it("should encode to the same bytes once counts were set back to zero", async () => {
+    // given
     const { packed, flat } = buildPair(sparseValues(300, 4));
     const removed = sparseValues(300, 4).filter((_, i) => i % 3 === 0);
     const other = buildPair(removed);
+    // when
     packed.subtract(other.packed);
     flat.subtract(other.flat);
+    // then
     expectSameStatistics(packed, flat);
     expect(await packed.encodeIntoCompressedBase64()).toBe(
       await flat.encodeIntoCompressedBase64()
@@ -84,22 +97,26 @@ describe("Sparse packed histogram vs its flat counterpart", () => {
   });
 
   it("should add and subtract like its flat counterpart", () => {
+    // given
     const { packed, flat } = buildPair(sparseValues(300, 5));
     const other = buildPair(sparseValues(200, 6));
     // the other max above this one's max: it becomes the max, then gets removed
     other.packed.recordValue(2 ** 52 + 12345);
     other.flat.recordValue(2 ** 52 + 12345);
-
+    // when
     packed.add(other.packed);
     flat.add(other.flat);
+    // then
     expectSameStatistics(packed, flat);
-
+    // when
     packed.subtract(other.packed);
     flat.subtract(other.flat);
+    // then
     expectSameStatistics(packed, flat);
   });
 
   it("should add histograms of different layouts like its flat counterpart", () => {
+    // given
     const { packed, flat } = buildPair(sparseValues(300, 7));
     const otherPacked = new Histogram(1, Number.MAX_SAFE_INTEGER, 2);
     const otherFlat = new Int32Histogram(1, Number.MAX_SAFE_INTEGER, 2);
@@ -107,30 +124,40 @@ describe("Sparse packed histogram vs its flat counterpart", () => {
       otherPacked.recordValue(value);
       otherFlat.recordValue(value);
     });
+    // when
     packed.add(otherPacked);
     flat.add(otherFlat);
+    // then
     expectSameStatistics(packed, flat);
+    // when
     flat.add(otherPacked); // a packed source into a flat destination
     packed.add(otherFlat);
+    // then
     expectSameStatistics(packed, flat);
   });
 
   it("should re-establish tracking values after a reset and a resize", () => {
+    // given
     const packed = new Histogram(1, 2, 3);
     const flat = new Int32Histogram(1, 2, 3);
     packed.autoResize = true;
     flat.autoResize = true;
+    // when
     sparseValues(100, 9).forEach((value) => {
       packed.recordValue(value);
       flat.recordValue(value);
     });
+    // then
     expectSameStatistics(packed, flat);
+    // given
     packed.reset();
     flat.reset();
+    // when
     sparseValues(100, 10).forEach((value) => {
       packed.recordValue(value);
       flat.recordValue(value);
     });
+    // then
     expectSameStatistics(packed, flat);
   });
 });
@@ -139,6 +166,7 @@ describe("Sparse WASM packed histogram vs the JS one", () => {
   beforeAll(() => initWebAssembly());
 
   it("should compute the same percentiles and encode to the same bytes", async () => {
+    // given
     const values = sparseValues(300, 11);
     const wasmPacked = build({
       useWebAssembly: true,
@@ -147,10 +175,12 @@ describe("Sparse WASM packed histogram vs the JS one", () => {
       autoResize: false,
     });
     const packed = new Histogram(1, Number.MAX_SAFE_INTEGER, 3);
+    // when
     values.forEach((value) => {
       wasmPacked.recordValue(value);
       packed.recordValue(value);
     });
+    // then
     try {
       PERCENTILES.forEach((percentile) => {
         expect(wasmPacked.getValueAtPercentile(percentile)).toBe(

@@ -12,7 +12,7 @@ const runFromStryker = __dirname.includes("stryker");
 
 const runnerOptions = {
   numRuns: runFromStryker ? 10 : 1000,
-  verbose: true
+  verbose: true,
 };
 
 // Reference population count, one bit at a time on the low 32 bits of each word
@@ -34,7 +34,7 @@ describe("Packed array context", () => {
     fc.assert(
       fc.property(
         fc.integer({ min: 0, max: Number.MAX_SAFE_INTEGER }),
-        n => bitCount(n) === referenceBitCount(n)
+        (n) => bitCount(n) === referenceBitCount(n)
       ),
       runnerOptions
     );
@@ -44,17 +44,33 @@ describe("Packed array context", () => {
     fc.assert(
       fc.property(
         fc.integer({ min: 0, max: 0xffff }),
-        n => bitCount(n) === referenceBitCount(n)
+        (n) => bitCount(n) === referenceBitCount(n)
       ),
       runnerOptions
     );
   });
 
-  it("should count the bits of values above 2^32 in every word", () => {
+  it("should count the set bits of a single word, including bit 31", () => {
+    fc.assert(
+      fc.property(
+        fc.integer({ min: 0, max: 0xffffffff }),
+        (n) => bitCount(n) === referenceBitCount(n)
+      ),
+      runnerOptions
+    );
+  });
+
+  it("should count the bits at the 2^32 boundaries and above", () => {
     expect(bitCount(0)).toBe(0);
     expect(bitCount(0xffffffff)).toBe(32);
     expect(bitCount(0x100000000)).toBe(1);
     expect(bitCount(0x1ffffffff)).toBe(33);
     expect(bitCount(Number.MAX_SAFE_INTEGER)).toBe(53);
+  });
+
+  it("should reject inputs that are not non-negative safe integers", () => {
+    [NaN, Infinity, -Infinity, -1, 1.5, 2 ** 53].forEach((n) => {
+      expect(() => bitCount(n)).toThrow(/non-negative safe integer/);
+    });
   });
 });

@@ -861,7 +861,7 @@ describe("WASM histogram count range", () => {
       histogram.destroy();
     });
 
-    it(`should throw on add when the summed ${label} count would overflow, leaving the histogram unchanged (WASM)`, () => {
+    it(`should throw on add when the only cell to change would overflow ${label}, leaving the histogram unchanged (WASM)`, () => {
       // given
       const histogram = build({
         bitBucketSize: bits,
@@ -907,7 +907,7 @@ describe("WASM histogram count range", () => {
       other.destroy();
     });
 
-    it(`should throw on subtract when the ${label} result would underflow, leaving the histogram unchanged (WASM)`, () => {
+    it(`should throw on subtract when the only cell to change would underflow ${label}, leaving the histogram unchanged (WASM)`, () => {
       // given
       const histogram = build({
         bitBucketSize: bits,
@@ -947,6 +947,74 @@ describe("WASM histogram count range", () => {
       expect(histogram.totalCount).toBe(0);
       histogram.destroy();
     });
+  });
+
+  it("should throw on add at a later cell, leaving earlier cells applied and totalCount unchanged (8-bit WASM)", () => {
+    // given
+    const histogram = build({
+      bitBucketSize: 8,
+      useWebAssembly: true,
+      numberOfSignificantValueDigits: 3,
+    });
+    const other = build({
+      bitBucketSize: 8,
+      useWebAssembly: true,
+      numberOfSignificantValueDigits: 3,
+    });
+    histogram.recordValueWithCount(42, 255);
+    other.recordValueWithCount(1, 5);
+    other.recordValueWithCount(42, 1);
+    // when
+    const act = () => histogram.add(other);
+    // then
+    expect(act).toThrow("would overflow 8-bit integer count");
+    // non-zero counts are [index, count, ...] pairs in index order: value 1 (5) then value 42 (255)
+    const counts = Array.from(histogram.getNonZeroCounts()).filter(
+      (_, i) => i % 2 === 1
+    );
+    expect(counts).toEqual([5, 255]);
+    expect(histogram.totalCount).toBe(255);
+    histogram.destroy();
+    other.destroy();
+  });
+
+  it("should throw on subtract when the 64-bit result would underflow, leaving the histogram unchanged (WASM)", () => {
+    // given
+    const histogram = build({
+      bitBucketSize: 64,
+      useWebAssembly: true,
+      numberOfSignificantValueDigits: 3,
+    });
+    const other = build({
+      bitBucketSize: 64,
+      useWebAssembly: true,
+      numberOfSignificantValueDigits: 3,
+    });
+    histogram.recordValueWithCount(42, 5);
+    other.recordValueWithCount(42, 6);
+    const before = histogram.summary;
+    // when
+    const act = () => histogram.subtract(other);
+    // then
+    expect(act).toThrow("would underflow 64-bit integer count");
+    expect(histogram.summary).toEqual(before);
+    histogram.destroy();
+    other.destroy();
+  });
+
+  it("should throw on a negative recordValueWithCount on a 64-bit WASM histogram instead of dropping it", () => {
+    // given
+    const histogram = build({
+      bitBucketSize: 64,
+      useWebAssembly: true,
+      numberOfSignificantValueDigits: 3,
+    });
+    // when
+    const act = () => histogram.recordValueWithCount(42, -3);
+    // then
+    expect(act).toThrow("would underflow 64-bit integer count");
+    expect(histogram.totalCount).toBe(0);
+    histogram.destroy();
   });
 
   it("should keep 64-bit WASM histograms unbounded by the 32-bit maximum", () => {

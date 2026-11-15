@@ -559,4 +559,14 @@ describe("Histogram count range", () => {
     // then
     expect<u64>(histogram.getCountAtIndex(9)).equal(0);
   });
+
+  test("should subtract a 64-bit cell down to exactly zero", () => {
+    // given
+    const histogram = new Histogram64(1, 1000000, 3);
+    histogram.setCountAtIndex(9, 5);
+    // when
+    histogram.addToCountAtIndex(9, <u64>0 - 5);
+    // then
+    expect<u64>(histogram.getCountAtIndex(9)).equal(0);
+  });
 });

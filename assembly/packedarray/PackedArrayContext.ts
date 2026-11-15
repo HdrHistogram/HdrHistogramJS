@@ -573,7 +573,7 @@
      const packedSlotIndicators = <i32>this.getPackedSlotIndicators(entryIndex);
      // The indexes covered by this entry share the bits above the ones its slots decode
      const entryBase = fromIndex & ~((1 << (indexShift + 4)) - 1);
-     const nextLevelIsLeaf = indexShift == LEAF_LEVEL_SHIFT_BY_SET[0];
+     const nextLevelIsLeaf = indexShift == this.leafLevelShiftBySet[0];
      for (
        let slotBitNumber = (fromIndex >>> indexShift) & 0xf;
        slotBitNumber < 16;

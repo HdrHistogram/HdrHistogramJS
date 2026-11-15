@@ -332,7 +332,10 @@ export class PackedArray {
         return -1;
       }
       // The leaf found only vouches for the group of indexes sharing its set-0 leaf
-      const groupEnd = min<i32>((index | LEAF_BYTE_MASK_BY_SET[0]) + 1, length);
+      const groupEnd = min<i32>(
+        (index | arrayContext.leafByteMaskBySet[0]) + 1,
+        length
+      );
       for (; index < groupEnd; index++) {
         if (this.get(index) != 0) {
           return index;

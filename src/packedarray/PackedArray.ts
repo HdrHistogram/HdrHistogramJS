@@ -315,7 +315,7 @@ export class PackedArray {
       }
       // The leaf found only vouches for the group of indexes sharing its set-0 leaf
       const groupEnd = Math.min(
-        (index | BYTE_IN_LEAF_MASK_BY_SET[0]) + 1,
+        (index | arrayContext.leafByteMaskBySet[0]) + 1,
         length
       );
       for (; index < groupEnd; index++) {

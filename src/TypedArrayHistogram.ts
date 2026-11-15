@@ -63,6 +63,18 @@ class TypedArrayHistogram extends JsHistogram {
     return -1;
   }
 
+  // Checked before the base class resizes an auto-resizing histogram, so a rejected
+  // count leaves the histogram's range untouched. Only reached on the out-of-range path.
+  handleRecordException(count: number, value: number) {
+    if (count > this.countMax) {
+      this.throwCountOverflow(count);
+    }
+    if (count < this.countMin) {
+      this.throwCountUnderflow(count);
+    }
+    super.handleRecordException(count, value);
+  }
+
   incrementCountAtIndex(index: number) {
     const newCount = this._counts[index] + 1;
     if (newCount > this.countMax) {

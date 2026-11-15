@@ -144,7 +144,7 @@ describe("Typed array histogram count range", () => {
         expect(histogram.totalCount).toBe(3);
       });
 
-      it("should throw on add when the summed count would overflow, leaving the histogram unchanged", () => {
+      it("should throw on add when the only cell to change would overflow, leaving the histogram unchanged", () => {
         // given
         const histogram = new Histogram(1, Number.MAX_SAFE_INTEGER, 3);
         const other = new Histogram(1, Number.MAX_SAFE_INTEGER, 3);
@@ -174,7 +174,7 @@ describe("Typed array histogram count range", () => {
         expect(histogram.totalCount).toBe(max);
       });
 
-      it("should throw on subtract when the result would underflow, leaving the histogram unchanged", () => {
+      it("should throw on subtract when the only cell to change would underflow, leaving the histogram unchanged", () => {
         // given
         const histogram = new Histogram(1, Number.MAX_SAFE_INTEGER, 3);
         const other = new Histogram(1, Number.MAX_SAFE_INTEGER, 3);
@@ -187,6 +187,55 @@ describe("Typed array histogram count range", () => {
         expect(act).toThrow(`would underflow ${bits}-bit integer count`);
         expect(histogram.summary).toEqual(before);
       });
+    });
+  });
+
+  describe("8-bit histogram with several cells changing", () => {
+    it("should throw on add at a later cell, leaving earlier cells applied and totalCount unchanged", () => {
+      // given
+      const histogram = new Int8Histogram(1, Number.MAX_SAFE_INTEGER, 3);
+      const other = new Int8Histogram(1, Number.MAX_SAFE_INTEGER, 3);
+      histogram.recordValueWithCount(42, 255);
+      other.recordValueWithCount(1, 5);
+      other.recordValueWithCount(42, 1);
+      // when
+      const act = () => histogram.add(other);
+      // then
+      expect(act).toThrow("would overflow 8-bit integer count");
+      expect(histogram.getCountAtIndex(histogram.countsArrayIndex(1))).toBe(5);
+      expect(histogram.getCountAtIndex(histogram.countsArrayIndex(42))).toBe(
+        255
+      );
+      expect(histogram.totalCount).toBe(255);
+    });
+
+    it("should throw on subtract at a later cell, leaving earlier cells applied and totalCount unchanged", () => {
+      // given
+      const histogram = new Int8Histogram(1, Number.MAX_SAFE_INTEGER, 3);
+      const other = new Int8Histogram(1, Number.MAX_SAFE_INTEGER, 3);
+      histogram.recordValueWithCount(1, 10);
+      other.recordValueWithCount(1, 5);
+      other.recordValueWithCount(42, 1);
+      // when
+      const act = () => histogram.subtract(other);
+      // then
+      expect(act).toThrow("would underflow 8-bit integer count");
+      expect(histogram.getCountAtIndex(histogram.countsArrayIndex(1))).toBe(5);
+      expect(histogram.getCountAtIndex(histogram.countsArrayIndex(42))).toBe(0);
+      expect(histogram.totalCount).toBe(10);
+    });
+
+    it("should leave highestTrackableValue unchanged when an auto-resizing histogram rejects the count", () => {
+      // given
+      const histogram = new Int8Histogram(1, 1000, 3);
+      histogram.autoResize = true;
+      const highestBefore = histogram.highestTrackableValue;
+      // when
+      const act = () => histogram.recordValueWithCount(1000000, 300);
+      // then
+      expect(act).toThrow("would overflow 8-bit integer count");
+      expect(histogram.highestTrackableValue).toBe(highestBefore);
+      expect(histogram.totalCount).toBe(0);
     });
   });
 

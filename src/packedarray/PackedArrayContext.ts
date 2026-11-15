@@ -735,9 +735,13 @@ export class PackedArrayContext {
       virtualIndex++
     ) {
       const otherByteIndex = other.getPackedIndex(0, virtualIndex, false);
-      if (otherByteIndex < 0) continue;
+      if (otherByteIndex < 0) {
+        continue;
+      }
       const byteIndex = this.getPackedIndex(0, virtualIndex, true);
-      if (byteIndex < 0) return false;
+      if (byteIndex < 0) {
+        return false;
+      }
       this.setAtByteIndex(byteIndex, other.getAtByteIndex(otherByteIndex));
     }
     return true;

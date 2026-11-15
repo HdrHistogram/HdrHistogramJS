@@ -139,6 +139,14 @@ const wasmImports = {
       lineNumber: number,
       columnNumber: number
     ) {
+      // AssemblyScript aborts carry the message (e.g. "... would overflow 8-bit integer count");
+      // optimized builds have no source positions, so the location is added only when present.
+      if (messagePtr) {
+        const location = lineNumber
+          ? ` (WebAssembly at ${lineNumber}:${columnNumber})`
+          : "";
+        throw new Error(`${getString(messagePtr)}${location}`);
+      }
       throw new Error(`Abort in WebAssembly at ${lineNumber}:${columnNumber}`);
     },
   },

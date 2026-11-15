@@ -532,22 +532,31 @@ describe("Histogram count range", () => {
   // so these cover the in-range boundaries; the throwing paths are covered by the
   // WASM tests in src/Histogram.spec.ts.
   test("should accept a count equal to the 8-bit maximum", () => {
+    // given
     const histogram = new Histogram8(1, 9007199254740991, 3);
+    // when
     histogram.setCountAtIndex(5, 255);
+    // then
     expect<u64>(histogram.getCountAtIndex(5)).equal(255);
   });
 
   test("should add up to exactly the 16-bit maximum", () => {
+    // given
     const histogram = new Histogram16(1, 1000000, 3);
     histogram.setCountAtIndex(7, 65000);
+    // when
     histogram.addToCountAtIndex(7, 535);
+    // then
     expect<u64>(histogram.getCountAtIndex(7)).equal(65535);
   });
 
   test("should subtract down to exactly zero without wrapping", () => {
+    // given
     const histogram = new Histogram32(1, 1000000, 3);
     histogram.setCountAtIndex(9, 4294967295);
+    // when
     histogram.addToCountAtIndex(9, <u64>0 - 4294967295);
+    // then
     expect<u64>(histogram.getCountAtIndex(9)).equal(0);
   });
 });

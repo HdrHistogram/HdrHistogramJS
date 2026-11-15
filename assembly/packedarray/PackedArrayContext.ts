@@ -30,7 +30,26 @@
  export const MAX_SUPPORTED_PACKED_COUNTS_ARRAY_LENGTH: i32 = 8191;
  const SET_0_START_INDEX = 0;
  const NUMBER_OF_SETS = 8;
- const LEAF_LEVEL_SHIFT = 3;
+ // A leaf of a set covers the 2^leafLevelShift virtual indexes sharing their high bits.
+ // Set 0 is the dense byte (most recorded values only use it), so its leaves are 16 bytes wide:
+ // the set tree is one level shallower for some virtual lengths. The other sets keep 8 bytes,
+ // as a populated leaf costs its whole width.
+ const LEAF_LEVEL_SHIFT: i32 = 3;
+ const SET_0_LEAF_LEVEL_SHIFT: i32 = 4;
+ export const LEAF_LEVEL_SHIFT_BY_SET: StaticArray<i32> = [
+   SET_0_LEAF_LEVEL_SHIFT,
+   LEAF_LEVEL_SHIFT,
+   LEAF_LEVEL_SHIFT,
+   LEAF_LEVEL_SHIFT,
+   LEAF_LEVEL_SHIFT,
+   LEAF_LEVEL_SHIFT,
+   LEAF_LEVEL_SHIFT,
+   LEAF_LEVEL_SHIFT
+ ];
+ // Mask of the virtual index bits selecting the byte within a leaf, per set
+ export const LEAF_BYTE_MASK_BY_SET: StaticArray<i32> = [15, 7, 7, 7, 7, 7, 7, 7];
+ // Length of a leaf in longs (8 bytes each), per set
+ const LEAF_LENGTH_IN_LONGS_BY_SET: StaticArray<i32> = [2, 1, 1, 1, 1, 1, 1, 1];
  const NON_LEAF_ENTRY_SLOT_INDICATORS_OFFSET = 0;
  const NON_LEAF_ENTRY_HEADER_SIZE_IN_SHORTS = <u16>1;
  const PACKED_ARRAY_GROWTH_INCREMENT = 16;
@@ -52,7 +71,10 @@
    private dataStart: usize = 0;
    private populatedShortLength: i32 = 0;
    private virtualLength: i32;
-   private topLevelShift: i32 = i32.MAX_VALUE; // Make it non-sensical until properly initialized.
+   // Per set, make it non-sensical until properly initialized.
+   private topLevelShiftBySet: StaticArray<i32> = new StaticArray<i32>(
+     NUMBER_OF_SETS
+   ).fill(i32.MAX_VALUE);
  
    constructor(virtualLength: i32, initialPhysicalLength: i32) {
      this.physicalLength = <i32>(
@@ -245,18 +267,23 @@
      return newEntryIndex;
    }
  
-   /** @return the long index of the new leaf, or -1 if the array is full */
-   private newLeafEntry(): i32 {
+   /**
+    * @param lengthInLongs the length of the leaf, 1 for an 8 byte leaf
+    * @return the long index of the new leaf, or -1 if the array is full
+    */
+   private newLeafEntry(lengthInLongs: i32): i32 {
      // Add entry at the end of the array:
      let newEntryIndex = this.getPopulatedLongLength();
-     if (!this.expandArrayIfNeeded(1)) {
+     if (!this.expandArrayIfNeeded(lengthInLongs)) {
        return -1;
      }
 
-     this.setPopulatedLongLength(newEntryIndex + 1);
- 
-     this.setAtLongIndex(newEntryIndex, 0);
- 
+     this.setPopulatedLongLength(newEntryIndex + lengthInLongs);
+
+     for (let i = 0; i < lengthInLongs; i++) {
+       this.setAtLongIndex(newEntryIndex + i, 0);
+     }
+
      return newEntryIndex;
    }
  
@@ -308,6 +335,7 @@
     * @param insertedSlotIndex  realtive [packed] index of slot being inserted into entry
     * @param insertedSlotMask   mask value fo slot being inserted
     * @param nextLevelIsLeaf    the level below this one is a leaf level
+    * @param leafLengthInLongs  the length of the leaves, when the level below is a leaf level
     * @return the updated index of the entry, or -1 if the array is full (the entry is then left untouched)
     */
    expandEntry(
@@ -315,7 +343,8 @@
      entryPointerIndex: i32,
      insertedSlotIndex: i32,
      insertedSlotMask: i32,
-     nextLevelIsLeaf: boolean
+     nextLevelIsLeaf: boolean,
+     leafLengthInLongs: i32
    ): i32 {
      let packedSlotIndicators =
        (<i32>this.getAtShortIndex(existingEntryIndex)) & 0xffff;
@@ -334,7 +363,7 @@
      // Create new next-level entry to refer to from slot at this level:
      let indexOfNewNextLevelEntry = 0;
      if (nextLevelIsLeaf) {
-       indexOfNewNextLevelEntry = this.newLeafEntry(); // Establish long-index to new leaf entry
+       indexOfNewNextLevelEntry = this.newLeafEntry(leafLengthInLongs); // Establish long-index to new leaf entry
        if (indexOfNewNextLevelEntry < 0) {
          return -1;
        }
@@ -435,12 +464,14 @@
      }
  
      // Work down the levels of non-leaf entries:
+     const leafLevelShift = LEAF_LEVEL_SHIFT_BY_SET[setNumber];
+     const leafLengthInLongs = LEAF_LENGTH_IN_LONGS_BY_SET[setNumber];
      for (
-       let indexShift = this.topLevelShift;
-       indexShift >= LEAF_LEVEL_SHIFT;
+       let indexShift = this.topLevelShiftBySet[setNumber];
+       indexShift >= leafLevelShift;
        indexShift -= 4
      ) {
-       const nextLevelIsLeaf = indexShift === LEAF_LEVEL_SHIFT;
+       const nextLevelIsLeaf = indexShift === leafLevelShift;
        // Target is a packedSlotIndicators entry
        const packedSlotIndicators = this.getPackedSlotIndicators(entryIndex);
        const slotBitNumber = (virtualIndex >>> indexShift) & 0xf;
@@ -460,7 +491,8 @@
            entryPointerIndex,
            slotNumber,
            slotMask,
-           nextLevelIsLeaf
+           nextLevelIsLeaf,
+           leafLengthInLongs
          );
          if (entryIndex < 0) {
            return -1; // The array is full, the index cannot be added
@@ -476,13 +508,15 @@
  
      // entryIndex is the long-index of a leaf entry that contains the value byte for the given set
  
-     const byteIndex = (entryIndex << 3) + (virtualIndex & 0x7); // Determine byte index offset within leaf entry
+     // Byte index offset within leaf entry, the leaf entry being the long index
+     const byteIndex =
+       (entryIndex << 3) + (virtualIndex & LEAF_BYTE_MASK_BY_SET[setNumber]);
      return byteIndex;
    }
  
    /**
-    * Lowest virtual index >= fromIndex whose group of 8 indexes has a leaf in
-    * set 0, i.e. whose values may be non-zero. Groups without a leaf are all
+    * Lowest virtual index >= fromIndex whose group of indexes (the ones sharing
+    * a set-0 leaf) has a leaf in set 0, i.e. whose values may be non-zero. Groups without a leaf are all
     * zeros and are skipped by descending only into the populated slots of
     * the set-0 tree, so the walk costs time proportional to the populated
     * groups rather than to the virtual length.
@@ -506,7 +540,7 @@
      }
      return this.nextIndexWithLeafBelow(
        rootEntryIndex,
-       this.topLevelShift,
+       this.topLevelShiftBySet[0],
        fromIndex
      );
    }
@@ -524,7 +558,7 @@
      const packedSlotIndicators = <i32>this.getPackedSlotIndicators(entryIndex);
      // The indexes covered by this entry share the bits above the ones its slots decode
      const entryBase = fromIndex & ~((1 << (indexShift + 4)) - 1);
-     const nextLevelIsLeaf = indexShift == LEAF_LEVEL_SHIFT;
+     const nextLevelIsLeaf = indexShift == LEAF_LEVEL_SHIFT_BY_SET[0];
      for (
        let slotBitNumber = (fromIndex >>> indexShift) & 0xf;
        slotBitNumber < 16;
@@ -558,14 +592,35 @@
      return -1;
    }
 
-   determineTopLevelShiftForVirtualLength(virtualLength: i32): i32 {
+   /**
+    * The top level shift of the set tree of the given set, for a virtual length: the levels of
+    * non-leaf entries are at shifts leafLevelShift, leafLevelShift + 4, ..., top, and the top
+    * level must cover the most significant bit of the virtual length, with at least two levels.
+    */
+   determineTopLevelShiftForVirtualLength(
+     virtualLength: i32,
+     setNumber: i32 = 1
+   ): i32 {
+     const leafLevelShift = LEAF_LEVEL_SHIFT_BY_SET[setNumber];
      const sizeMagnitude = <i32>ceil(Math.log2(virtualLength));
-     const eightsSizeMagnitude = sizeMagnitude - 3;
-     let multipleOfFourSizeMagnitude =
-       <i32>ceil(<f64>eightsSizeMagnitude / 4.0) * 4;
-     multipleOfFourSizeMagnitude = max(multipleOfFourSizeMagnitude, 8);
-     const topLevelShiftNeeded = multipleOfFourSizeMagnitude - 4 + 3;
-     return topLevelShiftNeeded;
+     const levelsAboveTheFirst = max(
+       <i32>ceil(<f64>(sizeMagnitude - leafLevelShift - 4) / 4.0),
+       1
+     );
+     return leafLevelShift + 4 * levelsAboveTheFirst;
+   }
+
+   /** @return whether the set trees of this context are laid out for the given virtual length */
+   hasTopLevelShiftsFor(virtualLength: i32): boolean {
+     for (let setNumber = 0; setNumber < NUMBER_OF_SETS; setNumber++) {
+       if (
+         this.determineTopLevelShiftForVirtualLength(virtualLength, setNumber) !==
+         this.topLevelShiftBySet[setNumber]
+       ) {
+         return false;
+       }
+     }
+     return true;
    }
  
    setVirtualLength(virtualLength: i32): void {
@@ -574,15 +629,15 @@
          "Should never be adjusting the virtual size of a non-packed context"
        );
      }
-     this.topLevelShift = this.determineTopLevelShiftForVirtualLength(
-       virtualLength
-     );
+     for (let setNumber = 0; setNumber < NUMBER_OF_SETS; setNumber++) {
+       this.topLevelShiftBySet[setNumber] = this.determineTopLevelShiftForVirtualLength(
+         virtualLength,
+         setNumber
+       );
+     }
      this.virtualLength = virtualLength;
    }
  
-   getTopLevelShift(): i32 {
-     return this.topLevelShift;
-   }
  
    //
    //  ##     ##         ########   #######  ########  ##     ## ##          ###    ######## ########
@@ -609,11 +664,18 @@
        throw new Error("Cannot populate array of smaller virtual length");
      }
  
-     for (let i = 0; i < NUMBER_OF_SETS; i++) {
-       const otherEntryIndex = other.getAtShortIndex(SET_0_START_INDEX + i);
+     for (let setNumber = 0; setNumber < NUMBER_OF_SETS; setNumber++) {
+       const otherEntryIndex = other.getAtShortIndex(
+         SET_0_START_INDEX + setNumber
+       );
        if (otherEntryIndex == 0) continue; // No tree to duplicate
-       let entryIndexPointer = SET_0_START_INDEX + i;
-       for (let i = this.topLevelShift; i > other.topLevelShift; i -= 4) {
+       let entryIndexPointer = SET_0_START_INDEX + setNumber;
+       const otherTopLevelShift = other.topLevelShiftBySet[setNumber];
+       for (
+         let i = this.topLevelShiftBySet[setNumber];
+         i > otherTopLevelShift;
+         i -= 4
+       ) {
          // for each inserted level:
          // Allocate entry in other:
          const sizeOfEntry = NON_LEAF_ENTRY_HEADER_SIZE_IN_SHORTS + 1;
@@ -630,7 +692,8 @@
          other,
          otherEntryIndex,
          entryIndexPointer,
-         other.topLevelShift
+         otherTopLevelShift,
+         setNumber
        );
      }
    }
@@ -639,9 +702,12 @@
      other: PackedArrayContext,
      otherLevelEntryIndex: i32,
      levelEntryIndexPointer: i32,
-     otherIndexShift: i32
+     otherIndexShift: i32,
+     setNumber: i32
    ): void {
-     const nextLevelIsLeaf = otherIndexShift == LEAF_LEVEL_SHIFT;
+     const leafLevelShift = LEAF_LEVEL_SHIFT_BY_SET[setNumber];
+     const leafLengthInLongs = LEAF_LENGTH_IN_LONGS_BY_SET[setNumber];
+     const nextLevelIsLeaf = otherIndexShift == leafLevelShift;
      const packedSlotIndicators = other.getPackedSlotIndicators(
        otherLevelEntryIndex
      );
@@ -658,7 +724,7 @@
      for (let i: u8 = 0; i < numberOfSlots; i++) {
        if (nextLevelIsLeaf) {
          // Make leaf in other:
-         const leafEntryIndex = this.newLeafEntry();
+         const leafEntryIndex = this.newLeafEntry(leafLengthInLongs);
  
          this.setIndexAtEntrySlot(entryIndex, i, <u16>leafEntryIndex);
  
@@ -668,8 +734,10 @@
            otherLevelEntryIndex,
            i
          );
-         this.longArray[leafEntryIndex] =
-           other.longArray[otherNextLevelEntryIndex];
+         for (let longNum = 0; longNum < leafLengthInLongs; longNum++) {
+           this.longArray[leafEntryIndex + longNum] =
+             other.longArray[otherNextLevelEntryIndex + longNum];
+         }
        } else {
          const otherNextLevelEntryIndex = other.getIndexAtEntrySlot(
            otherLevelEntryIndex,
@@ -679,7 +747,8 @@
            other,
            otherNextLevelEntryIndex,
            entryIndex + NON_LEAF_ENTRY_HEADER_SIZE_IN_SHORTS + i,
-           otherIndexShift - 4
+           otherIndexShift - 4,
+           setNumber
          );
        }
      }
@@ -722,7 +791,8 @@
    private nonLeafEntryToString(
      entryIndex: i32,
      indexShift: i32,
-     indentLevel: i32
+     indentLevel: i32,
+     leafLevelShift: i32
    ): string {
      let output = "";
      for (let i = 0; i < indentLevel; i++) {
@@ -742,16 +812,21 @@
        }
      }
      output += " ] (indexShift = " + indexShift.toString() + ")\n";
-     const nextLevelIsLeaf = indexShift == LEAF_LEVEL_SHIFT;
+     const nextLevelIsLeaf = indexShift == leafLevelShift;
      for (let i: u8 = 0; i < numberOfslotsInEntry; i++) {
        const nextLevelEntryIndex = this.getIndexAtEntrySlot(entryIndex, i);
        if (nextLevelIsLeaf) {
-         output += this.leafEntryToString(nextLevelEntryIndex, indentLevel + 4);
+         output += this.leafEntryToString(
+           nextLevelEntryIndex,
+           indentLevel + 4,
+           leafLevelShift
+         );
        } else {
          output += this.nonLeafEntryToString(
            nextLevelEntryIndex,
            indexShift - 4,
-           indentLevel + 4
+           indentLevel + 4,
+           leafLevelShift
          );
        }
      }
@@ -759,14 +834,20 @@
      return output;
    }
  
-   private leafEntryToString(entryIndex: i32, indentLevel: i32): string {
+   private leafEntryToString(
+     entryIndex: i32,
+     indentLevel: i32,
+     leafLevelShift: i32
+   ): string {
      let output = "";
      for (let i = 0; i < indentLevel; i++) {
        output += "  ";
      }
- 
+
      output += "Leaf bytes : ";
-     for (let i = 0; i < 8; i++) {
+     // 16 bytes for a set 0 leaf, 8 for the other sets
+     const leafLengthInBytes = 1 << leafLevelShift;
+     for (let i = 0; i < leafLengthInBytes; i++) {
        output += "0x" + toHex(this.byteArray[entryIndex * 8 + i]) + " ";
      }
      output += "\n";
@@ -789,7 +870,12 @@
          entryIndex.toString() +
          " \n";
        if (entryIndex == 0) continue;
-       output += this.nonLeafEntryToString(entryIndex, this.topLevelShift, 4);
+       output += this.nonLeafEntryToString(
+          entryIndex,
+          this.topLevelShiftBySet[setNumber],
+          4,
+          LEAF_LEVEL_SHIFT_BY_SET[setNumber]
+        );
      }
      //output += recordedValuesToString();
      return output;

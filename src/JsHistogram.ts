@@ -525,13 +525,13 @@ export abstract class JsHistogram implements Histogram {
   /**
    * Get the values at several percentiles with a single scan of the counts.
    * Each entry is what {@link getValueAtPercentile} returns for the same
-   * percentile; results are in the input order. The percentiles may be
+   * percentile; results are in the argument order. The percentiles may be
    * unsorted or repeated.
    *
    * @param percentiles The percentiles for which to return the associated values
    * @return The values, one per requested percentile
    */
-  getValuesAtPercentiles(percentiles: number[]): number[] {
+  getValuesAtPercentiles(...percentiles: number[]): number[] {
     const results = new Array<number>(percentiles.length).fill(0);
     const thresholds = percentiles.map((p) => this.countAtPercentile(p));
     // Requested positions sorted by the count each one has to reach. NaN

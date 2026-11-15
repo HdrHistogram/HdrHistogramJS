@@ -454,7 +454,7 @@ export class WasmHistogram implements Histogram {
     return this._fns.getValueAtPercentile(this._ptr, percentile);
   }
 
-  getValuesAtPercentiles(percentiles: number[]): number[] {
+  getValuesAtPercentiles(...percentiles: number[]): number[] {
     if (this._ptr === 0) {
       throw new Error("Cannot use a destroyed histogram");
     }

@@ -455,8 +455,12 @@ export class WasmHistogram implements Histogram {
   }
 
   getValuesAtPercentiles(percentiles: number[]): number[] {
-    if (this._ptr === 0) throw new Error("Cannot use a destroyed histogram");
-    if (percentiles.length === 0) return [];
+    if (this._ptr === 0) {
+      throw new Error("Cannot use a destroyed histogram");
+    }
+    if (percentiles.length === 0) {
+      return [];
+    }
     // The WASM side overwrites the scratch array with the values, in place
     const viewPtr = fillScratchFloat64Array(percentiles);
     this._fns.getValuesAtPercentiles(this._ptr, viewPtr);

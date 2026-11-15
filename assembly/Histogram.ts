@@ -874,7 +874,9 @@ export default class Histogram<T, U> extends AbstractHistogramBase<T, U> {
         if (!isFlatStorage<V>()) {
           // Jump over the empty subtrees of the other packed counts
           i = otherHistogram.nextNonZeroIndex(i);
-          if (i < 0 || i >= end) break;
+          if (i < 0 || i >= end) {
+            break;
+          }
         }
         const otherCount = otherHistogram.getCountAtIndex(i);
         if (otherCount > 0) {
@@ -911,7 +913,9 @@ export default class Histogram<T, U> extends AbstractHistogramBase<T, U> {
         if (!isFlatStorage<V>()) {
           // Jump over the empty subtrees of the other packed counts
           i = otherHistogram.nextNonZeroIndex(i);
-          if (i < 0 || i >= otherMaxIndex) break;
+          if (i < 0 || i >= otherMaxIndex) {
+            break;
+          }
         }
         otherCount = otherHistogram.getCountAtIndex(i);
         if (otherCount > 0) {
@@ -985,7 +989,9 @@ export default class Histogram<T, U> extends AbstractHistogramBase<T, U> {
       if (!isFlatStorage<T>()) {
         // Jump over the empty subtrees of the packed counts
         index = this.nextNonZeroIndex(index);
-        if (index < 0 || index >= lengthToCover) break;
+        if (index < 0 || index >= lengthToCover) {
+          break;
+        }
       }
       const countAtIndex: u64 = this.getCountAtIndex(index);
       if (countAtIndex > 0) {
@@ -1056,7 +1062,9 @@ export default class Histogram<T, U> extends AbstractHistogramBase<T, U> {
         if (!isFlatStorage<V>()) {
           // Jump over the empty subtrees of the other packed counts
           i = otherHistogram.nextNonZeroIndex(i);
-          if (i < 0 || i >= end) break;
+          if (i < 0 || i >= end) {
+            break;
+          }
         }
         const otherCount = otherHistogram.getCountAtIndex(i);
         if (otherCount > 0) {
@@ -1075,7 +1083,9 @@ export default class Histogram<T, U> extends AbstractHistogramBase<T, U> {
         if (!isFlatStorage<V>()) {
           // Jump over the empty subtrees of the other packed counts
           i = otherHistogram.nextNonZeroIndex(i);
-          if (i < 0 || i > otherLastIndex) break;
+          if (i < 0 || i > otherLastIndex) {
+            break;
+          }
         }
         const otherCount = otherHistogram.getCountAtIndex(i);
         if (otherCount > 0) {

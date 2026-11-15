@@ -107,7 +107,8 @@ describe.each(implementations)(
   ({ build, name }) => {
     beforeAll(initWebAssembly);
 
-    it("returns 0 for NaN when the unit magnitude is not 0", () => {
+    it("should return 0 for NaN when the unit magnitude is not 0", () => {
+      // given
       const useWebAssembly = name.startsWith("WASM");
       const bitBucketSize = name.endsWith("packed") ? "packed" : 32;
       const histogram = hdr.build({
@@ -118,21 +119,26 @@ describe.each(implementations)(
         numberOfSignificantValueDigits,
       });
       histogram.recordValue(5000);
-      expect(histogram.getValueAtPercentile(NaN)).toBe(0);
-      expect(histogram.getValuesAtPercentiles([NaN, 50])).toEqual([
-        0,
-        histogram.getValueAtPercentile(50),
-      ]);
+      // when
+      const single = histogram.getValueAtPercentile(NaN);
+      const values = histogram.getValuesAtPercentiles([NaN, 50]);
+      // then
+      expect(single).toBe(0);
+      expect(values).toEqual([0, histogram.getValueAtPercentile(50)]);
       histogram.destroy();
     });
 
-    it.runIf(name.startsWith("WASM"))("throws after destroy", () => {
+    it.runIf(name.startsWith("WASM"))("should throw after destroy", () => {
+      // given
       const histogram = fill(build(), [{ value: 42, count: 3 }]);
       histogram.destroy();
-      expect(() => histogram.getValuesAtPercentiles([50])).toThrow();
+      // when
+      const call = () => histogram.getValuesAtPercentiles([50]);
+      // then
+      expect(call).toThrow();
     });
 
-    it("matches getValueAtPercentile for each requested percentile", () => {
+    it("should match getValueAtPercentile for each requested percentile", () => {
       fc.assert(
         fc.property(recordsArb, percentilesArb, (records, percentiles) => {
           const histogram = fill(build(), records);
@@ -151,65 +157,84 @@ describe.each(implementations)(
       );
     });
 
-    it("returns an empty array for an empty list", () => {
+    it("should return an empty array for an empty list", () => {
+      // given
       const histogram = fill(build(), [{ value: 42, count: 3 }]);
-      expect(histogram.getValuesAtPercentiles([])).toEqual([]);
+      // when
+      const values = histogram.getValuesAtPercentiles([]);
+      // then
+      expect(values).toEqual([]);
       histogram.destroy();
     });
 
-    it("returns 0 for every percentile of an empty histogram", () => {
+    it("should return 0 for every percentile of an empty histogram", () => {
+      // given
       const histogram = build();
-      expect(histogram.getValuesAtPercentiles([0, 50, 99.9, 100])).toEqual([
-        0, 0, 0, 0,
-      ]);
+      // when
+      const values = histogram.getValuesAtPercentiles([0, 50, 99.9, 100]);
+      // then
+      expect(values).toEqual([0, 0, 0, 0]);
       histogram.destroy();
     });
 
-    it("keeps the input order for unsorted and repeated percentiles", () => {
+    it("should keep the input order for unsorted and repeated percentiles", () => {
+      // given
       const histogram = fill(
         build(),
         Array.from({ length: 100 }, (_, i) => ({ value: i + 1, count: 1 }))
       );
-      expect(histogram.getValuesAtPercentiles([99, 50, 99, 0, 100])).toEqual([
-        99, 50, 99, 1, 100,
-      ]);
+      // when
+      const values = histogram.getValuesAtPercentiles([99, 50, 99, 0, 100]);
+      // then
+      expect(values).toEqual([99, 50, 99, 1, 100]);
       histogram.destroy();
     });
 
-    it("truncates percentiles above 100 to 100", () => {
+    it("should truncate percentiles above 100 to 100", () => {
+      // given
       const histogram = fill(build(), [
         { value: 10, count: 1 },
         { value: 1000, count: 1 },
       ]);
+      // when
       const [above, top] = histogram.getValuesAtPercentiles([150, 100]);
+      // then
       expect(above).toBe(top);
       expect(top).toBe(histogram.getValueAtPercentile(100));
       histogram.destroy();
     });
 
-    it("returns 0 for a NaN percentile and still answers the others", () => {
+    it("should return 0 for a NaN percentile and still answer the others", () => {
+      // given
       const histogram = fill(build(), [{ value: 50, count: 10 }]);
-      expect(histogram.getValuesAtPercentiles([NaN, 50])).toEqual([
-        0,
-        histogram.getValueAtPercentile(50),
-      ]);
+      // when
+      const values = histogram.getValuesAtPercentiles([NaN, 50]);
+      // then
+      expect(values).toEqual([0, histogram.getValueAtPercentile(50)]);
       histogram.destroy();
     });
 
-    it("treats negative and -Infinity percentiles as 0", () => {
+    it("should treat negative and -Infinity percentiles as 0", () => {
+      // given
       const histogram = fill(
         build(),
         Array.from({ length: 100 }, (_, i) => ({ value: i + 1, count: 1 }))
       );
+      // when
+      const values = histogram.getValuesAtPercentiles([
+        -Infinity,
+        50,
+        -1,
+        Infinity,
+      ]);
+      // then
       expect(histogram.getValueAtPercentile(-1)).toBe(1);
       expect(histogram.getValueAtPercentile(-Infinity)).toBe(1);
-      expect(
-        histogram.getValuesAtPercentiles([-Infinity, 50, -1, Infinity])
-      ).toEqual([1, 50, 1, 100]);
+      expect(values).toEqual([1, 50, 1, 100]);
       histogram.destroy();
     });
 
-    it("summary values are the per-percentile values, rounded", () => {
+    it("should compute summary values equal to the per-percentile values, rounded", () => {
       fc.assert(
         fc.property(recordsArb, (records) => {
           const histogram = fill(build(), records);

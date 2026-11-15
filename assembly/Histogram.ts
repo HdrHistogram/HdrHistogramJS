@@ -686,7 +686,9 @@ export default class Histogram<T, U> extends AbstractHistogramBase<T, U> {
    */
   getValueAtPercentile(percentile: f64): u64 {
     const fpCountAtPercentile = this.countAtPercentile(percentile);
-    if (isNaN<f64>(fpCountAtPercentile)) return 0; // NaN percentile
+    if (isNaN<f64>(fpCountAtPercentile)) {
+      return 0; // NaN percentile
+    }
     const countAtPercentile = <u64>fpCountAtPercentile;
 
     // Index 0 holds the zero values and is the only index below the one of
@@ -767,7 +769,9 @@ export default class Histogram<T, U> extends AbstractHistogramBase<T, U> {
       order.push(position);
     }
     const valid = order.length;
-    if (valid == 0) return percentiles;
+    if (valid == 0) {
+      return percentiles;
+    }
     order.sort(byThreshold);
 
     const step = lanes<U>() << 2; // indexes per 64-byte block
@@ -806,7 +810,9 @@ export default class Histogram<T, U> extends AbstractHistogramBase<T, U> {
           );
           next++;
         }
-        if (next == valid) break;
+        if (next == valid) {
+          break;
+        }
       }
       if (chunkEnd == 1) i = lowest; // index 0 is followed by the lowest non-zero index
     }

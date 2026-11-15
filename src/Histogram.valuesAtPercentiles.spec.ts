@@ -121,7 +121,7 @@ describe.each(implementations)(
       histogram.recordValue(5000);
       // when
       const single = histogram.getValueAtPercentile(NaN);
-      const values = histogram.getValuesAtPercentiles([NaN, 50]);
+      const values = histogram.getValuesAtPercentiles(NaN, 50);
       // then
       expect(single).toBe(0);
       expect(values).toEqual([0, histogram.getValueAtPercentile(50)]);
@@ -133,7 +133,7 @@ describe.each(implementations)(
       const histogram = fill(build(), [{ value: 42, count: 3 }]);
       histogram.destroy();
       // when
-      const call = () => histogram.getValuesAtPercentiles([50]);
+      const call = () => histogram.getValuesAtPercentiles(50);
       // then
       expect(call).toThrow();
     });
@@ -146,7 +146,7 @@ describe.each(implementations)(
             const expected = percentiles.map((p) =>
               histogram.getValueAtPercentile(p)
             );
-            expect(histogram.getValuesAtPercentiles(percentiles)).toEqual(
+            expect(histogram.getValuesAtPercentiles(...percentiles)).toEqual(
               expected
             );
           } finally {
@@ -157,11 +157,11 @@ describe.each(implementations)(
       );
     });
 
-    it("should return an empty array for an empty list", () => {
+    it("should return an empty array when called without percentiles", () => {
       // given
       const histogram = fill(build(), [{ value: 42, count: 3 }]);
       // when
-      const values = histogram.getValuesAtPercentiles([]);
+      const values = histogram.getValuesAtPercentiles();
       // then
       expect(values).toEqual([]);
       histogram.destroy();
@@ -171,20 +171,20 @@ describe.each(implementations)(
       // given
       const histogram = build();
       // when
-      const values = histogram.getValuesAtPercentiles([0, 50, 99.9, 100]);
+      const values = histogram.getValuesAtPercentiles(0, 50, 99.9, 100);
       // then
       expect(values).toEqual([0, 0, 0, 0]);
       histogram.destroy();
     });
 
-    it("should keep the input order for unsorted and repeated percentiles", () => {
+    it("should keep the argument order for unsorted and repeated percentiles", () => {
       // given
       const histogram = fill(
         build(),
         Array.from({ length: 100 }, (_, i) => ({ value: i + 1, count: 1 }))
       );
       // when
-      const values = histogram.getValuesAtPercentiles([99, 50, 99, 0, 100]);
+      const values = histogram.getValuesAtPercentiles(99, 50, 99, 0, 100);
       // then
       expect(values).toEqual([99, 50, 99, 1, 100]);
       histogram.destroy();
@@ -197,7 +197,7 @@ describe.each(implementations)(
         { value: 1000, count: 1 },
       ]);
       // when
-      const [above, top] = histogram.getValuesAtPercentiles([150, 100]);
+      const [above, top] = histogram.getValuesAtPercentiles(150, 100);
       // then
       expect(above).toBe(top);
       expect(top).toBe(histogram.getValueAtPercentile(100));
@@ -208,7 +208,7 @@ describe.each(implementations)(
       // given
       const histogram = fill(build(), [{ value: 50, count: 10 }]);
       // when
-      const values = histogram.getValuesAtPercentiles([NaN, 50]);
+      const values = histogram.getValuesAtPercentiles(NaN, 50);
       // then
       expect(values).toEqual([0, histogram.getValueAtPercentile(50)]);
       histogram.destroy();
@@ -221,12 +221,12 @@ describe.each(implementations)(
         Array.from({ length: 100 }, (_, i) => ({ value: i + 1, count: 1 }))
       );
       // when
-      const values = histogram.getValuesAtPercentiles([
+      const values = histogram.getValuesAtPercentiles(
         -Infinity,
         50,
         -1,
-        Infinity,
-      ]);
+        Infinity
+      );
       // then
       expect(histogram.getValueAtPercentile(-1)).toBe(1);
       expect(histogram.getValueAtPercentile(-Infinity)).toBe(1);

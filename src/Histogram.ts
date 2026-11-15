@@ -100,13 +100,13 @@ export default interface Histogram {
   /**
    * Get the values at several percentiles with a single scan of the counts.
    * Each entry is what {@link getValueAtPercentile} returns for the same
-   * percentile. Results are in the input order; the percentiles may be
-   * unsorted or repeated, and an empty list returns an empty array.
+   * percentile. Results are in the argument order; the percentiles may be
+   * unsorted or repeated, and no argument returns an empty array.
    *
    * @param percentiles The percentiles for which to return the associated values
    * @return The values, one per requested percentile
    */
-  getValuesAtPercentiles(percentiles: number[]): number[];
+  getValuesAtPercentiles(...percentiles: number[]): number[];
 
   /**
    * Produce textual representation of the value distribution of histogram data by percentile. The distribution is
@@ -252,7 +252,7 @@ export const toSummary = (histogram: Histogram): HistogramSummary => {
   const { totalCount, maxValue, numberOfSignificantValueDigits } = histogram;
   const round = keepSignificantDigits(numberOfSignificantValueDigits);
   const [p50, p75, p90, p97_5, p99, p99_9, p99_99, p99_999] = histogram
-    .getValuesAtPercentiles([50, 75, 90, 97.5, 99, 99.9, 99.99, 99.999])
+    .getValuesAtPercentiles(50, 75, 90, 97.5, 99, 99.9, 99.99, 99.999)
     .map((value) => round(value));
   return {
     p50,

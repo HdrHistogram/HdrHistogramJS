@@ -38,11 +38,21 @@ const PACKED_ARRAY_GROWTH_FRACTION_POW2 = 4;
 
 const { ceil, log2, max } = Math;
 
-const bitCount = (n: number) => {
-  var bits = 0;
+/**
+ * Population count of a non-negative integer below 2^53. The high words are
+ * shifted down by whole 32 bit words, so a value below 2^32 takes one pass.
+ * Any other input (negative, non-integer, NaN, Infinity) would never reach 0
+ * and is rejected instead.
+ * @internal
+ */
+export const bitCount = (n: number) => {
+  if (!Number.isSafeInteger(n) || n < 0) {
+    throw new Error(`bitCount expects a non-negative safe integer, got ${n}`);
+  }
+  let bits = 0;
   while (n !== 0) {
     bits += bitCount32(n | 0);
-    n /= 0x100000000;
+    n = Math.floor(n / 0x100000000);
   }
   return bits;
 };

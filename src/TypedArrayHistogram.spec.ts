@@ -67,3 +67,185 @@ import Float64Histogram from "./Float64Histogram";
     });
   }
 );
+
+describe("Typed array histogram count range", () => {
+  const cases = [
+    { name: "8-bit", Histogram: Int8Histogram, max: 255, bits: 8 },
+    { name: "16-bit", Histogram: Int16Histogram, max: 65535, bits: 16 },
+    { name: "32-bit", Histogram: Int32Histogram, max: 4294967295, bits: 32 },
+  ];
+
+  cases.forEach(({ name, Histogram, max, bits }) => {
+    describe(`${name} histogram`, () => {
+      it("should accept a count up to the storage maximum", () => {
+        // given
+        const histogram = new Histogram(1, Number.MAX_SAFE_INTEGER, 3);
+        // when
+        histogram.recordValueWithCount(42, max);
+        // then
+        expect(histogram.getCountAtIndex(histogram.countsArrayIndex(42))).toBe(
+          max
+        );
+        expect(histogram.totalCount).toBe(max);
+      });
+
+      it("should throw on recordValueWithCount past the storage maximum, leaving the histogram unchanged", () => {
+        // given
+        const histogram = new Histogram(1, Number.MAX_SAFE_INTEGER, 3);
+        histogram.recordValueWithCount(42, max);
+        // when
+        const act = () => histogram.recordValueWithCount(42, 1);
+        // then
+        expect(act).toThrow(`would overflow ${bits}-bit integer count`);
+        expect(histogram.getCountAtIndex(histogram.countsArrayIndex(42))).toBe(
+          max
+        );
+        expect(histogram.totalCount).toBe(max);
+      });
+
+      it("should throw on recordValue when the counter is already at the maximum", () => {
+        // given
+        const histogram = new Histogram(1, Number.MAX_SAFE_INTEGER, 3);
+        histogram.setCountAtIndex(histogram.countsArrayIndex(42), max);
+        // when
+        const act = () => histogram.recordValue(42);
+        // then
+        expect(act).toThrow(`would overflow ${bits}-bit integer count`);
+        expect(histogram.totalCount).toBe(0);
+      });
+
+      it("should throw on addToCountAtIndex and setCountAtIndex past the maximum", () => {
+        // given
+        const histogram = new Histogram(1, Number.MAX_SAFE_INTEGER, 3);
+        // when
+        const setAct = () => histogram.setCountAtIndex(5, max + 1);
+        // then
+        expect(setAct).toThrow("would overflow");
+        // given
+        histogram.setCountAtIndex(5, max - 1);
+        // when
+        const addAct = () => histogram.addToCountAtIndex(5, 2);
+        // then
+        expect(addAct).toThrow(`would overflow ${bits}-bit integer count`);
+        expect(histogram.getCountAtIndex(5)).toBe(max - 1);
+      });
+
+      it("should throw on a negative count instead of wrapping", () => {
+        // given
+        const histogram = new Histogram(1, Number.MAX_SAFE_INTEGER, 3);
+        histogram.recordValueWithCount(42, 3);
+        // when
+        const act = () => histogram.recordValueWithCount(42, -4);
+        // then
+        expect(act).toThrow(`would underflow ${bits}-bit integer count`);
+        expect(histogram.getCountAtIndex(histogram.countsArrayIndex(42))).toBe(
+          3
+        );
+        expect(histogram.totalCount).toBe(3);
+      });
+
+      it("should throw on add when the only cell to change would overflow, leaving the histogram unchanged", () => {
+        // given
+        const histogram = new Histogram(1, Number.MAX_SAFE_INTEGER, 3);
+        const other = new Histogram(1, Number.MAX_SAFE_INTEGER, 3);
+        histogram.recordValueWithCount(42, max - 10);
+        other.recordValueWithCount(42, 11);
+        const before = histogram.summary;
+        // when
+        const act = () => histogram.add(other);
+        // then
+        expect(act).toThrow(`would overflow ${bits}-bit integer count`);
+        expect(histogram.summary).toEqual(before);
+        expect(other.totalCount).toBe(11);
+      });
+
+      it("should add up to exactly the storage maximum", () => {
+        // given
+        const histogram = new Histogram(1, Number.MAX_SAFE_INTEGER, 3);
+        const other = new Histogram(1, Number.MAX_SAFE_INTEGER, 3);
+        histogram.recordValueWithCount(42, max - 10);
+        other.recordValueWithCount(42, 10);
+        // when
+        histogram.add(other);
+        // then
+        expect(histogram.getCountAtIndex(histogram.countsArrayIndex(42))).toBe(
+          max
+        );
+        expect(histogram.totalCount).toBe(max);
+      });
+
+      it("should throw on subtract when the only cell to change would underflow, leaving the histogram unchanged", () => {
+        // given
+        const histogram = new Histogram(1, Number.MAX_SAFE_INTEGER, 3);
+        const other = new Histogram(1, Number.MAX_SAFE_INTEGER, 3);
+        histogram.recordValueWithCount(42, 5);
+        other.recordValueWithCount(42, 6);
+        const before = histogram.summary;
+        // when
+        const act = () => histogram.subtract(other);
+        // then
+        expect(act).toThrow(`would underflow ${bits}-bit integer count`);
+        expect(histogram.summary).toEqual(before);
+      });
+    });
+  });
+
+  describe("8-bit histogram with several cells changing", () => {
+    it("should throw on add at a later cell, leaving earlier cells applied and totalCount unchanged", () => {
+      // given
+      const histogram = new Int8Histogram(1, Number.MAX_SAFE_INTEGER, 3);
+      const other = new Int8Histogram(1, Number.MAX_SAFE_INTEGER, 3);
+      histogram.recordValueWithCount(42, 255);
+      other.recordValueWithCount(1, 5);
+      other.recordValueWithCount(42, 1);
+      // when
+      const act = () => histogram.add(other);
+      // then
+      expect(act).toThrow("would overflow 8-bit integer count");
+      expect(histogram.getCountAtIndex(histogram.countsArrayIndex(1))).toBe(5);
+      expect(histogram.getCountAtIndex(histogram.countsArrayIndex(42))).toBe(
+        255
+      );
+      expect(histogram.totalCount).toBe(255);
+    });
+
+    it("should throw on subtract at a later cell, leaving earlier cells applied and totalCount unchanged", () => {
+      // given
+      const histogram = new Int8Histogram(1, Number.MAX_SAFE_INTEGER, 3);
+      const other = new Int8Histogram(1, Number.MAX_SAFE_INTEGER, 3);
+      histogram.recordValueWithCount(1, 10);
+      other.recordValueWithCount(1, 5);
+      other.recordValueWithCount(42, 1);
+      // when
+      const act = () => histogram.subtract(other);
+      // then
+      expect(act).toThrow("would underflow 8-bit integer count");
+      expect(histogram.getCountAtIndex(histogram.countsArrayIndex(1))).toBe(5);
+      expect(histogram.getCountAtIndex(histogram.countsArrayIndex(42))).toBe(0);
+      expect(histogram.totalCount).toBe(10);
+    });
+
+    it("should leave highestTrackableValue unchanged when an auto-resizing histogram rejects the count", () => {
+      // given
+      const histogram = new Int8Histogram(1, 1000, 3);
+      histogram.autoResize = true;
+      const highestBefore = histogram.highestTrackableValue;
+      // when
+      const act = () => histogram.recordValueWithCount(1000000, 300);
+      // then
+      expect(act).toThrow("would overflow 8-bit integer count");
+      expect(histogram.highestTrackableValue).toBe(highestBefore);
+      expect(histogram.totalCount).toBe(0);
+    });
+  });
+
+  it("should keep Float64 histograms unbounded by the 32-bit maximum", () => {
+    // given
+    const histogram = new Float64Histogram(1, Number.MAX_SAFE_INTEGER, 3);
+    // when
+    histogram.recordValueWithCount(42, 4294967295);
+    histogram.recordValueWithCount(42, 4294967295);
+    // then
+    expect(histogram.totalCount).toBe(8589934590);
+  });
+});

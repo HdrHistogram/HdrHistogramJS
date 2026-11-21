@@ -835,3 +835,262 @@ describe("Histogram bucket boundaries near 2^53", () => {
     histogram.destroy();
   });
 });
+
+describe("WASM histogram count range", () => {
+  beforeAll(initWebAssembly);
+
+  [8, 16, 32].forEach((bits) => {
+    const max = Math.pow(2, bits) - 1;
+    const label = `${bits}-bit`;
+
+    it(`should throw on recordValueWithCount past the ${label} maximum, leaving the histogram unchanged (WASM)`, () => {
+      // given
+      const histogram = build({
+        bitBucketSize: bits,
+        useWebAssembly: true,
+        numberOfSignificantValueDigits: 3,
+      });
+      histogram.recordValueWithCount(42, max);
+      const before = histogram.summary;
+      // when
+      const act = () => histogram.recordValueWithCount(42, 1);
+      // then
+      expect(act).toThrow(`would overflow ${bits}-bit integer count`);
+      expect(histogram.summary).toEqual(before);
+      expect(histogram.totalCount).toBe(max);
+      histogram.destroy();
+    });
+
+    it(`should throw on add when the only cell to change would overflow ${label}, leaving the histogram unchanged (WASM)`, () => {
+      // given
+      const histogram = build({
+        bitBucketSize: bits,
+        useWebAssembly: true,
+        numberOfSignificantValueDigits: 3,
+      });
+      const other = build({
+        bitBucketSize: bits,
+        useWebAssembly: true,
+        numberOfSignificantValueDigits: 3,
+      });
+      histogram.recordValueWithCount(42, max - 10);
+      other.recordValueWithCount(42, 11);
+      const before = histogram.summary;
+      // when
+      const act = () => histogram.add(other);
+      // then
+      expect(act).toThrow(`would overflow ${bits}-bit integer count`);
+      expect(histogram.summary).toEqual(before);
+      histogram.destroy();
+      other.destroy();
+    });
+
+    it(`should add up to exactly the ${label} maximum (WASM)`, () => {
+      // given
+      const histogram = build({
+        bitBucketSize: bits,
+        useWebAssembly: true,
+        numberOfSignificantValueDigits: 3,
+      });
+      const other = build({
+        bitBucketSize: bits,
+        useWebAssembly: true,
+        numberOfSignificantValueDigits: 3,
+      });
+      histogram.recordValueWithCount(42, max - 10);
+      other.recordValueWithCount(42, 10);
+      // when
+      histogram.add(other);
+      // then
+      expect(histogram.totalCount).toBe(max);
+      histogram.destroy();
+      other.destroy();
+    });
+
+    it(`should throw on subtract when the only cell to change would underflow ${label}, leaving the histogram unchanged (WASM)`, () => {
+      // given
+      const histogram = build({
+        bitBucketSize: bits,
+        useWebAssembly: true,
+        numberOfSignificantValueDigits: 3,
+      });
+      const other = build({
+        bitBucketSize: bits,
+        useWebAssembly: true,
+        numberOfSignificantValueDigits: 3,
+      });
+      histogram.recordValueWithCount(42, 5);
+      other.recordValueWithCount(42, 6);
+      const before = histogram.summary;
+      // when
+      const act = () => histogram.subtract(other);
+      // then
+      expect(act).toThrow(`would underflow ${bits}-bit integer count`);
+      expect(histogram.summary).toEqual(before);
+      histogram.destroy();
+      other.destroy();
+    });
+  });
+
+  [8, 16, 32].forEach((bits) => {
+    it(`should throw on a negative recordValueWithCount on a ${bits}-bit WASM histogram instead of dropping it`, () => {
+      // given
+      const histogram = build({
+        bitBucketSize: bits,
+        useWebAssembly: true,
+        numberOfSignificantValueDigits: 3,
+      });
+      // when
+      const act = () => histogram.recordValueWithCount(42, -1);
+      // then
+      expect(act).toThrow(`would underflow ${bits}-bit integer count`);
+      expect(histogram.totalCount).toBe(0);
+      histogram.destroy();
+    });
+  });
+
+  it("should throw on add at a later cell, leaving earlier cells applied and totalCount unchanged (8-bit WASM)", () => {
+    // given
+    const histogram = build({
+      bitBucketSize: 8,
+      useWebAssembly: true,
+      numberOfSignificantValueDigits: 3,
+    });
+    const other = build({
+      bitBucketSize: 8,
+      useWebAssembly: true,
+      numberOfSignificantValueDigits: 3,
+    });
+    histogram.recordValueWithCount(42, 255);
+    other.recordValueWithCount(1, 5);
+    other.recordValueWithCount(42, 1);
+    // when
+    const act = () => histogram.add(other);
+    // then
+    expect(act).toThrow("would overflow 8-bit integer count");
+    // non-zero counts are [index, count, ...] pairs in index order: value 1 (5) then value 42 (255)
+    const counts = Array.from(histogram.getNonZeroCounts()).filter(
+      (_, i) => i % 2 === 1
+    );
+    expect(counts).toEqual([5, 255]);
+    expect(histogram.totalCount).toBe(255);
+    histogram.destroy();
+    other.destroy();
+  });
+
+  it("should throw on subtract when the 64-bit result would underflow, leaving the histogram unchanged (WASM)", () => {
+    // given
+    const histogram = build({
+      bitBucketSize: 64,
+      useWebAssembly: true,
+      numberOfSignificantValueDigits: 3,
+    });
+    const other = build({
+      bitBucketSize: 64,
+      useWebAssembly: true,
+      numberOfSignificantValueDigits: 3,
+    });
+    histogram.recordValueWithCount(42, 5);
+    other.recordValueWithCount(42, 6);
+    const before = histogram.summary;
+    // when
+    const act = () => histogram.subtract(other);
+    // then
+    expect(act).toThrow("would underflow 64-bit integer count");
+    expect(histogram.summary).toEqual(before);
+    histogram.destroy();
+    other.destroy();
+  });
+
+  it("should throw on a negative recordValueWithCount on a 64-bit WASM histogram instead of dropping it", () => {
+    // given
+    const histogram = build({
+      bitBucketSize: 64,
+      useWebAssembly: true,
+      numberOfSignificantValueDigits: 3,
+    });
+    // when
+    const act = () => histogram.recordValueWithCount(42, -3);
+    // then
+    expect(act).toThrow("would underflow 64-bit integer count");
+    expect(histogram.totalCount).toBe(0);
+    histogram.destroy();
+  });
+
+  it("should keep 64-bit WASM histograms unbounded by the 32-bit maximum", () => {
+    // given
+    const histogram = build({
+      bitBucketSize: 64,
+      useWebAssembly: true,
+      numberOfSignificantValueDigits: 3,
+    });
+    // when
+    histogram.recordValueWithCount(42, 4294967295);
+    histogram.recordValueWithCount(42, 4294967295);
+    // then
+    expect(histogram.totalCount).toBe(8589934590);
+    histogram.destroy();
+  });
+});
+
+describe("WASM histogram add across a wide counts range", () => {
+  beforeAll(initWebAssembly);
+
+  [8, 16, 32].forEach((bits) => {
+    const max = Math.pow(2, bits) - 1;
+
+    it(`should throw on add when a cell in the middle of a vectorised block range would overflow ${bits}-bit (WASM)`, () => {
+      // given
+      const histogram = build({
+        bitBucketSize: bits,
+        useWebAssembly: true,
+        numberOfSignificantValueDigits: 3,
+      });
+      const other = build({
+        bitBucketSize: bits,
+        useWebAssembly: true,
+        numberOfSignificantValueDigits: 3,
+      });
+      for (let v = 1000; v < 200000; v += 997) {
+        other.recordValueWithCount(v, 1);
+      }
+      other.recordValueWithCount(100000, 1);
+      histogram.recordValueWithCount(100000, max);
+      // when
+      const act = () => histogram.add(other);
+      // then
+      expect(act).toThrow(`would overflow ${bits}-bit integer count`);
+      expect(histogram.totalCount).toBe(max);
+      histogram.destroy();
+      other.destroy();
+    });
+
+    it(`should add a wide range without overflow up to the ${bits}-bit maximum (WASM)`, () => {
+      // given
+      const histogram = build({
+        bitBucketSize: bits,
+        useWebAssembly: true,
+        numberOfSignificantValueDigits: 3,
+      });
+      const other = build({
+        bitBucketSize: bits,
+        useWebAssembly: true,
+        numberOfSignificantValueDigits: 3,
+      });
+      let expected = 0;
+      for (let v = 1000; v < 200000; v += 997) {
+        other.recordValueWithCount(v, 1);
+        expected++;
+      }
+      other.recordValueWithCount(100000, 1);
+      expected++;
+      histogram.recordValueWithCount(100000, max - 1);
+      // when
+      histogram.add(other);
+      // then
+      expect(histogram.totalCount).toBe(expected + max - 1);
+      histogram.destroy();
+      other.destroy();
+    });
+  });
+});

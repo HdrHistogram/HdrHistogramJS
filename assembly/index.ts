@@ -140,7 +140,7 @@ class HistogramAdapter<T, U> {
   }
 
   recordValueWithCount(value: f64, count: f64): void {
-    this._histogram.recordCountAtValue(<u64>count, <u64>value);
+    this._histogram.recordCountAtValueFromF64(count, value);
   }
 
   recordValueWithExpectedInterval(

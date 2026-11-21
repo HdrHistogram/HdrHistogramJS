@@ -291,8 +291,12 @@ const defaultRequest: BuildRequest = {
   numberOfSignificantValueDigits: 3,
 };
 
-const remoteHistogramClassFor = (size?: BitBucketSize) =>
-  size === "packed" ? "PackedHistogram" : `Histogram${size}`;
+const remoteHistogramClassFor = (size?: BitBucketSize) => {
+  if (size === "auto") {
+    throw new Error("bitBucketSize 'auto' is not supported with WebAssembly");
+  }
+  return size === "packed" ? "PackedHistogram" : `Histogram${size}`;
+};
 
 /** Map class name to the suffix used in the exported WASM function names */
 function suffixFor(remoteHistogramClass: string): string {
@@ -340,7 +344,7 @@ export class WasmHistogram implements Histogram {
 
   static decode(
     data: Uint8Array,
-    bitBucketSize: 8 | 16 | 32 | 64 | "packed" = 32,
+    bitBucketSize: BitBucketSize = 32,
     minBarForHighestTrackableValue: number = 0
   ): Histogram {
     if (!webAssemblyReady()) {

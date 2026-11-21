@@ -52,6 +52,9 @@ export const defaultRequest: BuildRequest = {
 
 export const build = (request = defaultRequest): Histogram => {
   const parameters = Object.assign({}, defaultRequest, request);
+  if (parameters.bitBucketSize === "auto" && request.useWebAssembly) {
+    throw new Error("bitBucketSize 'auto' is not supported with WebAssembly");
+  }
   if (request.useWebAssembly && webAssemblyAvailable) {
     return WasmHistogram.build(parameters);
   }

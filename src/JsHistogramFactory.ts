@@ -4,6 +4,7 @@ import Int8Histogram from "./Int8Histogram";
 import Int16Histogram from "./Int16Histogram";
 import Int32Histogram from "./Int32Histogram";
 import Float64Histogram from "./Float64Histogram";
+import AutoCountsHistogram from "./AutoCountsHistogram";
 import JsHistogram from "./JsHistogram";
 
 export interface JsHistogramConstructor {
@@ -28,6 +29,8 @@ export function constructorFromBucketSize(
       return Int32Histogram;
     case 64:
       return Float64Histogram;
+    case "auto":
+      return AutoCountsHistogram;
     default:
       throw new Error("Incorrect parameter bitBucketSize");
   }

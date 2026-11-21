@@ -2,7 +2,7 @@ import { keepSignificantDigits } from "./formatters";
 
 export const NO_TAG = "NO TAG";
 
-export type BitBucketSize = 8 | 16 | 32 | 64 | "packed";
+export type BitBucketSize = 8 | 16 | 32 | 64 | "packed" | "auto";
 
 export interface HistogramSummary {
   p50: number;

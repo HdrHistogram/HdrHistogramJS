@@ -7,7 +7,7 @@
  */
 import { JsHistogram } from "./JsHistogram";
 import ByteBuffer from "./ByteBuffer";
-import Histogram from "./Histogram";
+import Histogram, { BitBucketSize } from "./Histogram";
 import { WasmHistogram } from "./wasm";
 
 import * as base64 from "./base64";
@@ -39,7 +39,7 @@ export async function decompress(data: Uint8Array): Promise<Uint8Array> {
 
 export const decodeFromCompressedBase64 = async (
   base64String: string,
-  bitBucketSize: 8 | 16 | 32 | 64 | "packed" = 32,
+  bitBucketSize: BitBucketSize = 32,
   useWebAssembly: boolean = false,
   minBarForHighestTrackableValue: number = 0
 ): Promise<Histogram> => {

@@ -25,7 +25,7 @@ class TypedArrayHistogram extends JsHistogram {
   private readonly countMax: number;
 
   constructor(
-    private arrayCtr: new (size: number) => TypedArray,
+    protected arrayCtr: new (size: number) => TypedArray,
     lowestDiscernibleValue: number,
     highestTrackableValue: number,
     numberOfSignificantValueDigits: number
@@ -66,13 +66,18 @@ class TypedArrayHistogram extends JsHistogram {
   // Checked before the base class resizes an auto-resizing histogram, so a rejected
   // count leaves the histogram's range untouched. Only reached on the out-of-range path.
   handleRecordException(count: number, value: number) {
+    this.checkRecordedCount(count);
+    super.handleRecordException(count, value);
+  }
+
+  /** Throws if `count` can never be stored, whatever the bucket it goes to. */
+  protected checkRecordedCount(count: number) {
     if (count > this.countMax) {
       this.throwCountOverflow(count);
     }
     if (count < this.countMin) {
       this.throwCountUnderflow(count);
     }
-    super.handleRecordException(count, value);
   }
 
   incrementCountAtIndex(index: number) {
